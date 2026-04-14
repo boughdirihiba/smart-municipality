@@ -10,16 +10,30 @@ $route = trim($route, '/');
 
 [$controllerPart, $actionPart] = array_pad(explode('/', $route, 2), 2, 'index');
 
-$controllerName = ucfirst(strtolower($controllerPart)) . 'Controller';
+$controllerKey = strtolower(trim($controllerPart));
+$controllerStem = str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', $controllerKey)));
+$controllerName = $controllerStem . 'Controller';
 $actionName = str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', strtolower($actionPart))));
 $actionName = lcfirst($actionName);
 
 $controllerClass = 'App\\Controllers\\' . $controllerName;
 
 if (!class_exists($controllerClass)) {
-	http_response_code(404);
-	echo 'Controller not found.';
-	exit;
+	// Support legacy/pluralized route names (e.g. "signalements" -> "SignalementController").
+	if (str_ends_with($controllerStem, 's')) {
+		$singularControllerClass = 'App\\Controllers\\' . substr($controllerStem, 0, -1) . 'Controller';
+		if (class_exists($singularControllerClass)) {
+			$controllerClass = $singularControllerClass;
+		} else {
+			http_response_code(404);
+			echo 'Controller not found.';
+			exit;
+		}
+	} else {
+		http_response_code(404);
+		echo 'Controller not found.';
+		exit;
+	}
 }
 
 $controller = new $controllerClass();
