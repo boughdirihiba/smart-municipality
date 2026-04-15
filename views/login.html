@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <link rel="stylesheet" href="views/Login.css">
+</head>
+
+<body>
+
+<div class="main">
+
+<div class="container">
+
+    <div class="brand">
+        <img class="logo" src="views/logo.png" alt="Smart Municipality">
+    </div>
+
+    <form id="loginForm" data-form="login" novalidate action="index.php?route=login" method="post">
+
+        <div class="avatar">
+            <img src="views/admin.jpeg" alt="Photo admin">
+        </div>
+
+        <label for="mail">Email</label>
+        <div class="input-group">
+            <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path fill="currentColor" d="M12 12a4 4 0 1 0-4-4a4 4 0 0 0 4 4m0 2c-4.42 0-8 2-8 4.5V21h16v-2.5c0-2.5-3.58-4.5-8-4.5"/>
+            </svg>
+            <input id="mail" name="mail" type="text" placeholder="Email">
+        </div>
+        <div class="error-message" id="error-mail"></div>
+
+        <label for="motdepasse">Mot de passe</label>
+        <div class="input-group">
+            <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path fill="currentColor" d="M12 17a2 2 0 0 0 2-2a2 2 0 0 0-2-2a2 2 0 0 0-2 2a2 2 0 0 0 2 2m6-6h-1V9a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2m-3 0H9V9a3 3 0 0 1 6 0z"/>
+            </svg>
+            <input id="motdepasse" name="motdepasse" type="password" placeholder="Mot de passe">
+        </div>
+        <div class="error-message" id="error-motdepasse"></div>
+
+        <button type="submit">Se connecter</button>
+
+        <a href="index.php?route=signup">S'inscrire?</a><a href="views/mdp oublié.html">Mot de passe oublié ?</a>
+
+    </form>
+
+</div>
+
+</div>
+<footer class="footer">
+    <a href="views/propos.html">À propos</a>
+    <a href="views/services.html">Services</a>
+    <a href="views/support.html">Support</a>
+    <a href="views/plan.html">Plan du site</a>
+    <a href="views/contact.html">Contact</a>
+</footer>
+
+<script src="Controles/controle.js" defer></script>
+
+</body>
+</html>

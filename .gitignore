@@ -1,0 +1,18 @@
+# Local environment / secrets
+Modules/config.php
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Dependencies (if you add them later)
+/vendor/
+/node_modules/
+
+# Build/cache
+*.cache
