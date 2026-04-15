@@ -1,23 +1,144 @@
 <?php
 
-session_start();
-
-require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/RendezVous.php';
-require_once __DIR__ . '/../PHPMailer/PHPMailer.php';
-require_once __DIR__ . '/../PHPMailer/SMTP.php';
-require_once __DIR__ . '/../PHPMailer/Exception.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception;
 
-$db = new Database();
-$conn = $db->getConnection();
-$rdv = new RendezVous($conn);
+class RendezVousController {
 
-$action = $_POST['action'] ?? $_GET['action'] ?? '';
-$base = '/smart-municipality';
+    public static function create(RendezVous $rdv) {
+        $query = "INSERT INTO " . $rdv->getTable() . " (user_id, categorie_id, date_rdv, heure, statut) 
+                  VALUES (:user_id, :categorie_id, :date_rdv, :heure, :statut)";
+
+        $stmt = $rdv->getConn()->prepare($query);
+        $stmt->bindParam(':user_id', $rdv->getUserId());
+        $stmt->bindParam(':categorie_id', $rdv->getCategorieId());
+        $stmt->bindParam(':date_rdv', $rdv->getDateRdv());
+        $stmt->bindParam(':heure', $rdv->getHeure());
+        $stmt->bindParam(':statut', $rdv->getStatut());
+
+        if ($stmt->execute()) {
+            $rdv->setId($rdv->getConn()->lastInsertId());
+            return true;
+        }
+
+        return false;
+    }
+
+    public static function readAll(RendezVous $rdv) {
+        $query = "SELECT r.*, c.nom AS service_nom, u.nom AS user_nom, u.prenom AS user_prenom, u.email AS user_email 
+                  FROM " . $rdv->getTable() . " r 
+                  JOIN categorie c ON r.categorie_id = c.id 
+                  JOIN users u ON r.user_id = u.id 
+                  ORDER BY r.date_rdv DESC, r.heure ASC";
+
+        $stmt = $rdv->getConn()->prepare($query);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public static function readByUser(RendezVous $rdv, $user_id) {
+        $query = "SELECT r.*, c.nom AS service_nom 
+                  FROM " . $rdv->getTable() . " r 
+                  JOIN categorie c ON r.categorie_id = c.id 
+                  WHERE r.user_id = :user_id 
+                  ORDER BY r.date_rdv DESC, r.heure ASC";
+
+        $stmt = $rdv->getConn()->prepare($query);
+        $stmt->bindParam(':user_id', $user_id);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public static function readOne(RendezVous $rdv, $id) {
+        $query = "SELECT r.*, c.nom AS service_nom 
+                  FROM " . $rdv->getTable() . " r 
+                  JOIN categorie c ON r.categorie_id = c.id 
+                  WHERE r.id = :id";
+
+        $stmt = $rdv->getConn()->prepare($query);
+        $stmt->bindParam(':id', $id);
+        $stmt->execute();
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($row) {
+            $rdv->setId($row['id']);
+            $rdv->setUserId($row['user_id']);
+            $rdv->setCategorieId($row['categorie_id']);
+            $rdv->setDateRdv($row['date_rdv']);
+            $rdv->setHeure($row['heure']);
+            $rdv->setStatut($row['statut']);
+            return $row;
+        }
+
+        return false;
+    }
+
+    public static function update(RendezVous $rdv) {
+        $query = "UPDATE " . $rdv->getTable() . " 
+                  SET categorie_id = :categorie_id, date_rdv = :date_rdv, heure = :heure, statut = :statut 
+                  WHERE id = :id";
+
+        $stmt = $rdv->getConn()->prepare($query);
+        $stmt->bindParam(':categorie_id', $rdv->getCategorieId());
+        $stmt->bindParam(':date_rdv', $rdv->getDateRdv());
+        $stmt->bindParam(':heure', $rdv->getHeure());
+        $stmt->bindParam(':statut', $rdv->getStatut());
+        $stmt->bindParam(':id', $rdv->getId());
+
+        return $stmt->execute();
+    }
+
+    public static function delete(RendezVous $rdv, $id) {
+        $query = "DELETE FROM " . $rdv->getTable() . " WHERE id = :id";
+
+        $stmt = $rdv->getConn()->prepare($query);
+        $stmt->bindParam(':id', $id);
+
+        return $stmt->execute();
+    }
+
+    public static function getAvailableSlots(RendezVous $rdv, $categorie_id, $date_rdv) {
+        $all_slots = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'];
+
+        $query = "SELECT heure FROM " . $rdv->getTable() . " 
+                  WHERE categorie_id = :categorie_id AND date_rdv = :date_rdv AND statut != 'annule'";
+
+        $stmt = $rdv->getConn()->prepare($query);
+        $stmt->bindParam(':categorie_id', $categorie_id);
+        $stmt->bindParam(':date_rdv', $date_rdv);
+        $stmt->execute();
+
+        $booked = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $available = array_diff($all_slots, $booked);
+
+        return array_values($available);
+    }
+
+    public static function isSlotTaken(RendezVous $rdv, $categorie_id, $date_rdv, $heure) {
+        $query = "SELECT COUNT(*) FROM " . $rdv->getTable() . " 
+                  WHERE categorie_id = :categorie_id AND date_rdv = :date_rdv AND heure = :heure AND statut != 'annule'";
+
+        $stmt = $rdv->getConn()->prepare($query);
+        $stmt->bindParam(':categorie_id', $categorie_id);
+        $stmt->bindParam(':date_rdv', $date_rdv);
+        $stmt->bindParam(':heure', $heure);
+        $stmt->execute();
+
+        return $stmt->fetchColumn() > 0;
+    }
+
+    public static function getAllCategories(RendezVous $rdv) {
+        $query = "SELECT * FROM categorie ORDER BY id";
+        $stmt = $rdv->getConn()->prepare($query);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+}
 
 function getUserInfo($conn, $user_id) {
     $stmt = $conn->prepare("SELECT nom, prenom, email FROM users WHERE id = :id");
@@ -104,7 +225,22 @@ function sendConfirmationEmail($toEmail, $prenom, $service, $date, $heure) {
     }
 }
 
-switch ($action) {
+if (realpath($_SERVER['SCRIPT_FILENAME']) === realpath(__FILE__)) {
+    session_start();
+
+    require_once __DIR__ . '/../config/database.php';
+    require_once __DIR__ . '/../PHPMailer/PHPMailer.php';
+    require_once __DIR__ . '/../PHPMailer/SMTP.php';
+    require_once __DIR__ . '/../PHPMailer/Exception.php';
+
+    $db = new Database();
+    $conn = $db->getConnection();
+    $rdv = new RendezVous($conn);
+
+    $action = $_POST['action'] ?? $_GET['action'] ?? '';
+    $base = '/smart-municipality';
+
+    switch ($action) {
 
     case 'create':
 
@@ -266,6 +402,7 @@ switch ($action) {
         exit;
         break;
 
+    }
 }
 
 ?>
