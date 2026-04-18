@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modules\Core;
+namespace Config;
 
 final class View
 {
@@ -11,7 +11,7 @@ final class View
      */
     public static function render(string $viewFile, array $data = []): void
     {
-        $fullPath = __DIR__ . '/../../views/' . $viewFile;
+        $fullPath = __DIR__ . '/../views/' . $viewFile;
         if (!is_file($fullPath)) {
             http_response_code(500);
             echo 'View not found';

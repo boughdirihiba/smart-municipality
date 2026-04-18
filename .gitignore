@@ -1,5 +1,6 @@
 # Local environment / secrets
 Modules/config.php
+config/config.php
 
 # OS / editor
 .DS_Store

@@ -13,3 +13,6 @@ CREATE TABLE IF NOT EXISTS utilisateur (
   PRIMARY KEY (id),
   UNIQUE KEY uq_utilisateur_mail (mail)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- If you already have the table, ensure the password column can store hashes:
+-- ALTER TABLE utilisateur MODIFY mdp VARCHAR(255) NOT NULL;

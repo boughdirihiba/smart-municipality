@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modules\Core;
+namespace Config;
 
 use PDO;
 
@@ -16,8 +16,16 @@ final class Database
             return self::$pdo;
         }
 
-        $config = require __DIR__ . '/../config.php';
-        $db = $config['db'];
+        $configPath = __DIR__ . '/config.php';
+        if (!is_file($configPath)) {
+            $configPath = __DIR__ . '/config.example.php';
+        }
+
+        $config = is_file($configPath) ? require $configPath : [];
+        $db = is_array($config) ? ($config['db'] ?? null) : null;
+        if (!is_array($db)) {
+            throw new \RuntimeException('Database config missing. Create config/config.php from config/config.example.php');
+        }
 
         $dsn = sprintf(
             'mysql:host=%s;port=%d;dbname=%s;charset=%s',
