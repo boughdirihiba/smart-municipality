@@ -1,5 +1,9 @@
 <div class="card">
     <h1><?php echo e($item['titre']); ?></h1>
+    <div class="signalement-meta">
+        <span>Publié par <strong><?php echo e(trim(($item['user_prenom'] ?? '') . ' ' . ($item['user_nom'] ?? 'Utilisateur'))); ?></strong></span>
+        <span><?php echo e($item['user_role'] ?? 'citoyen'); ?></span>
+    </div>
     <p><strong>Catégorie:</strong> <?php echo e($item['categorie']); ?></p>
     <p><strong>Statut:</strong> <span class="badge status-<?php echo e($item['statut']); ?>"><?php echo e($item['statut']); ?></span></p>
     <p><strong>Date:</strong> <?php echo e($item['date_signalement']); ?></p>
@@ -14,7 +18,9 @@
 
     <div style="margin-top:1rem; display:flex; gap:8px;">
         <a class="btn-secondaire" href="<?php echo BASE_URL; ?>/index.php?route=signalements/list">Retour</a>
-        <a class="btn-principal" href="<?php echo BASE_URL; ?>/index.php?route=admin/edit&id=<?php echo (int)$item['id']; ?>">Edition admin</a>
+        <?php if (($_SESSION['user']['role'] ?? 'citoyen') === 'admin'): ?>
+            <a class="btn-principal" href="<?php echo BASE_URL; ?>/index.php?route=admin/edit&id=<?php echo (int)$item['id']; ?>">Edition admin</a>
+        <?php endif; ?>
     </div>
 </div>
 

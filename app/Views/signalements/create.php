@@ -31,6 +31,15 @@
         <label for="description">Description</label>
         <textarea id="description" name="description" placeholder="Décrire le problème en détail" required minlength="10" maxlength="2000"><?php echo e($old['description'] ?? ''); ?></textarea>
 
+        <div class="ai-assistant-box">
+            <div class="ai-assistant-head">
+                <strong>Assistant IA citoyen</strong>
+                <button id="aiAssistBtn" type="button" class="btn-secondaire">Analyser mon brouillon</button>
+            </div>
+            <p class="ai-assistant-sub">Obtenez une catégorie suggérée, une priorité, un titre amélioré et les éléments manquants.</p>
+            <div id="aiAssistResult" class="ai-assistant-result" style="display:none;"></div>
+        </div>
+
         <div class="grid grid-2">
             <div>
                 <label for="latitude">Latitude</label>
@@ -258,4 +267,87 @@ map.on('click', (e) => {
     setMarker(lat, lng);
     autofillAddress(lat, lng);
 });
+
+const aiBtn = document.getElementById('aiAssistBtn');
+const aiResult = document.getElementById('aiAssistResult');
+const titreField = document.getElementById('titre');
+const categorieField = document.getElementById('categorie');
+
+function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[char]));
+}
+
+if (aiBtn && aiResult) {
+    aiBtn.addEventListener('click', async () => {
+        const payload = {
+            titre: titreField ? titreField.value.trim() : '',
+            description: document.getElementById('description') ? document.getElementById('description').value.trim() : '',
+            categorie: categorieField ? categorieField.value.trim() : '',
+            adresse: adresseField ? adresseField.value.trim() : '',
+            quartier: quartierField ? quartierField.value.trim() : ''
+        };
+
+        aiBtn.disabled = true;
+        aiBtn.textContent = 'Analyse en cours...';
+
+        try {
+            const response = await fetch('<?php echo BASE_URL; ?>/index.php?route=signalements/ai-assist', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error('AI request failed');
+            }
+
+            const json = await response.json();
+            if (!json || !json.ok || !json.analysis) {
+                throw new Error('Invalid AI response');
+            }
+
+            const analysis = json.analysis;
+            const missing = Array.isArray(analysis.missing_fields) ? analysis.missing_fields : [];
+
+            aiResult.style.display = 'block';
+            aiResult.innerHTML = `
+                <div class="ai-line"><strong>Titre suggéré:</strong> ${escapeHtml(analysis.suggested_title || '')}</div>
+                <div class="ai-line"><strong>Catégorie suggérée:</strong> ${escapeHtml(analysis.suggested_category || '')}</div>
+                <div class="ai-line"><strong>Priorité estimée:</strong> <span class="badge triage-${escapeHtml(analysis.priority || 'faible')}">${escapeHtml(analysis.priority || 'faible')}</span></div>
+                <div class="ai-line"><strong>Résumé admin:</strong> ${escapeHtml(analysis.admin_summary || '')}</div>
+                <div class="ai-line"><strong>Champs à compléter:</strong> ${missing.length ? escapeHtml(missing.join(' | ')) : 'Aucun'}</div>
+                <div style="margin-top:0.6rem;">
+                    <button id="aiApplyBtn" type="button" class="btn-principal">Appliquer suggestions</button>
+                </div>
+            `;
+
+            const applyBtn = document.getElementById('aiApplyBtn');
+            if (applyBtn) {
+                applyBtn.addEventListener('click', () => {
+                    if (titreField && analysis.suggested_title) {
+                        titreField.value = analysis.suggested_title;
+                    }
+                    if (categorieField && analysis.suggested_category) {
+                        categorieField.value = analysis.suggested_category;
+                    }
+                });
+            }
+        } catch (error) {
+            aiResult.style.display = 'block';
+            aiResult.innerHTML = '<div class="ai-line">Assistant IA indisponible pour le moment. Reessayez dans quelques secondes.</div>';
+        } finally {
+            aiBtn.disabled = false;
+            aiBtn.textContent = 'Analyser mon brouillon';
+        }
+    });
+}
 </script>

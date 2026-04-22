@@ -9,6 +9,7 @@
         <tr>
             <th>ID</th>
             <th>Titre</th>
+            <th>Adresse</th>
             <th>Catégorie</th>
             <th>Statut</th>
             <th>Date</th>
@@ -20,6 +21,7 @@
             <tr>
                 <td><?php echo (int)$item['id']; ?></td>
                 <td><?php echo e($item['titre']); ?></td>
+                <td><?php echo e($item['adresse'] ?? '-'); ?></td>
                 <td><?php echo e($item['categorie']); ?></td>
                 <td><span class="badge status-<?php echo e($item['statut']); ?>"><?php echo e($item['statut']); ?></span></td>
                 <td><?php echo e($item['date_signalement']); ?></td>

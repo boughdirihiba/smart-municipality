@@ -1,0 +1,1 @@
+<?php require BASE_PATH . '/app/Views/signalements/list.php'; ?>

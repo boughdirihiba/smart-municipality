@@ -21,6 +21,8 @@ class Signalement
         try {
             $this->pdo->beginTransaction();
 
+            $entity = $this->toEntity($data);
+
             $locationStmt = $this->pdo->prepare(
                 'INSERT INTO localisations (adresse, quartier, latitude, longitude)
                  VALUES (:adresse, :quartier, :latitude, :longitude)'
@@ -28,34 +30,36 @@ class Signalement
             $locationStmt->execute([
                 ':adresse' => $data['adresse'],
                 ':quartier' => $data['quartier'],
-                ':latitude' => $data['latitude'],
-                ':longitude' => $data['longitude'],
+                ':latitude' => $entity->getLatitude(),
+                ':longitude' => $entity->getLongitude(),
             ]);
 
             $localisationId = (int)$this->pdo->lastInsertId();
+            $entity->setLocalisationId($localisationId);
+            $entityData = $entity->toArray();
 
             $signalementStmt = $this->pdo->prepare(
                 'INSERT INTO signalements (titre, description, image, categorie, latitude, longitude, statut, date_signalement, user_id, localisation_id)
                  VALUES (:titre, :description, :image, :categorie, :latitude, :longitude, :statut, NOW(), :user_id, :localisation_id)'
             );
             $ok = $signalementStmt->execute([
-                ':titre' => $data['titre'],
-                ':description' => $data['description'],
-                ':image' => $data['image'],
-                ':categorie' => $data['categorie'],
-                ':latitude' => $data['latitude'],
-                ':longitude' => $data['longitude'],
-                ':statut' => 'en_attente',
-                ':user_id' => $data['user_id'],
-                ':localisation_id' => $localisationId,
+                ':titre' => $entityData['titre'],
+                ':description' => $entityData['description'],
+                ':image' => $entityData['image'],
+                ':categorie' => $entityData['categorie'],
+                ':latitude' => $entityData['latitude'],
+                ':longitude' => $entityData['longitude'],
+                ':statut' => $entityData['statut'],
+                ':user_id' => $entityData['user_id'],
+                ':localisation_id' => $entityData['localisation_id'],
             ]);
 
             if ($ok) {
                 $signalementId = (int)$this->pdo->lastInsertId();
                 $this->insertPositionHistory(
                     $signalementId,
-                    (float)$data['latitude'],
-                    (float)$data['longitude'],
+                    (float)$entityData['latitude'],
+                    (float)$entityData['longitude'],
                     'citoyen',
                     'Position initiale du signalement'
                 );
@@ -73,6 +77,21 @@ class Signalement
 
             return false;
         }
+    }
+
+    public function toEntity(array $data): SignalementEntity
+    {
+        return SignalementEntity::fromArray($data);
+    }
+
+    public function findEntity(int $id): ?SignalementEntity
+    {
+        $row = $this->find($id);
+        if ($row === null) {
+            return null;
+        }
+
+        return $this->toEntity($row);
     }
 
     private function insertPositionHistory(
@@ -98,9 +117,15 @@ class Signalement
 
     public function allByUser(int $userId): array
     {
-        $sql = 'SELECT s.*, l.adresse, l.quartier
-                FROM signalements s
-                LEFT JOIN localisations l ON l.id = s.localisation_id
+        $sql = 'SELECT s.*, l.adresse, l.quartier,
+                   u.nom AS user_nom,
+                   u.prenom AS user_prenom,
+                   u.email AS user_email,
+                   u.avatar AS user_avatar,
+                   u.role AS user_role
+            FROM signalements s
+            LEFT JOIN localisations l ON l.id = s.localisation_id
+            LEFT JOIN utilisateurs u ON u.id = s.user_id
                 WHERE s.user_id = :user_id
                 ORDER BY s.date_signalement DESC';
 
@@ -111,9 +136,15 @@ class Signalement
 
     public function find(int $id): ?array
     {
-        $sql = 'SELECT s.*, l.adresse, l.quartier
-                FROM signalements s
-                LEFT JOIN localisations l ON l.id = s.localisation_id
+        $sql = 'SELECT s.*, l.adresse, l.quartier,
+                   u.nom AS user_nom,
+                   u.prenom AS user_prenom,
+                   u.email AS user_email,
+                   u.avatar AS user_avatar,
+                   u.role AS user_role
+            FROM signalements s
+            LEFT JOIN localisations l ON l.id = s.localisation_id
+            LEFT JOIN utilisateurs u ON u.id = s.user_id
                 WHERE s.id = :id';
 
         $stmt = $this->pdo->prepare($sql);
@@ -124,9 +155,15 @@ class Signalement
 
     public function allWithFilters(?string $categorie, ?string $statut): array
     {
-        $sql = 'SELECT s.*, l.adresse, l.quartier
-                FROM signalements s
-                LEFT JOIN localisations l ON l.id = s.localisation_id
+        $sql = 'SELECT s.*, l.adresse, l.quartier,
+                   u.nom AS user_nom,
+                   u.prenom AS user_prenom,
+                   u.email AS user_email,
+                   u.avatar AS user_avatar,
+                   u.role AS user_role
+            FROM signalements s
+            LEFT JOIN localisations l ON l.id = s.localisation_id
+            LEFT JOIN utilisateurs u ON u.id = s.user_id
                 WHERE 1=1';
         $params = [];
 
@@ -230,12 +267,16 @@ class Signalement
 
     public function mapData(?string $categorie, ?string $date, ?string $zone): array
     {
-        $sql = 'SELECT s.id, s.titre, s.description, s.image, s.categorie,
+         $sql = 'SELECT s.id, s.titre, s.description, s.image, s.categorie,
                        COALESCE(l.latitude, s.latitude) AS latitude,
                        COALESCE(l.longitude, s.longitude) AS longitude,
-                       s.statut, s.date_signalement, l.adresse, l.quartier
+                  s.statut, s.date_signalement, l.adresse, l.quartier,
+                  u.nom AS user_nom,
+                  u.prenom AS user_prenom,
+                  u.role AS user_role
                 FROM signalements s
                 LEFT JOIN localisations l ON l.id = s.localisation_id
+              LEFT JOIN utilisateurs u ON u.id = s.user_id
                 WHERE 1=1';
         $params = [];
 
@@ -261,6 +302,50 @@ class Signalement
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll();
+        $items = $stmt->fetchAll();
+
+        foreach ($items as &$item) {
+            $item['priority'] = $this->inferPriority($item);
+        }
+        unset($item);
+
+        return $items;
+    }
+
+    private function inferPriority(array $signalement): string
+    {
+        $titre = mb_strtolower((string)($signalement['titre'] ?? ''));
+        $description = mb_strtolower((string)($signalement['description'] ?? ''));
+        $categorie = (string)($signalement['categorie'] ?? '');
+
+        $priorityScore = 0;
+        if (preg_match('/(danger|accident|urgent|bloque|incendie|electrocution|fuite majeure)/u', $description . ' ' . $titre) === 1) {
+            $priorityScore += 3;
+        }
+
+        if (in_array($categorie, ['eau', 'route', 'eclairage'], true)) {
+            $priorityScore += 1;
+        }
+
+        if (mb_strlen($description) >= 120) {
+            $priorityScore += 1;
+        }
+
+        if ($priorityScore >= 4) {
+            return 'urgent';
+        }
+
+        if ($priorityScore >= 2) {
+            return 'moyen';
+        }
+
+        return 'faible';
+    }
+
+    public function countByUser(int $userId): int
+    {
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM signalements WHERE user_id = :user_id');
+        $stmt->execute([':user_id' => $userId]);
+        return (int)$stmt->fetchColumn();
     }
 }

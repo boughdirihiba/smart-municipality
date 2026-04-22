@@ -16,14 +16,52 @@ define('DB_NAME', 'smart_municipality');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 
-if (!isset($_SESSION['user'])) {
+function bootstrap_user_session_from_database(): void
+{
+    if (isset($_SESSION['user'])) {
+        return;
+    }
+
+    try {
+        $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
+        $pdo = new \PDO($dsn, DB_USER, DB_PASS, [
+            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+            \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+        ]);
+
+        $stmt = $pdo->query('SELECT id, nom, prenom, email, avatar, telephone, adresse, role FROM utilisateurs ORDER BY id ASC LIMIT 1');
+        $row = $stmt->fetch();
+
+        if (is_array($row)) {
+            $_SESSION['user'] = [
+                'id' => (int)$row['id'],
+                'nom' => (string)($row['nom'] ?? ''),
+                'prenom' => (string)($row['prenom'] ?? ''),
+                'email' => (string)($row['email'] ?? ''),
+                'avatar' => (string)($row['avatar'] ?? 'sidebar-photo.svg'),
+                'telephone' => (string)($row['telephone'] ?? ''),
+                'adresse' => (string)($row['adresse'] ?? ''),
+                'role' => (string)($row['role'] ?? 'citoyen'),
+            ];
+            return;
+        }
+    } catch (\Throwable $e) {
+        // Fallback below when DB is unavailable or table is missing.
+    }
+
     $_SESSION['user'] = [
         'id' => 1,
-        'nom' => 'Citoyen Demo',
+        'nom' => 'Demo',
+        'prenom' => 'Citoyen',
         'email' => 'citoyen@demo.tn',
+        'avatar' => 'sidebar-photo.svg',
+        'telephone' => '',
+        'adresse' => '',
         'role' => 'citoyen',
     ];
 }
+
+bootstrap_user_session_from_database();
 
 function e(string $value): string
 {

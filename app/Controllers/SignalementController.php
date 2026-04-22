@@ -18,7 +18,7 @@ class SignalementController extends Controller
 
     public function create(): void
     {
-        $this->render('signalements/create', [
+        $this->render('frontoffice/signalements/create', [
             'title' => 'Créer un signalement',
             'errors' => [],
             'old' => [],
@@ -45,7 +45,7 @@ class SignalementController extends Controller
         }
 
         if (!empty($errors)) {
-            $this->render('signalements/create', [
+            $this->render('frontoffice/signalements/create', [
                 'title' => 'Créer un signalement',
                 'errors' => $errors,
                 'old' => $data,
@@ -78,7 +78,7 @@ class SignalementController extends Controller
     public function list(): void
     {
         $items = $this->model->allByUser((int)$_SESSION['user']['id']);
-        $this->render('signalements/list', [
+        $this->render('frontoffice/signalements/list', [
             'title' => 'Mes signalements',
             'items' => $items,
         ]);
@@ -96,11 +96,149 @@ class SignalementController extends Controller
 
         $history = $this->model->positionHistory($id);
 
-        $this->render('signalements/detail', [
+        $this->render('frontoffice/signalements/detail', [
             'title' => 'Détail signalement',
             'item' => $item,
             'history' => $history,
         ]);
+    }
+
+    public function aiAssist(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['ok' => false, 'message' => 'Method not allowed']);
+            return;
+        }
+
+        $payloadRaw = file_get_contents('php://input');
+        $payload = json_decode((string)$payloadRaw, true);
+        if (!is_array($payload)) {
+            $payload = $_POST;
+        }
+
+        $data = [
+            'titre' => trim((string)($payload['titre'] ?? '')),
+            'description' => trim((string)($payload['description'] ?? '')),
+            'adresse' => trim((string)($payload['adresse'] ?? '')),
+            'quartier' => trim((string)($payload['quartier'] ?? '')),
+            'categorie' => trim((string)($payload['categorie'] ?? '')),
+        ];
+
+        $analysis = $this->buildAiSuggestions($data);
+
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'ok' => true,
+            'analysis' => $analysis,
+        ], JSON_UNESCAPED_UNICODE);
+    }
+
+    private function buildAiSuggestions(array $data): array
+    {
+        $description = mb_strtolower((string)$data['description']);
+        $titre = trim((string)$data['titre']);
+        $adresse = trim((string)$data['adresse']);
+        $quartier = trim((string)$data['quartier']);
+
+        $categoryKeywords = [
+            'eau' => ['fuite', 'eau', 'canalisation', 'egout', 'inondation'],
+            'eclairage' => ['eclairage', 'lampadaire', 'lampe', 'obscur', 'panne de lumiere'],
+            'route' => ['nid-de-poule', 'chauss', 'route', 'trottoir', 'trou'],
+            'transport' => ['bus', 'arret', 'transport', 'circulation', 'embouteillage'],
+            'ordures' => ['ordure', 'dechet', 'poubelle', 'salete', 'decharge'],
+        ];
+
+        $categoryScores = [
+            'route' => 0,
+            'eclairage' => 0,
+            'eau' => 0,
+            'transport' => 0,
+            'ordures' => 0,
+            'autre' => 0,
+        ];
+
+        foreach ($categoryKeywords as $cat => $words) {
+            foreach ($words as $word) {
+                if (mb_strpos($description, $word) !== false || mb_strpos(mb_strtolower($titre), $word) !== false) {
+                    $categoryScores[$cat] += 2;
+                }
+            }
+        }
+
+        $suggestedCategory = 'autre';
+        $maxScore = 0;
+        foreach ($categoryScores as $cat => $score) {
+            if ($score > $maxScore) {
+                $maxScore = $score;
+                $suggestedCategory = $cat;
+            }
+        }
+
+        $priorityScore = 0;
+        $priorityTriggers = [];
+        if (preg_match('/(danger|accident|urgent|bloque|incendie|electrocution|fuite majeure)/u', $description . ' ' . mb_strtolower($titre)) === 1) {
+            $priorityScore += 3;
+            $priorityTriggers[] = 'mot critique';
+        }
+        if (in_array($suggestedCategory, ['eau', 'route', 'eclairage'], true)) {
+            $priorityScore += 1;
+            $priorityTriggers[] = 'categorie sensible';
+        }
+        if (mb_strlen($description) >= 120) {
+            $priorityScore += 1;
+            $priorityTriggers[] = 'description detaillee';
+        }
+
+        $priority = 'faible';
+        if ($priorityScore >= 4) {
+            $priority = 'urgent';
+        } elseif ($priorityScore >= 2) {
+            $priority = 'moyen';
+        }
+
+        $missing = [];
+        if (mb_strlen($titre) < 5) {
+            $missing[] = 'Titre trop court';
+        }
+        if (mb_strlen($description) < 30) {
+            $missing[] = 'Description manque de detail';
+        }
+        if ($adresse === '') {
+            $missing[] = 'Adresse manquante';
+        }
+        if ($quartier === '') {
+            $missing[] = 'Quartier non renseigne';
+        }
+
+        $locationLabel = $quartier !== '' ? $quartier : ($adresse !== '' ? $adresse : 'zone non precisee');
+        $categoryLabels = [
+            'route' => 'voirie',
+            'eclairage' => 'eclairage public',
+            'eau' => 'reseau d eau',
+            'transport' => 'transport',
+            'ordures' => 'gestion des dechets',
+            'autre' => 'service municipal',
+        ];
+
+        $suggestedTitle = $titre;
+        if (mb_strlen($suggestedTitle) < 5) {
+            $suggestedTitle = 'Probleme de ' . ($categoryLabels[$suggestedCategory] ?? 'service') . ' a ' . $locationLabel;
+        }
+
+        $adminSummary = 'Signalement classe en priorite ' . $priority
+            . ' (' . implode(', ', $priorityTriggers ?: ['analyse standard']) . ')'
+            . '. Categorie proposee: ' . $suggestedCategory
+            . '. Zone: ' . $locationLabel . '.';
+
+        return [
+            'suggested_title' => $suggestedTitle,
+            'suggested_category' => $suggestedCategory,
+            'priority' => $priority,
+            'missing_fields' => $missing,
+            'admin_summary' => $adminSummary,
+        ];
     }
 
     private function validate(array $data, ?array $image): array

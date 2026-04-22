@@ -37,7 +37,9 @@
 
   const markers = [];
   const sourceIds = {
-    criticalZones: 'critical-zones-source'
+    criticalZones: 'critical-zones-source',
+    signalements: 'signalements-source',
+    tunisia: 'tunisia-source'
   };
 
   let map = null;
@@ -124,6 +126,14 @@
     return 'orange';
   }
 
+  function priorityColor(priority, statut) {
+    if (priority === 'urgent') return '#dc2626';
+    if (priority === 'moyen') return '#f59e0b';
+    if (priority === 'faible') return '#16a34a';
+
+    return statusColor(statut);
+  }
+
   function escapeHtml(v) {
     return String(v || '').replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
   }
@@ -134,6 +144,7 @@
 
   function buildSignalementPopup(it, lat, lng, showActions = true) {
     const detailsUrl = `${window.location.origin}${window.location.pathname}?route=signalements/detail&id=${encodeURIComponent(it.id)}`;
+    const adminEditUrl = `${window.location.origin}${window.location.pathname}?route=admin/edit&id=${encodeURIComponent(it.id)}`;
     const imageHtml = it.image_url
       ? `<img src="${it.image_url}" alt="photo" style="width:100%; max-width:220px; height:110px; object-fit:cover; border-radius:12px; margin-top:8px; border:1px solid #dbe6ef;">`
       : '';
@@ -162,6 +173,7 @@
         ${showActions ? `
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
           <a href="${detailsUrl}" style="display:inline-flex; align-items:center; justify-content:center; padding:7px 10px; background:linear-gradient(135deg,#2FA084,#0f3b2c); color:#fff; text-decoration:none; border-radius:999px; font-size:11px; font-weight:700; box-shadow:0 10px 18px rgba(15,59,44,0.18);">Voir détail</a>
+          ${cfg.isAdmin ? `<a href="${adminEditUrl}" style="display:inline-flex; align-items:center; justify-content:center; padding:7px 10px; background:#1d4ed8; color:#fff; text-decoration:none; border-radius:999px; font-size:11px; font-weight:700;">Modifier</a>` : ''}
           <a href="${openStreetMapLink(lat, lng)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; justify-content:center; padding:7px 10px; background:#e2e8f0; color:#0f172a; text-decoration:none; border-radius:999px; font-size:11px; font-weight:700;">Ouvrir</a>
         </div>` : ''}
       </div>
@@ -169,19 +181,25 @@
   }
 
   function clearMarkers() {
-    while (markers.length) {
-      markers.pop().remove();
-    }
+    markers.length = 0;
   }
 
   function markerElement(color) {
     const pin = document.createElement('div');
     pin.style.position = 'relative';
     pin.style.width = '22px';
-    pin.style.height = '30px';
+    pin.style.height = '34px';
     pin.style.cursor = 'pointer';
+    pin.style.pointerEvents = 'none';
+    pin.style.willChange = 'transform';
+    pin.style.backfaceVisibility = 'hidden';
+    pin.style.WebkitBackfaceVisibility = 'hidden';
 
     const head = document.createElement('div');
+    head.style.position = 'absolute';
+    head.style.top = '0';
+    head.style.left = '50%';
+    head.style.transform = 'translateX(-50%)';
     head.style.width = '22px';
     head.style.height = '22px';
     head.style.borderRadius = '50%';
@@ -198,7 +216,7 @@
     tip.style.transform = 'translateX(-50%)';
     tip.style.borderLeft = '6px solid transparent';
     tip.style.borderRight = '6px solid transparent';
-    tip.style.borderTop = `10px solid ${color}`;
+    tip.style.borderTop = `12px solid ${color}`;
     tip.style.filter = 'drop-shadow(0 3px 4px rgba(0,0,0,0.25))';
 
     pin.appendChild(head);
@@ -299,10 +317,18 @@
     const pin = document.createElement('div');
     pin.style.position = 'relative';
     pin.style.width = '26px';
-    pin.style.height = '34px';
+    pin.style.height = '40px';
     pin.style.cursor = 'pointer';
+    pin.style.pointerEvents = 'none';
+    pin.style.willChange = 'transform';
+    pin.style.backfaceVisibility = 'hidden';
+    pin.style.WebkitBackfaceVisibility = 'hidden';
 
     const head = document.createElement('div');
+    head.style.position = 'absolute';
+    head.style.top = '0';
+    head.style.left = '50%';
+    head.style.transform = 'translateX(-50%)';
     head.style.width = '26px';
     head.style.height = '26px';
     head.style.borderRadius = '50%';
@@ -319,7 +345,7 @@
     tip.style.transform = 'translateX(-50%)';
     tip.style.borderLeft = '7px solid transparent';
     tip.style.borderRight = '7px solid transparent';
-    tip.style.borderTop = '11px solid #2563eb';
+    tip.style.borderTop = '14px solid #2563eb';
 
     pin.appendChild(head);
     pin.appendChild(tip);
@@ -332,11 +358,61 @@
   function addTunisiaPin() {
     if (!map || !maplibreRef) return;
 
-    const tunisiaMarker = new maplibreRef.Marker({ element: tunisiaPinElement() })
-      .setLngLat(TUNISIA_COORDS)
-      .setPopup(new maplibreRef.Popup({ offset: 14 }).setHTML('<strong>Tunisie</strong><br>Cliquez sur le pin pour aller a Tunis.'));
+    const geojson = {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: {
+            name: 'Tunisie'
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: TUNISIA_COORDS
+          }
+        }
+      ]
+    };
 
-    tunisiaMarker.addTo(map);
+    if (!map.getSource(sourceIds.tunisia)) {
+      map.addSource(sourceIds.tunisia, {
+        type: 'geojson',
+        data: geojson
+      });
+
+      map.addLayer({
+        id: 'tunisia-circle',
+        type: 'circle',
+        source: sourceIds.tunisia,
+        paint: {
+          'circle-radius': 13,
+          'circle-color': '#2563eb',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+    }
+
+    map.off('click', 'tunisia-circle', () => {
+      flyToTunisAndLoad();
+    });
+    map.on('click', 'tunisia-circle', () => {
+      flyToTunisAndLoad();
+    });
+
+    map.off('mouseenter', 'tunisia-circle', () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseenter', 'tunisia-circle', () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+
+    map.off('mouseleave', 'tunisia-circle', () => {
+      map.getCanvas().style.cursor = '';
+    });
+    map.on('mouseleave', 'tunisia-circle', () => {
+      map.getCanvas().style.cursor = '';
+    });
   }
 
   function addViewModeControl() {
@@ -508,6 +584,9 @@
     const bounds = new maplibreRef.LngLatBounds();
     const safeItems = Array.isArray(items) ? items : [];
 
+    const features = [];
+    const signalementMap = {};
+
     safeItems.forEach((it) => {
       const lng = Number(it.longitude);
       const lat = Number(it.latitude);
@@ -515,23 +594,109 @@
         return;
       }
 
-      const markerNode = markerElement(statusColor(it.statut));
+      const color = priorityColor(it.priority, it.statut);
+      features.push({
+        type: 'Feature',
+        properties: {
+          id: it.id,
+          color: color,
+          statut: it.statut
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [lng, lat]
+        }
+      });
 
-      const fullPopup = new maplibreRef.Popup({
-        anchor: 'top',
-        offset: 18,
-        closeButton: true,
-        closeOnClick: true,
-        maxWidth: '240px'
-      }).setLngLat([lng, lat]).setHTML(buildSignalementPopup(it, lat, lng, true));
-
-      const marker = new maplibreRef.Marker({ element: markerNode })
-        .setLngLat([lng, lat]);
-
-      marker.addTo(map);
-      attachMarkerPopupInteractions(markerNode, fullPopup, lng, lat);
-      markers.push(marker);
+      signalementMap[it.id] = it;
       bounds.extend([lng, lat]);
+    });
+
+    const geojson = {
+      type: 'FeatureCollection',
+      features
+    };
+
+    if (map.getSource(sourceIds.signalements)) {
+      map.getSource(sourceIds.signalements).setData(geojson);
+    } else {
+      map.addSource(sourceIds.signalements, {
+        type: 'geojson',
+        data: geojson
+      });
+
+      map.addLayer({
+        id: 'signalements-circle',
+        type: 'circle',
+        source: sourceIds.signalements,
+        paint: {
+          'circle-radius': 11,
+          'circle-color': ['get', 'color'],
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-opacity': 1
+        }
+      });
+
+      map.addLayer({
+        id: 'signalements-highlight',
+        type: 'circle',
+        source: sourceIds.signalements,
+        paint: {
+          'circle-radius': 14,
+          'circle-color': 'transparent',
+          'circle-stroke-width': 1,
+          'circle-stroke-color': 'rgba(255, 255, 255, 0.5)'
+        },
+        filter: ['boolean', ['feature-state', 'hover'], false]
+      });
+    }
+
+    if (!map.getLayer('signalements-circle')) {
+      map.addLayer({
+        id: 'signalements-circle',
+        type: 'circle',
+        source: sourceIds.signalements,
+        paint: {
+          'circle-radius': 11,
+          'circle-color': ['get', 'color'],
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-opacity': 1
+        }
+      });
+    }
+
+    if (!map.getLayer('signalements-highlight')) {
+      map.addLayer({
+        id: 'signalements-highlight',
+        type: 'circle',
+        source: sourceIds.signalements,
+        paint: {
+          'circle-radius': 14,
+          'circle-color': 'transparent',
+          'circle-stroke-width': 1,
+          'circle-stroke-color': 'rgba(255, 255, 255, 0.5)'
+        },
+        filter: ['boolean', ['feature-state', 'hover'], false]
+      });
+    }
+
+    map.off('click', 'signalements-circle', handleSignalementClick);
+    map.on('click', 'signalements-circle', (e) => handleSignalementClick(e, signalementMap));
+
+    map.off('mouseenter', 'signalements-circle', () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseenter', 'signalements-circle', () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+
+    map.off('mouseleave', 'signalements-circle', () => {
+      map.getCanvas().style.cursor = '';
+    });
+    map.on('mouseleave', 'signalements-circle', () => {
+      map.getCanvas().style.cursor = '';
     });
 
     drawCriticalZones(safeItems);
@@ -545,6 +710,29 @@
     }
 
     clearMapStatus();
+  }
+
+  function handleSignalementClick(e, signalementMap) {
+    if (!e.features.length) return;
+
+    const feature = e.features[0];
+    const it = signalementMap[feature.properties.id];
+    if (!it) return;
+
+    const lng = Number(it.longitude);
+    const lat = Number(it.latitude);
+
+    zoomToSignalement(lng, lat);
+
+    const popup = new maplibreRef.Popup({
+      anchor: 'top',
+      offset: 18,
+      closeButton: true,
+      closeOnClick: true,
+      maxWidth: '240px'
+    }).setLngLat([lng, lat]).setHTML(buildSignalementPopup(it, lat, lng, true));
+
+    popup.addTo(map);
   }
 
   function initMap() {

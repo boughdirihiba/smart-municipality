@@ -1,0 +1,1 @@
+<?php require BASE_PATH . '/app/Views/admin/edit.php'; ?>
