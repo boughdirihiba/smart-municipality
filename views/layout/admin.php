@@ -85,6 +85,7 @@ $icon = static function (string $key): string {
   <link rel="stylesheet" href="<?= $h($asset('assets/css/app.css')) ?>">
   <link rel="stylesheet" href="<?= $h($asset('assets/css/admin.css')) ?>">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <script defer src="<?= $h($asset('assets/js/form-validation.js')) ?>"></script>
 </head>
 <body class="<?= $isDark ? 'theme-dark' : '' ?>">
   <div class="admin-shell">

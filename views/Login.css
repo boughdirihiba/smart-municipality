@@ -1,181 +1,324 @@
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
 }
 
+/*
+  This file is intentionally an "auth + simple pages" layer.
+  Base design tokens and primitives come from assets/css/theme.css.
+*/
+
 body {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
 }
 
 .main {
-    flex: 1;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-image: url("back.png");
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+                flex: 1;
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 28px 16px 44px;
 }
 
+/* Keep these pages intentionally narrow (auth-like) */
 .container {
-    text-align: center;
+                width: min(520px, calc(100% - 32px));
+                margin: 0 auto;
+}
+
+/* Auth shell (navbar + card) */
+.auth-shell {
+                width: min(1120px, calc(100% - 48px));
+                margin: 0 auto;
+}
+
+.auth-topbar {
+                position: sticky;
+                top: 0;
+                z-index: 50;
+                height: 72px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 14px;
+                padding: 12px 16px;
+                border-radius: 18px;
+                background: rgba(245, 247, 251, 0.85);
+                border: 1px solid var(--border);
+                box-shadow: var(--shadow);
+                backdrop-filter: saturate(180%) blur(12px);
+                margin-bottom: 18px;
+}
+
+.auth-topbarLogo {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+}
+
+.auth-topbarLogo img {
+                width: 52px;
+                height: 52px;
+                object-fit: contain;
+}
+
+.auth-topbarLinks {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+}
+
+.auth-topbarLinks a {
+                color: rgba(15, 23, 42, 0.72);
+                text-decoration: none;
+                font-weight: 700;
+                font-size: 13px;
+                padding: 10px 12px;
+                border-radius: 12px;
+                transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.auth-topbarLinks a:hover {
+                background: var(--green-50);
+                color: rgba(15, 23, 42, 0.92);
+                transform: translateY(-1px);
+}
+
+.auth-card {
+                padding: 32px;
+                border-radius: 20px;
 }
 
 .brand {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin-bottom: 70px;
-    position: relative;
-    z-index: 2;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 14px;
 }
 
 .logo {
-    width: 200px;
-    height: 200px;
-    object-fit: contain;
+                width: 104px;
+                height: 104px;
+                object-fit: contain;
 }
 
 .title {
-    font-size: 28px;
-    color: #2e7d32;
-    font-weight: bold;
+                font-size: 20px;
+                color: var(--green-700);
+                font-weight: 900;
+                font-family: Poppins, Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+                margin: 0 0 10px;
 }
 
-form {
-    background: white;
-    position: relative;
-    padding: 70px 30px 30px;
-    width: 350px;
-    border-radius: 15px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+/* Forms (auth pages) */
+.auth-card form {
+                position: relative;
+                padding: 0;
+                border-radius: 0;
+                background: transparent;
 }
 
 .avatar {
-    position: absolute;
-    top: -48px;
-    left: 50%;
-    transform: translateX(-50%);
+                display: flex;
+                justify-content: center;
+                margin: 2px 0 16px;
 }
 
 .avatar img {
-    width: 96px;
-    height: 96px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 3px solid #2e7d32;
+                width: 76px;
+                height: 76px;
+                border-radius: 16px;
+                object-fit: cover;
+                border: 1px solid var(--border);
+                box-shadow: var(--shadow);
 }
 
 .form-row {
-    display: flex;
-    gap: 12px;
+                display: flex;
+                gap: 12px;
 }
 
 .form-group {
-    flex: 1;
-    min-width: 0;
+        flex: 1;
+        min-width: 0;
 }
 
 label {
-    display: block;
-    text-align: left;
-    margin-bottom: 0px;
-    font-weight: 500;
+                display: block;
+                text-align: left;
+                margin: 0 0 6px;
+                font-weight: 800;
+                font-size: 12px;
+                color: rgba(15, 23, 42, 0.78);
+                letter-spacing: 0.2px;
 }
 
 .input-group {
-    position: relative;
-    margin-bottom: 8px;
+                position: relative;
+                margin-bottom: 8px;
 }
 
 .input-group .input-icon {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 18px;
-    height: 18px;
-    color: #2e7d32;
-    opacity: 0.9;
-    pointer-events: none;
-    display: block;
+                position: absolute;
+                left: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 18px;
+                height: 18px;
+                color: var(--green-700);
+                opacity: 0.75;
+                pointer-events: none;
+                display: block;
 }
 
-input {
-    width: 100%;
-    padding: 12px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    font-size: 14px;
+/* Design-system input, tuned for auth */
+.auth-card .input {
+                height: 46px;
+                border-radius: 12px;
+                padding: 12px 12px;
+                background: #ffffff;
+                transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.input-group input {
-    padding-left: 42px;
-    margin-bottom: 0;
+.input-group .input {
+                padding-left: 42px;
+}
+
+.auth-card .input:focus {
+                outline: none;
+                border-color: rgba(22, 163, 74, 0.70);
+                box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
 }
 
 input.is-invalid {
-    border-color: #dc2626;
+                border-color: #ef4444;
 }
 
 .error-message {
-    text-align: left;
-    margin-top: 2px;
-    margin-bottom: 6px;
-    font-size: 12px;
-    color: #dc2626;
-    min-height: 14px;
+        text-align: left;
+        margin-top: 2px;
+        margin-bottom: 10px;
+        font-size: 12px;
+        color: #ef4444;
+        min-height: 14px;
 }
 
-button {
-    width: 100%;
-    padding: 12px;
-    background: #2e7d32;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 16px;
-    margin-top: 10px;
+/* Buttons: match dashboard primary CTA, but with premium hover/focus */
+.auth-card .btn {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 16px;
+        font-weight: 900;
+        transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
 }
 
-button:hover {
-    background: #1b5e20;
+.auth-card .btn.btn-primary:hover {
+        transform: translateY(-1px) scale(1.01);
+        filter: brightness(1.02);
 }
 
-a {
-    display: block;
-    margin-top: 15px;
-    color: #2e7d32;
-    text-decoration: none;
-    font-size: 14px;
+.auth-card .btn:focus {
+        outline: none;
 }
 
-a:hover {
-    text-decoration: underline;
+.auth-card .btn:focus-visible {
+        box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18), var(--shadow);
 }
+
+/* Links inside auth card */
+.auth-card a {
+        display: block;
+        margin-top: 12px;
+        color: var(--green-700);
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 700;
+}
+
+.auth-card a:hover {
+        color: var(--green-600);
+        text-decoration: underline;
+}
+
+/* Simple non-auth pages in pages.php should still look like a premium card */
+.container > form {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        box-shadow: var(--shadow);
+        padding: 32px;
+}
+
 .footer {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    font-size: 13px;
-    padding: 14px 20px;
-    background: #f1f5f9;
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                gap: 20px;
+                font-size: 13px;
+                padding: 14px 20px;
+                background: transparent;
+                border-top: 1px solid rgba(15, 23, 42, 0.06);
 }
 
 .footer a {
-    color: #555;
-    text-decoration: none;
+                color: rgba(15, 23, 42, 0.62);
+                text-decoration: none;
+                font-weight: 700;
 }
 
 .footer a:hover {
-    color: #2e7d32;
+                color: var(--green-700);
+}
+
+@media (max-width: 820px) {
+        .auth-topbarLinks {
+                display: none;
+        }
+}
+
+@media (max-width: 520px) {
+        .form-row {
+                flex-direction: column;
+        }
+
+                .main {
+                        padding: 18px 12px 32px;
+                }
+
+                .container {
+                        width: min(520px, calc(100% - 24px));
+                }
+
+                .auth-card {
+                        padding: 22px;
+                }
+
+                .container > form {
+                        padding: 22px;
+                }
+
+                .logo {
+                        width: 92px;
+                        height: 92px;
+                }
+}
+
+.auth-title {
+    margin-top: 10px;
+    font-family: Poppins, Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-weight: 800;
+    font-size: 28px;
+    letter-spacing: -0.3px;
+}
+
+.auth-subtitle {
+    margin-top: 6px;
+    color: rgba(15, 23, 42, 0.66);
+    line-height: 1.55;
+    font-size: 13px;
 }

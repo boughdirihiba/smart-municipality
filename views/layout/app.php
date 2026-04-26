@@ -62,6 +62,7 @@ $navItems = [
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= $h($asset('assets/css/theme.css')) ?>">
   <link rel="stylesheet" href="<?= $h($asset('assets/css/app.css')) ?>">
+  <script defer src="<?= $h($asset('assets/js/form-validation.js')) ?>"></script>
 </head>
 <body class="<?= $isDark ? 'theme-dark' : '' ?>">
   <div class="app-shell">

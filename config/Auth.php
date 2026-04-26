@@ -8,30 +8,11 @@ use Models\User;
 
 final class Auth
 {
-    /** @var array<string,mixed>|null */
-    private static ?array $config = null;
-
-    /** @return array<string,mixed> */
-    private static function config(): array
-    {
-        if (self::$config !== null) {
-            return self::$config;
-        }
-
-        $configPath = __DIR__ . '/config.php';
-        if (!is_file($configPath)) {
-            $configPath = __DIR__ . '/config.example.php';
-        }
-
-        $cfg = is_file($configPath) ? require $configPath : [];
-        self::$config = is_array($cfg) ? $cfg : [];
-        return self::$config;
-    }
+    private const ADMIN_EMAIL = 'fourat.akrout@gmail.com';
 
     private static function adminEmail(): string
     {
-        $cfg = self::config();
-        return (string)($cfg['admin_email'] ?? '');
+        return self::ADMIN_EMAIL;
     }
 
     public static function startSession(): void

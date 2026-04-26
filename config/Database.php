@@ -1,51 +1,50 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Config;
 
-use PDO;
-
-final class Database
+class Database
 {
-    private static ?PDO $pdo = null;
+    private $host = "localhost";
+    private $port = 3305;
+    private $db_name = "projet";
+    private $username = "root";
+    private $password = "";
+    private $conn;
 
-    public static function pdo(): PDO
+    public function getConnection(): \PDO
     {
-        if (self::$pdo instanceof PDO) {
-            return self::$pdo;
+        $this->conn = null;
+
+        try {
+            $hosts = [$this->host];
+            if ($this->host === 'localhost') {
+                $hosts[] = '127.0.0.1';
+            } elseif ($this->host === '127.0.0.1') {
+                $hosts[] = 'localhost';
+            }
+
+            $lastError = null;
+            foreach ($hosts as $h) {
+                try {
+                    $this->conn = new \PDO(
+                        'mysql:host=' . $h . ';port=' . (int)$this->port . ';dbname=' . $this->db_name . ';charset=utf8',
+                        $this->username,
+                        $this->password
+                    );
+                    $this->conn->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+                    return $this->conn;
+                } catch (\PDOException $e) {
+                    $lastError = $e;
+                }
+            }
+
+            if ($lastError instanceof \PDOException) {
+                throw $lastError;
+            }
+
+            throw new \PDOException('Erreur de connexion (cause inconnue)');
+        } catch (\PDOException $e) {
+            die('Erreur de connexion : ' . $e->getMessage());
         }
-
-        $configPath = __DIR__ . '/config.php';
-        if (!is_file($configPath)) {
-            $configPath = __DIR__ . '/config.example.php';
-        }
-
-        $config = is_file($configPath) ? require $configPath : [];
-        $db = is_array($config) ? ($config['db'] ?? null) : null;
-        if (!is_array($db)) {
-            throw new \RuntimeException('Database config missing. Create config/config.php from config/config.example.php');
-        }
-
-        $dsn = sprintf(
-            'mysql:host=%s;port=%d;dbname=%s;charset=%s',
-            $db['host'],
-            (int) $db['port'],
-            $db['name'],
-            $db['charset']
-        );
-
-        self::$pdo = new PDO(
-            $dsn,
-            $db['user'],
-            $db['pass'],
-            [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false,
-            ]
-        );
-
-        return self::$pdo;
     }
 }
