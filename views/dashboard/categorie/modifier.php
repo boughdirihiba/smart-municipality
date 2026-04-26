@@ -7,7 +7,12 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     exit();
 }
 
-$id = $_GET['id'] ?? 0;
+$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+if ($id <= 0) {
+    header('Location: liste.php');
+    exit();
+}
+
 $categorieC = new CategorieEvenementC();
 $categorie = $categorieC->afficherCategorieParId($id);
 
@@ -17,79 +22,50 @@ if (!$categorie) {
 }
 
 $errors = [];
-$formData = [
+$old = [
     'nom' => $categorie['nom'],
     'description' => $categorie['description'],
     'image_url' => $categorie['image_url']
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $formData['nom'] = trim($_POST['nom'] ?? '');
-    $formData['description'] = trim($_POST['description'] ?? '');
+    $old['nom'] = trim($_POST['nom'] ?? '');
+    $old['description'] = trim($_POST['description'] ?? '');
+    $old['image_url'] = trim($_POST['image_url'] ?? '');
     
-    if (empty($formData['nom'])) {
+    // ========== VALIDATION NOM ==========
+    if (empty($old['nom'])) {
         $errors['nom'] = 'Le nom est obligatoire';
-    } elseif (strlen($formData['nom']) < 2) {
+    } elseif (strlen($old['nom']) < 2) {
         $errors['nom'] = 'Le nom doit contenir au moins 2 caractères';
+    } elseif (strlen($old['nom']) > 100) {
+        $errors['nom'] = 'Le nom ne peut pas dépasser 100 caractères';
     }
     
-    if (empty($formData['description'])) {
+    // ========== VALIDATION DESCRIPTION ==========
+    if (empty($old['description'])) {
         $errors['description'] = 'La description est obligatoire';
-    } elseif (strlen($formData['description']) < 10) {
+    } elseif (strlen($old['description']) < 10) {
         $errors['description'] = 'La description doit contenir au moins 10 caractères';
+    } elseif (strlen($old['description']) > 500) {
+        $errors['description'] = 'La description ne peut pas dépasser 500 caractères';
     }
     
-    // Gestion de l'upload d'image
-    $image_url = $formData['image_url']; // Garder l'ancienne image par défaut
-    
-    // Vérifier si l'utilisateur veut supprimer l'image
-    if (isset($_POST['remove_image']) && $_POST['remove_image'] == '1') {
-        // Supprimer l'ancien fichier
-        if ($image_url && file_exists('../../../' . $image_url)) {
-            unlink('../../../' . $image_url);
-        }
-        $image_url = null;
-    }
-    
-    // Vérifier si une nouvelle image est uploadée
-    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-        $uploadDir = __DIR__ . '/../../../uploads/categories/';
-        
-        if (!file_exists($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
-        }
-        
-        $fileInfo = pathinfo($_FILES['image']['name']);
-        $extension = strtolower($fileInfo['extension']);
-        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-        
-        if (!in_array($extension, $allowedExtensions)) {
-            $errors['image'] = 'Format non supporté';
-        } elseif ($_FILES['image']['size'] > 5 * 1024 * 1024) {
-            $errors['image'] = 'L\'image ne doit pas dépasser 5Mo';
-        } else {
-            // Supprimer l'ancienne image si elle existe
-            if ($image_url && file_exists('../../../' . $image_url)) {
-                unlink('../../../' . $image_url);
-            }
-            
-            $newFileName = uniqid('categorie_') . '.' . $extension;
-            $uploadPath = $uploadDir . $newFileName;
-            
-            if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadPath)) {
-                $image_url = 'uploads/categories/' . $newFileName;
-            } else {
-                $errors['image'] = 'Erreur lors de l\'upload';
-            }
+    // ========== VALIDATION IMAGE URL ==========
+    if (!empty($old['image_url'])) {
+        if (!filter_var($old['image_url'], FILTER_VALIDATE_URL)) {
+            $errors['image_url'] = 'L\'URL de l\'image n\'est pas valide';
         }
     }
     
+    // ========== MISE À JOUR ==========
     if (empty($errors)) {
         require_once __DIR__ . '/../../../model/CategorieEvenement.php';
-        $categorieObj = new CategorieEvenement($formData['nom'], $formData['description'], $image_url);
+        $categorieObj = new CategorieEvenement($old['nom'], $old['description'], $old['image_url']);
         
         if ($categorieC->modifierCategorie($categorieObj, $id)) {
-            header('Location: liste.php?success=1');
+            $_SESSION['success'] = 'Catégorie modifiée avec succès';
+            header('Location: liste.php');
             exit();
         } else {
             $errors['global'] = 'Erreur lors de la modification';
@@ -106,149 +82,109 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Modifier une catégorie - Smart Municipality</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary-green: #2e7d32;
-            --secondary-green: #4caf50;
-            --light-green: #e8f5e9;
-        }
+        :root { --primary: #1a5e2a; --gradient: linear-gradient(135deg, #1a5e2a, #4caf50); }
         body {
-            background: linear-gradient(135deg, var(--primary-green), var(--secondary-green));
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #e8f5e9, #f0f4f0);
             min-height: 100vh;
-            padding: 50px 0;
+            padding: 40px 0;
         }
-        .form-container {
-            background: white;
-            border-radius: 24px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-            max-width: 700px;
+        .form-card {
+            max-width: 650px;
             margin: 0 auto;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
         }
-        .form-container h2 {
-            color: var(--primary-green);
-            margin-bottom: 30px;
-            text-align: center;
-        }
-        .current-image {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .current-image img {
-            max-width: 150px;
-            max-height: 150px;
+        .form-header { background: var(--gradient); padding: 30px; text-align: center; color: white; }
+        .form-header h2 { font-weight: 700; margin: 0; }
+        .form-body { padding: 35px; }
+        .form-label { font-weight: 600; color: var(--primary); margin-bottom: 8px; }
+        .form-control, .form-select {
+            border: 2px solid #e9ecef;
             border-radius: 12px;
-            border: 3px solid var(--secondary-green);
-            padding: 5px;
-            background: var(--light-green);
+            padding: 12px 16px;
         }
-        .btn-submit {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26,94,42,0.1);
+        }
+        .is-invalid { border-color: #dc3545; }
+        .invalid-feedback { font-size: 0.75rem; margin-top: 5px; color: #dc3545; }
+        .btn-primary-custom {
+            background: var(--gradient);
             border: none;
             padding: 12px;
+            border-radius: 12px;
             font-weight: 600;
         }
-        .image-preview {
-            margin-top: 15px;
-            text-align: center;
-        }
-        .image-preview img {
-            max-width: 200px;
-            max-height: 150px;
+        .btn-primary-custom:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(26,94,42,0.3); }
+        .required:after { content: " *"; color: #dc3545; }
+        .current-image {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e8f5e9;
             border-radius: 12px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="form-container">
-            <h2>
-                <i class="fas fa-edit me-2" style="color: #f59e0b;"></i>
-                Modifier la catégorie
-            </h2>
-            
-            <?php if (isset($errors['global'])): ?>
-            <div class="alert alert-danger"><?php echo $errors['global']; ?></div>
-            <?php endif; ?>
-            
-            <!-- Image actuelle -->
-            <?php if($formData['image_url'] && file_exists('../../../' . $formData['image_url'])): ?>
-            <div class="current-image">
-                <label class="form-label">Image actuelle</label>
-                <div>
-                    <img src="../../../<?php echo $formData['image_url']; ?>" alt="Image actuelle">
-                </div>
-                <div class="form-check mt-2">
-                    <input class="form-check-input" type="checkbox" name="remove_image" value="1" id="removeImage">
-                    <label class="form-check-label text-danger" for="removeImage">
-                        <i class="fas fa-trash me-1"></i> Supprimer cette image
-                    </label>
-                </div>
+        <div class="form-card">
+            <div class="form-header">
+                <h2><i class="fas fa-edit me-2"></i>Modifier la catégorie</h2>
+                <p class="mb-0">Modifiez les informations de la catégorie</p>
             </div>
-            <?php endif; ?>
-            
-            <form method="POST" enctype="multipart/form-data">
-                <div class="mb-3">
-                    <label class="form-label">Nom</label>
-                    <input type="text" name="nom" class="form-control <?php echo isset($errors['nom']) ? 'is-invalid' : ''; ?>" 
-                           value="<?php echo htmlspecialchars($formData['nom']); ?>">
-                    <?php if (isset($errors['nom'])): ?>
-                    <div class="invalid-feedback"><?php echo $errors['nom']; ?></div>
-                    <?php endif; ?>
-                </div>
+            <div class="form-body">
+                <?php if (isset($errors['global'])): ?>
+                    <div class="alert alert-danger"><?php echo $errors['global']; ?></div>
+                <?php endif; ?>
                 
-                <div class="mb-3">
-                    <label class="form-label">Description</label>
-                    <textarea name="description" class="form-control <?php echo isset($errors['description']) ? 'is-invalid' : ''; ?>" 
-                              rows="4"><?php echo htmlspecialchars($formData['description']); ?></textarea>
-                    <?php if (isset($errors['description'])): ?>
-                    <div class="invalid-feedback"><?php echo $errors['description']; ?></div>
-                    <?php endif; ?>
+                <?php if (!empty($old['image_url'])): ?>
+                <div class="current-image mb-3">
+                    <small class="text-muted">Image actuelle :</small><br>
+                    <img src="<?php echo htmlspecialchars($old['image_url']); ?>" alt="Image actuelle" style="max-height: 80px; border-radius: 8px;">
                 </div>
+                <?php endif; ?>
                 
-                <div class="mb-3">
-                    <label class="form-label">Nouvelle image</label>
-                    <input type="file" name="image" id="imageInput" class="form-control <?php echo isset($errors['image']) ? 'is-invalid' : ''; ?>" 
-                           accept="image/jpeg,image/png,image/gif,image/webp">
-                    <?php if (isset($errors['image'])): ?>
-                    <div class="invalid-feedback"><?php echo $errors['image']; ?></div>
-                    <?php endif; ?>
-                    <small class="text-muted">Laissez vide pour garder l'image actuelle</small>
-                    
-                    <div class="image-preview" id="imagePreview" style="display: none;">
-                        <img id="previewImg" src="#" alt="Aperçu">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label required">Nom de la catégorie</label>
+                        <input type="text" name="nom" class="form-control <?php echo isset($errors['nom']) ? 'is-invalid' : ''; ?>" 
+                               value="<?php echo htmlspecialchars($old['nom']); ?>">
+                        <?php if (isset($errors['nom'])): ?>
+                            <div class="invalid-feedback"><?php echo $errors['nom']; ?></div>
+                        <?php endif; ?>
                     </div>
-                </div>
-                
-                <div class="d-flex gap-3">
-                    <a href="liste.php" class="btn btn-secondary flex-grow-1">Annuler</a>
-                    <button type="submit" class="btn btn-warning flex-grow-1 btn-submit">
-                        <i class="fas fa-save me-2"></i>Modifier
-                    </button>
-                </div>
-            </form>
+                    
+                    <div class="mb-3">
+                        <label class="form-label required">Description</label>
+                        <textarea name="description" rows="4" class="form-control <?php echo isset($errors['description']) ? 'is-invalid' : ''; ?>"><?php echo htmlspecialchars($old['description']); ?></textarea>
+                        <?php if (isset($errors['description'])): ?>
+                            <div class="invalid-feedback"><?php echo $errors['description']; ?></div>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">URL de l'image</label>
+                        <input type="text" name="image_url" class="form-control <?php echo isset($errors['image_url']) ? 'is-invalid' : ''; ?>" 
+                               value="<?php echo htmlspecialchars($old['image_url']); ?>" placeholder="https://exemple.com/image.jpg">
+                        <?php if (isset($errors['image_url'])): ?>
+                            <div class="invalid-feedback"><?php echo $errors['image_url']; ?></div>
+                        <?php endif; ?>
+                        <small class="text-muted">Laissez vide pour garder l'image actuelle</small>
+                    </div>
+                    
+                    <div class="d-flex gap-3">
+                        <a href="liste.php" class="btn btn-secondary flex-grow-1"><i class="fas fa-arrow-left me-2"></i>Annuler</a>
+                        <button type="submit" class="btn btn-primary-custom flex-grow-1"><i class="fas fa-save me-2"></i>Modifier</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-
-    <script>
-        document.getElementById('imageInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            const preview = document.getElementById('imagePreview');
-            const previewImg = document.getElementById('previewImg');
-            
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    previewImg.src = event.target.result;
-                    preview.style.display = 'block';
-                }
-                reader.readAsDataURL(file);
-            } else {
-                preview.style.display = 'none';
-            }
-        });
-    </script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

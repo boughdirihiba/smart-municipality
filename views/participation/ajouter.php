@@ -2,22 +2,26 @@
 session_start();
 require_once __DIR__ . '/../../controller/ParticipationC.php';
 require_once __DIR__ . '/../../controller/EvenementC.php';
+require_once __DIR__ . '/../../model/Participation.php';
 
-// Vérifier si l'utilisateur est connecté
 if (!isset($_SESSION['user_id'])) {
-    header('Location: ../../index.php?error=Vous devez être connecté pour vous inscrire');
+    header('Location: ../../index.php?error=Connexion requise');
     exit();
 }
 
-// Récupérer l'ID de l'événement
 $event_id = isset($_GET['event_id']) ? intval($_GET['event_id']) : 0;
+$nb_participants = isset($_GET['nb_participants']) ? intval($_GET['nb_participants']) : 1;
 
 if ($event_id <= 0) {
     header('Location: ../../index.php?error=Événement invalide');
     exit();
 }
 
-// Vérifier si l'événement existe
+if ($nb_participants < 1 || $nb_participants > 10) {
+    header('Location: ../../index.php?error=Nombre de participants invalide (1 à 10)');
+    exit();
+}
+
 $evenementC = new EvenementC();
 $evenement = $evenementC->afficherEvenementParId($event_id);
 
@@ -26,21 +30,27 @@ if (!$evenement) {
     exit();
 }
 
-// Vérifier si déjà inscrit
 $participationC = new ParticipationC();
-$dejaInscrit = $participationC->estInscrit($_SESSION['user_id'], $event_id);
 
-if ($dejaInscrit) {
-    header('Location: ../../index.php?error=Vous êtes déjà inscrit à cet événement');
+if ($participationC->estInscrit($_SESSION['user_id'], $event_id)) {
+    header('Location: ../../index.php?error=Vous êtes déjà inscrit');
     exit();
 }
 
-// Ajouter la participation
-require_once __DIR__ . '/../../model/Participation.php';
-$participation = new Participation($_SESSION['user_id'], $event_id);
+$placesValidees = $participationC->compterParticipationsValidees($event_id);
+$placesRestantes = $evenement['max_participants'] - $placesValidees;
+
+if ($nb_participants > $placesRestantes) {
+    header("Location: ../../index.php?error=Plus que $placesRestantes places disponibles");
+    exit();
+}
+
+// Créer la participation (sans ticket)
+$participation = new Participation($_SESSION['user_id'], $event_id, 'inscrit', $nb_participants);
 $result = $participationC->ajouterParticipation($participation);
 
 if ($result['success']) {
+    // Redirection simple - pas de ticket ici
     header('Location: ../../index.php?success=inscrit');
 } else {
     header('Location: ../../index.php?error=' . urlencode($result['message']));

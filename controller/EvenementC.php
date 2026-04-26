@@ -54,27 +54,28 @@ class EvenementC {
         }
     }
 
-    // Ajouter un événement
-    public function ajouterEvenement($evenement) {
-        $db = config::getConnexion();
-        try {
-            $query = $db->prepare('
-                INSERT INTO evenements (titre, description, lieu, date_evenement, heure, categorie_id) 
-                VALUES (:titre, :description, :lieu, :date_evenement, :heure, :categorie_id)
-            ');
-            $query->execute([
-                'titre' => $evenement->getTitre(),
-                'description' => $evenement->getDescription(),
-                'lieu' => $evenement->getLieu(),
-                'date_evenement' => $evenement->getDateEvenement(),
-                'heure' => $evenement->getHeure(),
-                'categorie_id' => $evenement->getCategorieId()
-            ]);
-            return true;
-        } catch (Exception $e) {
-            die('Erreur: ' . $e->getMessage());
-        }
+    // Dans ajouterEvenement()
+public function ajouterEvenement($evenement) {
+    $db = config::getConnexion();
+    try {
+        $query = $db->prepare('
+            INSERT INTO evenements (titre, description, max_participants, lieu, date_evenement, heure, categorie_id) 
+            VALUES (:titre, :description, :max_participants, :lieu, :date_evenement, :heure, :categorie_id)
+        ');
+        $query->execute([
+            'titre' => $evenement->getTitre(),
+            'description' => $evenement->getDescription(),
+            'max_participants' => $evenement->getMaxParticipants(),
+            'lieu' => $evenement->getLieu(),
+            'date_evenement' => $evenement->getDateEvenement(),
+            'heure' => $evenement->getHeure(),
+            'categorie_id' => $evenement->getCategorieId()
+        ]);
+        return true;
+    } catch (Exception $e) {
+        die('Erreur: ' . $e->getMessage());
     }
+}
 
     // Modifier un événement
     public function modifierEvenement($evenement, $id) {
