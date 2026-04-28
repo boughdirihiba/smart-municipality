@@ -7,9 +7,12 @@ class Blog {
     private $video;
     private $created_at;
     private $db;
+    
     public function __construct($db = null) {
         $this->db = $db;
     }
+    
+    // Getters
     public function getId() { return $this->id; }
     public function getUserId() { return $this->user_id; }
     public function getContent() { return $this->content; }
@@ -17,7 +20,8 @@ class Blog {
     public function getVideo() { return $this->video; }
     public function getCreatedAt() { return $this->created_at; }
     public function getDb() { return $this->db; }
-    // setter
+    
+    // Setters
     public function setId($id) { $this->id = $id; }
     public function setUserId($user_id) { $this->user_id = $user_id; }
     public function setContent($content) { $this->content = $content; }
@@ -26,19 +30,16 @@ class Blog {
     public function setCreatedAt($created_at) { $this->created_at = $created_at; }
     public function setDb($db) { $this->db = $db; }
     
-    //post
+    // Méthodes (appels vides, définies dans les contrôleurs)
     public function createPost() { return null; }
     public function getPosts() { return []; }
     public function updatePost() { return false; }
     public function deletePost() { return false; }
-    //commntr
     public function createComment() { return false; }
     public function getCommentsByPost() { return []; }
     public function updateComment() { return false; }
     public function deleteComment() { return false; }
-    //react
     public function reactToPostAjax() { return false; }
-    
- 
+    public function searchPostsInPhp() { return []; }
 }
 ?>

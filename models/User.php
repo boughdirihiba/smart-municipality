@@ -33,8 +33,7 @@ class User {
     public function setCreatedAt($created_at) { $this->created_at = $created_at; }
     public function setDb($db) { $this->db = $db; }
     
-    // ============ APPELS DES FONCTIONS (déclarations vides) ============
-    
+    // Méthodes (appels vides, définies dans les contrôleurs)
     public function getAll() { return []; }
     public function getById($id) { return null; }
     public function create($data) { return false; }
@@ -42,7 +41,7 @@ class User {
     public function delete($id) { return false; }
     public function emailExists($email, $excludeId = null) { return false; }
     public function countTotal() { return 0; }
-     public function getTotalPosts() { return 0; }
+    public function getTotalPosts() { return 0; }
     public function getTotalUsers() { return 0; }
     public function getTotalComments() { return 0; }
     public function getTotalReactions() { return 0; }
