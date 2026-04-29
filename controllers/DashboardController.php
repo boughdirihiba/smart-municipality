@@ -249,6 +249,6 @@ switch($action) {
         break;
     case 'deleteComment': 
         $controller->deleteComment($_POST); 
-        break;
+        break; 
 }
 ?>
