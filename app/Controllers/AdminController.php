@@ -162,6 +162,7 @@ class AdminController extends Controller
         $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $newStatus = trim((string)($_POST['statut'] ?? ''));
+            $progressionRaw = trim((string)($_POST['progression'] ?? '0'));
             $latRaw = trim((string)($_POST['latitude'] ?? ''));
             $lngRaw = trim((string)($_POST['longitude'] ?? ''));
             $commentaire = trim((string)($_POST['commentaire_position'] ?? ''));
@@ -170,6 +171,21 @@ class AdminController extends Controller
             if (!in_array($newStatus, $allowed, true)) {
                 set_flash('error', 'Statut invalide.');
                 redirect('admin/edit&id=' . $id);
+            }
+
+            if (!is_numeric($progressionRaw)) {
+                set_flash('error', 'Progression invalide.');
+                redirect('admin/edit&id=' . $id);
+            }
+
+            $progression = (int)$progressionRaw;
+            if ($progression < 0 || $progression > 100) {
+                set_flash('error', 'Progression hors plage autorisee.');
+                redirect('admin/edit&id=' . $id);
+            }
+
+            if ($newStatus === 'resolu' && $progression < 100) {
+                $progression = 100;
             }
 
             $latitude = null;
@@ -190,7 +206,7 @@ class AdminController extends Controller
                 }
             }
 
-            $ok = $this->model->updateStatusAndPosition($id, $newStatus, $latitude, $longitude, $commentaire);
+            $ok = $this->model->updateStatusAndPosition($id, $newStatus, $progression, $latitude, $longitude, $commentaire);
             if ($ok && $newStatus === 'resolu') {
                 add_notification('Signalement #' . $id . ' marqué comme résolu.', 'resolved');
             }

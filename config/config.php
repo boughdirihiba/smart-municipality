@@ -16,6 +16,24 @@ define('DB_NAME', 'smart_municipality');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 
+function pdo_connection(): \PDO
+{
+    static $pdo = null;
+
+    if ($pdo instanceof \PDO) {
+        return $pdo;
+    }
+
+    $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
+    $pdo = new \PDO($dsn, DB_USER, DB_PASS, [
+        \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+        \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+        \PDO::ATTR_EMULATE_PREPARES => false,
+    ]);
+
+    return $pdo;
+}
+
 function bootstrap_user_session_from_database(): void
 {
     if (isset($_SESSION['user'])) {
@@ -23,13 +41,9 @@ function bootstrap_user_session_from_database(): void
     }
 
     try {
-        $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
-        $pdo = new \PDO($dsn, DB_USER, DB_PASS, [
-            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
-            \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
-        ]);
-
-        $stmt = $pdo->query('SELECT id, nom, prenom, email, avatar, telephone, adresse, role FROM utilisateurs ORDER BY id ASC LIMIT 1');
+        $pdo = pdo_connection();
+        $stmt = $pdo->prepare('SELECT id, nom, prenom, email, avatar, telephone, adresse, role FROM utilisateurs ORDER BY id ASC LIMIT 1');
+        $stmt->execute();
         $row = $stmt->fetch();
 
         if (is_array($row)) {

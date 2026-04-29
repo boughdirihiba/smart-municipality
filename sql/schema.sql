@@ -129,9 +129,24 @@ CREATE TABLE IF NOT EXISTS signalements (
     latitude DECIMAL(10,8) NOT NULL,
     longitude DECIMAL(11,8) NOT NULL,
     statut ENUM('en_attente', 'en_cours', 'resolu', 'rejete') DEFAULT 'en_attente',
+    progression TINYINT UNSIGNED NOT NULL DEFAULT 0,
     date_signalement DATETIME DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_signalements_user FOREIGN KEY (user_id) REFERENCES utilisateurs(id) ON DELETE SET NULL,
     CONSTRAINT fk_signalements_localisation FOREIGN KEY (localisation_id) REFERENCES localisations(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS interventions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    titre VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    type ENUM('route', 'eclairage', 'eau', 'transport', 'ordures', 'autre') NOT NULL,
+    latitude DECIMAL(10,8) NOT NULL,
+    longitude DECIMAL(11,8) NOT NULL,
+    statut ENUM('planifiee', 'en_cours', 'terminee', 'annulee') NOT NULL DEFAULT 'planifiee',
+    progression TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    date_intervention DATE NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS historique_positions (
@@ -242,6 +257,12 @@ INSERT INTO signalements (user_id, localisation_id, titre, description, image, c
 (2, 3, 'Arret de bus sale', 'Abri de bus sale et encombre par des emballages', NULL, 'transport', 36.80800000, 10.18340000, 'en_attente'),
 (1, 4, 'Cable expose', 'Cable expose pres du lampadaire apres deterioration du boitier', NULL, 'eclairage', 36.65050000, 10.60010000, 'rejete'),
 (2, 1, 'Depose sauvage', 'Depose sauvage de sacs poubelles sur le terrain vague voisin', NULL, 'ordures', 36.80650000, 10.18150000, 'en_attente');
+
+INSERT INTO interventions (titre, description, type, latitude, longitude, statut, progression, date_intervention) VALUES
+('Reparation eclairage Avenue Republique', 'Intervention planifiee sur trois lampadaires de l avenue principale.', 'eclairage', 36.80690000, 10.18220000, 'planifiee', 20, '2026-04-26'),
+('Nettoyage secteur Place Centrale', 'Equipe de collecte mobilisee pour nettoyage complet du secteur.', 'ordures', 36.65070000, 10.60030000, 'en_cours', 55, '2026-04-23'),
+('Refection trottoir Rue des Pecheurs', 'Travaux de voirie pour mise en securite du trottoir endommage.', 'route', 36.80750000, 10.18300000, 'planifiee', 10, '2026-04-29'),
+('Inspection fuite reseau secondaire', 'Controle technique et reparation d une fuite recurrente.', 'eau', 36.65090000, 10.60060000, 'terminee', 100, '2026-04-20');
 
 INSERT INTO services_en_ligne (nom, description, icone, documents_requis) VALUES
 ('Legalisation de documents', 'Authentifier rapidement vos documents officiels', 'legalisation.png', 'Carte d identite (Recto/Verso), Formulaire de demande rempli, Justificatif de domicile'),

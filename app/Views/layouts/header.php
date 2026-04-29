@@ -18,9 +18,9 @@
         <span></span><span></span><span></span>
     </button>
     <ul class="nav-links">
-        <li><a href="<?php echo BASE_URL; ?>/index.php?route=home/index" class="<?php echo $currentRoute === 'home/index' ? 'active' : ''; ?>">Profil</a></li>
+        <li><a href="<?php echo BASE_URL; ?>/index.php?route=home/index#profil">Profil</a></li>
         <li><a href="<?php echo BASE_URL; ?>/index.php?route=home/index#evenements">Événements</a></li>
-        <li><a href="<?php echo BASE_URL; ?>/index.php?route=home/index#carte">Carte</a></li>
+        <li><a href="<?php echo BASE_URL; ?>/index.php?route=home/index" class="<?php echo $currentRoute === 'home/index' ? 'active' : ''; ?>">Carte</a></li>
         <li><a href="<?php echo BASE_URL; ?>/index.php?route=home/index#blog">Blog</a></li>
         <li><a href="<?php echo BASE_URL; ?>/index.php?route=home/index#services">Services</a></li>
         <li><a href="<?php echo BASE_URL; ?>/index.php?route=home/index#rendez-vous">Rendez-vous</a></li>

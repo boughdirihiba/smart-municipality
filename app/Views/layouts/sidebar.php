@@ -7,6 +7,8 @@ if ($displayName === '') {
 $currentRoute = $_GET['route'] ?? 'home/index';
 $avatarName = $currentUser['avatar'] ?? 'sidebar-photo.svg';
 $isAdmin = ($currentUser['role'] ?? 'citoyen') === 'admin';
+$isAdminSignalementsRoute = str_starts_with((string)$currentRoute, 'admin/');
+$isInterventionsRoute = str_starts_with((string)$currentRoute, 'interventions/');
 $notifications = get_notifications(8);
 $unreadNotificationsCount = get_unread_notifications_count();
 ?>
@@ -54,11 +56,14 @@ $unreadNotificationsCount = get_unread_notifications_count();
 
     <nav class="sidebar-nav">
         <?php if ($isAdmin): ?>
-            <a href="<?php echo BASE_URL; ?>/index.php?route=admin/list" class="sidebar-link <?php echo $currentRoute === 'admin/list' ? 'active' : ''; ?>">
+            <a href="<?php echo BASE_URL; ?>/index.php?route=admin/list" class="sidebar-link <?php echo $isAdminSignalementsRoute ? 'active' : ''; ?>">
                 <span class="label">BackOffice</span>
             </a>
-            <a href="<?php echo BASE_URL; ?>/index.php?route=admin/list" class="sidebar-link <?php echo $currentRoute === 'admin/list' ? 'active' : ''; ?>">
+            <a href="<?php echo BASE_URL; ?>/index.php?route=admin/list" class="sidebar-link <?php echo $isAdminSignalementsRoute ? 'active' : ''; ?>">
                 <span class="label">Gestion des signalements</span>
+            </a>
+            <a href="<?php echo BASE_URL; ?>/index.php?route=interventions/list" class="sidebar-link <?php echo $isInterventionsRoute ? 'active' : ''; ?>">
+                <span class="label">Gestion interventions</span>
             </a>
             <a href="<?php echo BASE_URL; ?>/index.php?route=home/index&role=citoyen" class="sidebar-link">
                 <span class="label">Mode citoyen</span>
@@ -78,7 +83,6 @@ $unreadNotificationsCount = get_unread_notifications_count();
             </a>
         <?php endif; ?>
     </nav>
-
     <div class="sidebar-footer-links">
         <a href="<?php echo BASE_URL; ?>/index.php?route=home/index" class="sidebar-link">
             <span class="icon" title="Paramètres">⚙️</span>
@@ -93,4 +97,7 @@ $unreadNotificationsCount = get_unread_notifications_count();
             </a>
         <?php endif; ?>
     </div>
+    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Basculer la barre" title="Basculer la barre">
+        <span id="sidebarToggleIcon">❮</span>
+    </button>
 </aside>

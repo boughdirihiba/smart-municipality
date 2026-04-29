@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Contracts\MapDataProviderInterface;
 use App\Core\Database;
 use PDO;
 
-class Signalement
+class Signalement implements MapDataProviderInterface
 {
     private PDO $pdo;
 
@@ -39,8 +40,8 @@ class Signalement
             $entityData = $entity->toArray();
 
             $signalementStmt = $this->pdo->prepare(
-                'INSERT INTO signalements (titre, description, image, categorie, latitude, longitude, statut, date_signalement, user_id, localisation_id)
-                 VALUES (:titre, :description, :image, :categorie, :latitude, :longitude, :statut, NOW(), :user_id, :localisation_id)'
+                'INSERT INTO signalements (titre, description, image, categorie, latitude, longitude, statut, progression, date_signalement, user_id, localisation_id)
+                 VALUES (:titre, :description, :image, :categorie, :latitude, :longitude, :statut, :progression, NOW(), :user_id, :localisation_id)'
             );
             $ok = $signalementStmt->execute([
                 ':titre' => $entityData['titre'],
@@ -50,6 +51,7 @@ class Signalement
                 ':latitude' => $entityData['latitude'],
                 ':longitude' => $entityData['longitude'],
                 ':statut' => $entityData['statut'],
+                ':progression' => (int)($entityData['progression'] ?? 0),
                 ':user_id' => $entityData['user_id'],
                 ':localisation_id' => $entityData['localisation_id'],
             ]);
@@ -74,6 +76,9 @@ class Signalement
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
+
+            // Log error for debugging
+            error_log('Signalement creation error: ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
 
             return false;
         }
@@ -189,7 +194,7 @@ class Signalement
         return $stmt->execute([':statut' => $statut, ':id' => $id]);
     }
 
-    public function updateStatusAndPosition(int $id, string $statut, ?float $latitude, ?float $longitude, ?string $commentaire): bool
+    public function updateStatusAndPosition(int $id, string $statut, int $progression, ?float $latitude, ?float $longitude, ?string $commentaire): bool
     {
         try {
             $this->pdo->beginTransaction();
@@ -200,8 +205,8 @@ class Signalement
                 return false;
             }
 
-            $statusStmt = $this->pdo->prepare('UPDATE signalements SET statut = :statut WHERE id = :id');
-            $okStatus = $statusStmt->execute([':statut' => $statut, ':id' => $id]);
+            $statusStmt = $this->pdo->prepare('UPDATE signalements SET statut = :statut, progression = :progression WHERE id = :id');
+            $okStatus = $statusStmt->execute([':statut' => $statut, ':progression' => $progression, ':id' => $id]);
 
             if (!$okStatus) {
                 $this->pdo->rollBack();
@@ -270,7 +275,7 @@ class Signalement
          $sql = 'SELECT s.id, s.titre, s.description, s.image, s.categorie,
                        COALESCE(l.latitude, s.latitude) AS latitude,
                        COALESCE(l.longitude, s.longitude) AS longitude,
-                  s.statut, s.date_signalement, l.adresse, l.quartier,
+                  s.statut, s.progression, s.date_signalement, l.adresse, l.quartier,
                   u.nom AS user_nom,
                   u.prenom AS user_prenom,
                   u.role AS user_role

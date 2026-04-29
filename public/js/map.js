@@ -119,11 +119,18 @@
     }
   }
 
-  function statusColor(statut) {
+  function signalementStatusColor(statut) {
     if (statut === 'resolu') return 'green';
     if (statut === 'en_cours') return 'orange';
     if (statut === 'rejete') return 'red';
     return 'orange';
+  }
+
+  function interventionStatusColor(statut) {
+    if (statut === 'terminee') return '#16a34a';
+    if (statut === 'en_cours') return '#1d4ed8';
+    if (statut === 'annulee') return '#dc2626';
+    return '#8b5cf6';
   }
 
   function priorityColor(priority, statut) {
@@ -131,7 +138,15 @@
     if (priority === 'moyen') return '#f59e0b';
     if (priority === 'faible') return '#16a34a';
 
-    return statusColor(statut);
+    return signalementStatusColor(statut);
+  }
+
+  function pointColor(item) {
+    if (item.entity_type === 'intervention') {
+      return interventionStatusColor(item.statut);
+    }
+
+    return priorityColor(item.priority, item.statut);
   }
 
   function escapeHtml(v) {
@@ -156,7 +171,7 @@
             <div style="display:inline-flex; align-items:center; gap:6px; padding:3px 8px; border-radius:999px; background:rgba(47,160,132,0.12); color:#0f3b2c; font-size:11px; font-weight:700; margin-bottom:6px;">Signalement</div>
             <h4 style="margin:0; font-size:0.92rem; color:#0f172a; line-height:1.2;">${escapeHtml(it.titre)}</h4>
           </div>
-          <div style="flex:0 0 auto; width:10px; height:10px; border-radius:50%; background:${statusColor(it.statut)}; margin-top:4px;"></div>
+          <div style="flex:0 0 auto; width:10px; height:10px; border-radius:50%; background:${signalementStatusColor(it.statut)}; margin-top:4px;"></div>
         </div>
 
         <div style="display:grid; gap:5px; font-size:0.8rem; color:#334155;">
@@ -176,6 +191,44 @@
           ${cfg.isAdmin ? `<a href="${adminEditUrl}" style="display:inline-flex; align-items:center; justify-content:center; padding:7px 10px; background:#1d4ed8; color:#fff; text-decoration:none; border-radius:999px; font-size:11px; font-weight:700;">Modifier</a>` : ''}
           <a href="${openStreetMapLink(lat, lng)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; justify-content:center; padding:7px 10px; background:#e2e8f0; color:#0f172a; text-decoration:none; border-radius:999px; font-size:11px; font-weight:700;">Ouvrir</a>
         </div>` : ''}
+      </div>
+    `;
+  }
+
+  function buildInterventionPopup(it, lat, lng) {
+    const adminEditUrl = `${window.location.origin}${window.location.pathname}?route=interventions/edit&id=${encodeURIComponent(it.id)}`;
+    const progression = Number.isFinite(Number(it.progression)) ? Math.max(0, Math.min(100, Number(it.progression))) : 0;
+    const progressColor = progression <= 30
+      ? 'linear-gradient(90deg,#f97316,#dc2626)'
+      : (progression <= 70 ? 'linear-gradient(90deg,#f59e0b,#d97706)' : 'linear-gradient(90deg,#22c55e,#16a34a)');
+
+    return `
+      <div style="min-width:210px; max-width:240px;">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:8px;">
+          <div>
+            <div style="display:inline-flex; align-items:center; gap:6px; padding:3px 8px; border-radius:999px; background:rgba(37,99,235,0.14); color:#1d4ed8; font-size:11px; font-weight:700; margin-bottom:6px;">Intervention</div>
+            <h4 style="margin:0; font-size:0.92rem; color:#0f172a; line-height:1.2;">${escapeHtml(it.titre)}</h4>
+          </div>
+          <div style="flex:0 0 auto; width:10px; height:10px; border-radius:50%; background:${interventionStatusColor(it.statut)}; margin-top:4px;"></div>
+        </div>
+
+        <div style="display:grid; gap:5px; font-size:0.8rem; color:#334155;">
+          <div><strong>Type:</strong> ${escapeHtml(it.categorie)}</div>
+          <div><strong>Statut:</strong> ${escapeHtml(it.statut)}</div>
+          <div>
+            <strong>Progression:</strong> ${progression}%
+            <div style="margin-top:5px; height:8px; border-radius:999px; background:#e2e8f0; overflow:hidden;">
+              <div style="height:100%; width:${progression}%; background:${progressColor};"></div>
+            </div>
+          </div>
+          <div><strong>Coordonnées:</strong> ${lat.toFixed(5)}, ${lng.toFixed(5)}</div>
+          <div style="line-height:1.45;">${escapeHtml(it.description)}</div>
+        </div>
+
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
+          ${cfg.isAdmin ? `<a href="${adminEditUrl}" style="display:inline-flex; align-items:center; justify-content:center; padding:7px 10px; background:#1d4ed8; color:#fff; text-decoration:none; border-radius:999px; font-size:11px; font-weight:700;">Modifier</a>` : ''}
+          <a href="${openStreetMapLink(lat, lng)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; justify-content:center; padding:7px 10px; background:#e2e8f0; color:#0f172a; text-decoration:none; border-radius:999px; font-size:11px; font-weight:700;">Ouvrir</a>
+        </div>
       </div>
     `;
   }
@@ -549,7 +602,7 @@
   async function loadMarkers() {
     if (!map || !cfg.apiUrl) return;
 
-    setMapStatus('Chargement des signalements...', 'loading', false);
+    setMapStatus('Chargement des signalements et interventions...', 'loading', false);
 
     const categorie = document.getElementById('filterCategorie')?.value || '';
     const date = document.getElementById('filterDate')?.value || '';
@@ -586,6 +639,8 @@
 
     const features = [];
     const signalementMap = {};
+    const interventionMap = {};
+    const signalementItemsForZones = [];
 
     safeItems.forEach((it) => {
       const lng = Number(it.longitude);
@@ -594,11 +649,13 @@
         return;
       }
 
-      const color = priorityColor(it.priority, it.statut);
+      const entityType = it.entity_type === 'intervention' ? 'intervention' : 'signalement';
+      const color = pointColor(it);
       features.push({
         type: 'Feature',
         properties: {
           id: it.id,
+          entity_type: entityType,
           color: color,
           statut: it.statut
         },
@@ -608,7 +665,12 @@
         }
       });
 
-      signalementMap[it.id] = it;
+      if (entityType === 'intervention') {
+        interventionMap[it.id] = it;
+      } else {
+        signalementMap[it.id] = it;
+        signalementItemsForZones.push(it);
+      }
       bounds.extend([lng, lat]);
     });
 
@@ -682,8 +744,8 @@
       });
     }
 
-    map.off('click', 'signalements-circle', handleSignalementClick);
-    map.on('click', 'signalements-circle', (e) => handleSignalementClick(e, signalementMap));
+    map.off('click', 'signalements-circle', handlePointClick);
+    map.on('click', 'signalements-circle', (e) => handlePointClick(e, signalementMap, interventionMap));
 
     map.off('mouseenter', 'signalements-circle', () => {
       map.getCanvas().style.cursor = 'pointer';
@@ -699,7 +761,7 @@
       map.getCanvas().style.cursor = '';
     });
 
-    drawCriticalZones(safeItems);
+    drawCriticalZones(signalementItemsForZones);
 
     if (!bounds.isEmpty()) {
       map.fitBounds(bounds, {
@@ -712,11 +774,14 @@
     clearMapStatus();
   }
 
-  function handleSignalementClick(e, signalementMap) {
+  function handlePointClick(e, signalementMap, interventionMap) {
     if (!e.features.length) return;
 
     const feature = e.features[0];
-    const it = signalementMap[feature.properties.id];
+    const entityType = feature.properties.entity_type || 'signalement';
+    const it = entityType === 'intervention'
+      ? interventionMap[feature.properties.id]
+      : signalementMap[feature.properties.id];
     if (!it) return;
 
     const lng = Number(it.longitude);
@@ -730,7 +795,11 @@
       closeButton: true,
       closeOnClick: true,
       maxWidth: '240px'
-    }).setLngLat([lng, lat]).setHTML(buildSignalementPopup(it, lat, lng, true));
+    }).setLngLat([lng, lat]).setHTML(
+      entityType === 'intervention'
+        ? buildInterventionPopup(it, lat, lng)
+        : buildSignalementPopup(it, lat, lng, true)
+    );
 
     popup.addTo(map);
   }
