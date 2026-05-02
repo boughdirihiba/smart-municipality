@@ -47,7 +47,16 @@ $stmtDemandes = $db->prepare($sqlDemandes);
 $stmtDemandes->execute();
 $all_demandes = $stmtDemandes->fetchAll(PDO::FETCH_ASSOC);
 
-// Dernières demandes avec leurs fichiers
+// Récupérer tous les documents
+$sqlDocuments = "SELECT d.id, d.nom_fichier, d.demande_id, dem.nom as citoyen_nom 
+                 FROM documents d 
+                 JOIN demandes dem ON d.demande_id = dem.id 
+                 ORDER BY d.uploaded_at DESC LIMIT 50";
+$stmtDocuments = $db->prepare($sqlDocuments);
+$stmtDocuments->execute();
+$all_documents = $stmtDocuments->fetchAll(PDO::FETCH_ASSOC);
+
+// Dernières demandes
 $sqlLast = "SELECT * FROM demandes ORDER BY date_creation DESC LIMIT 10";
 $stmtLast = $db->prepare($sqlLast);
 $stmtLast->execute();
@@ -72,7 +81,7 @@ foreach($last_demandes as &$demande) {
     <title>Smart Municipality | Administration Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Librairies pour export PDF -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
@@ -84,244 +93,109 @@ foreach($last_demandes as &$demande) {
 
         body {
             font-family: 'Inter', sans-serif;
-            background: #f5f7fb;
-            color: #1e293b;
+            background: linear-gradient(135deg, #f5f7fa 0%, #eef2f7 100%);
+            color: #1a2c3e;
             min-height: 100vh;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* ========== MODE SOMBRE ========== */
+        /* ========== MODE SOMBRE PREMIUM ========== */
         body.dark-mode {
-            background: #0f172a;
+            background: linear-gradient(135deg, #0f172a 0%, #1a1f36 100%);
             color: #e2e8f0;
         }
 
-        body.dark-mode .sidebar {
-            background: #052E16;
+        body.dark-mode .glass-card,
+        body.dark-mode .glass-header,
+        body.dark-mode .glass-table {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border-color: rgba(71, 85, 105, 0.5);
         }
 
-        body.dark-mode .header,
-        body.dark-mode .stat-card,
-        body.dark-mode .chart-box,
-        body.dark-mode .last-demandes {
-            background: #1e293b;
+        body.dark-mode .stat-card {
+            background: linear-gradient(135deg, #1e293b, #1a2332);
             border-color: #334155;
-            color: #e2e8f0;
         }
 
-        body.dark-mode .stat-info h3,
-        body.dark-mode .stat-info p {
-            color: #e2e8f0;
+        body.dark-mode .nav-item {
+            color: rgba(255, 255, 255, 0.7);
         }
 
-        body.dark-mode .demandes-table th {
-            background: #334155;
-            color: #e2e8f0;
-        }
-
-        body.dark-mode .demandes-table td {
-            color: #cbd5e1;
-        }
-
-        body.dark-mode .demandes-table tr:hover td {
-            background: #334155;
-        }
-
-        body.dark-mode .file-item {
-            background: #334155;
-        }
-
-        body.dark-mode .admin-info {
-            background: #334155;
+        body.dark-mode .nav-item:hover {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
         }
 
         body.dark-mode .modal-content {
             background: #1e293b;
-            border-color: #334155;
+            border: 1px solid #334155;
         }
 
-        body.dark-mode .quick-msg {
-            background: #334155;
-            color: #e2e8f0;
-        }
-
-        body.dark-mode .quick-msg:hover {
-            background: #10b981;
-            color: white;
-        }
-
-        body.dark-mode .btn-cancel {
-            background: #334155;
-            color: #e2e8f0;
-        }
-
-        body.dark-mode select,
-        body.dark-mode textarea {
+        body.dark-mode .form-control {
             background: #334155;
             border-color: #475569;
             color: #e2e8f0;
         }
 
-        body.dark-mode option {
-            background: #1e293b;
+        body.dark-mode .status-pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
         }
 
-        body.dark-mode .notification {
-            background: #1e293b;
-            color: #e2e8f0;
+        /* ========== EFFETS VERRE ========== */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
 
-        body.dark-mode .notification.success {
-            background: #10b981;
-            color: white;
+        .glass-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
         }
 
-        body.dark-mode .notification.error {
-            background: #ef4444;
-            color: white;
-        }
-
-        body.dark-mode .sort-info {
-            background: #334155;
-            color: #e2e8f0;
-        }
-
-        body.dark-mode .btn-export-pdf {
-            background: linear-gradient(135deg, #b91c1c, #991b1b);
-        }
-
-        /* Couleurs - Vert foncé */
-        :root {
-            --primary: #052E16;
-            --primary-dark: #022c0f;
-            --primary-light: #0a4a22;
-            --primary-soft: #e8f3e8;
-            --primary-gradient: linear-gradient(135deg, #052E16, #0a4a22);
-            --primary-gradient-light: linear-gradient(135deg, #0a4a22, #166534);
-            --accent: #22c55e;
-        }
-
-        /* Bouton mode sombre */
-        .btn-darkmode {
-            background: #f1f5f9;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 40px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: #475569;
-        }
-
-        .btn-darkmode:hover {
-            background: #e2e8f0;
-            transform: translateY(-2px);
-        }
-
-        body.dark-mode .btn-darkmode {
-            background: #334155;
-            color: #e2e8f0;
-        }
-
-        body.dark-mode .btn-darkmode:hover {
-            background: #10b981;
-            color: white;
-        }
-
-        /* Bouton export PDF */
-        .btn-export-pdf {
-            background: linear-gradient(135deg, #dc2626, #b91c1c);
-            color: white;
-            border: none;
-            padding: 8px 20px;
-            border-radius: 40px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-export-pdf:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
-        }
-
-        .btn-export-pdf:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* NOTIFICATIONS FLOTTANTES */
-        .notification {
-            position: fixed;
-            top: 24px;
-            right: 24px;
-            z-index: 10000;
-            padding: 14px 24px;
-            border-radius: 12px;
-            font-weight: 500;
-            font-size: 0.875rem;
-            animation: slideInRight 0.3s ease-out;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .notification.success {
-            background: #10b981;
-            color: white;
-        }
-
-        .notification.error {
-            background: #ef4444;
-            color: white;
-        }
-
-        @keyframes slideInRight {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        /* ========== SIDEBAR VERT FONCÉ #052E16 ========== */
+        /* ========== SIDEBAR PREMIUM ========== */
         .sidebar {
             width: 280px;
-            background: #052E16;
+            background: linear-gradient(135deg, #052E16 0%, #064e3b 100%);
             position: fixed;
             height: 100vh;
-            padding: 1.5rem 1rem;
-            box-shadow: 8px 0 32px rgba(0, 0, 0, 0.08);
+            padding: 2rem 1.5rem;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
             z-index: 100;
-            overflow-y: auto;
             transition: all 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #10b981;
+            border-radius: 10px;
         }
 
         .logo-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            text-align: center;
             margin-bottom: 2rem;
-            padding: 0.5rem;
-            background: transparent;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            transition: all 0.3s;
         }
 
         .logo-container img {
             max-width: 180px;
             height: auto;
+            filter: brightness(0) invert(1);
         }
 
         .nav-item {
@@ -330,40 +204,57 @@ foreach($last_demandes as &$demande) {
             gap: 12px;
             color: rgba(255, 255, 255, 0.85);
             text-decoration: none;
-            padding: 0.75rem 1rem;
+            padding: 0.875rem 1rem;
             margin: 0.5rem 0;
             border-radius: 12px;
             transition: all 0.3s ease;
             font-weight: 500;
-            font-size: 0.9rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 0;
+            height: 100%;
+            background: rgba(16, 185, 129, 0.2);
+            transition: width 0.3s ease;
+            z-index: -1;
+        }
+
+        .nav-item:hover::before {
+            width: 100%;
         }
 
         .nav-item i {
             width: 24px;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
+            transition: transform 0.3s;
         }
 
-        .nav-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
+        .nav-item:hover i {
             transform: translateX(4px);
         }
 
-        /* MAIN CONTENT */
+        /* ========== MAIN CONTENT ========== */
         .main {
             margin-left: 280px;
             padding: 2rem;
             transition: all 0.3s;
         }
 
-        /* HEADER */
+        /* ========== HEADER PREMIUM ========== */
         .header {
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
             padding: 1.5rem 2rem;
-            border-radius: 20px;
+            border-radius: 24px;
             margin-bottom: 2rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -373,100 +264,15 @@ foreach($last_demandes as &$demande) {
         }
 
         .header h1 {
-            color: #1a1f36;
-            font-size: 1.8rem;
-            font-weight: 700;
+            background: linear-gradient(135deg, #052E16, #10b981);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-size: 2rem;
+            font-weight: 800;
         }
 
-        .header p {
-            color: #64748b;
-            margin-top: 0.25rem;
-            font-size: 0.875rem;
-        }
-
-        .header-buttons {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        /* BOUTON ENVOYER NOTIFICATION */
-        .btn-notify {
-            background: var(--primary-gradient);
-            color: white;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 40px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-notify:hover {
-            background: var(--primary-gradient-light);
-            transform: translateY(-2px);
-            box-shadow: 0 2px 8px rgba(5, 46, 22, 0.25);
-        }
-
-        .btn-add-service {
-            background: #1a1f36;
-            color: white;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 40px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            text-decoration: none;
-        }
-
-        .btn-add-service:hover {
-            background: var(--primary-gradient);
-            transform: translateY(-2px);
-        }
-
-        .admin-info {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            background: #f1f5f9;
-            padding: 0.5rem 1rem;
-            border-radius: 50px;
-            transition: all 0.3s ease;
-        }
-
-        .admin-avatar {
-            width: 40px;
-            height: 40px;
-            background: var(--primary-gradient);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-        }
-
-        .admin-name {
-            font-weight: 600;
-            font-size: 0.875rem;
-        }
-
-        .admin-role {
-            font-size: 0.75rem;
-            color: #64748b;
-        }
-
-        /* STATS CARDS */
+        /* ========== STATS CARDS PREMIUM ========== */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -477,506 +283,216 @@ foreach($last_demandes as &$demande) {
         .stat-card {
             background: white;
             padding: 1.5rem;
-            border-radius: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            border: 1px solid #e2e8f0;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            border-radius: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #052E16, #10b981);
+            transform: scaleX(0);
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover::before {
+            transform: scaleX(1);
         }
 
         .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-            border-color: #10b981;
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
         }
 
         .stat-info h3 {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #1a1f36;
-            margin-bottom: 0.25rem;
-        }
-
-        .stat-info p {
-            color: #64748b;
-            font-size: 0.8rem;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #052E16, #10b981);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
         }
 
         .stat-icon {
-            width: 50px;
-            height: 50px;
-            background: var(--primary-gradient);
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #052E16, #10b981);
             border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-size: 1.5rem;
+            transition: transform 0.3s;
         }
 
-        /* TWO COLUMNS */
-        .two-columns {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            margin-bottom: 32px;
+        .stat-card:hover .stat-icon {
+            transform: scale(1.1) rotate(5deg);
         }
 
-        .chart-box {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            border: 1px solid #e2e8f0;
-            transition: all 0.3s ease;
-        }
-
-        .chart-box h3 {
-            color: #1a1f36;
-            margin-bottom: 1.5rem;
+        /* ========== BOUTONS PREMIUM ========== */
+        .btn-premium {
+            background: linear-gradient(135deg, #052E16, #10b981);
+            border: none;
+            padding: 10px 24px;
+            border-radius: 40px;
+            color: white;
             font-weight: 600;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .chart-box h3 i {
-            color: var(--primary);
-        }
-
-        /* BAR CHART */
-        .bar-chart {
-            margin-top: 20px;
-        }
-
-        .bar-item {
-            margin-bottom: 20px;
-        }
-
-        .bar-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 0.8rem;
-            color: #475569;
-            font-weight: 500;
-        }
-
-        .bar-bg {
-            background: #e2e8f0;
-            border-radius: 8px;
-            height: 32px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
             overflow: hidden;
         }
 
-        .bar-fill {
-            background: var(--primary-gradient);
-            height: 100%;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            padding-right: 12px;
-            color: white;
-            font-weight: 600;
-            font-size: 0.75rem;
+        .btn-premium::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
         }
 
-        /* SERVICE LIST */
-        .service-list {
-            list-style: none;
+        .btn-premium:hover::before {
+            width: 300px;
+            height: 300px;
         }
 
-        .service-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #e2e8f0;
+        .btn-premium:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(5, 46, 22, 0.3);
         }
 
-        .service-item:last-child {
-            border-bottom: none;
-        }
-
-        .service-name {
-            font-weight: 500;
-            color: #1e293b;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .service-badge {
-            width: 32px;
-            height: 32px;
-            background: #f0fdf4;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-        }
-
-        .service-count {
-            background: #f1f5f9;
-            color: #1e293b;
-            padding: 4px 12px;
+        /* ========== TABLE PREMIUM ========== */
+        .glass-table {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
             border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.75rem;
-        }
-
-        /* TABLE */
-        .last-demandes {
-            background: white;
             padding: 1.5rem;
-            border-radius: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            border: 1px solid #e2e8f0;
+            border: 1px solid rgba(255, 255, 255, 0.3);
             overflow-x: auto;
-            transition: all 0.3s ease;
-        }
-
-        .last-demandes h3 {
-            color: #1a1f36;
-            margin-bottom: 0;
-            font-weight: 600;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .last-demandes h3 i {
-            color: var(--primary);
-        }
-
-        .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-            gap: 15px;
         }
 
         .demandes-table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0 8px;
         }
 
         .demandes-table th {
-            text-align: left;
-            padding: 12px 12px;
-            background: #f8fafc;
-            color: #475569;
+            padding: 12px 16px;
+            color: #64748b;
             font-weight: 600;
             font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            border-bottom: 1px solid #e2e8f0;
-            transition: all 0.3s ease;
         }
 
         .demandes-table td {
-            padding: 16px 12px;
-            border-bottom: 1px solid #f1f5f9;
-            font-size: 0.875rem;
-            vertical-align: top;
-            transition: all 0.3s ease;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 12px;
+            transition: all 0.3s;
         }
 
         .demandes-table tr:hover td {
-            background: #f8fafc;
+            background: rgba(16, 185, 129, 0.05);
+            transform: scale(1.01);
         }
 
-        /* FICHIERS */
-        .file-section {
-            min-width: 260px;
-        }
-
-        .files-list {
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        .file-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #f8fafc;
-            padding: 8px 12px;
-            margin-bottom: 8px;
-            border-radius: 10px;
-            transition: all 0.2s;
-        }
-
-        .file-item:hover {
-            background: #f1f5f9;
-        }
-
-        .file-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex: 1;
-            min-width: 0;
-        }
-
-        .file-icon {
-            font-size: 1rem;
-        }
-
-        .file-icon.pdf { color: #ef4444; }
-        .file-icon.image { color: #8b5cf6; }
-        .file-icon.doc { color: #3b82f6; }
-        .file-icon.default { color: #10b981; }
-
-        .file-name {
-            font-size: 0.75rem;
-            font-weight: 500;
-            color: #1e293b;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            flex: 1;
-        }
-
-        .file-size {
-            font-size: 0.65rem;
-            color: #64748b;
-        }
-
-        .file-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .file-actions a {
-            text-decoration: none;
-            font-size: 0.8rem;
-            transition: all 0.2s;
-        }
-
-        .file-actions .download { color: #10b981; }
-        .file-actions .delete { color: #ef4444; }
-
-        .file-actions a:hover {
-            opacity: 0.7;
-        }
-
-        .empty-files {
-            text-align: center;
-            padding: 20px;
-            color: #94a3b8;
-            font-size: 0.75rem;
-        }
-
-        .btn-back {
-            background: #1a1f36;
-            color: white;
-            border: none;
-            padding: 12px 28px;
-            border-radius: 40px;
-            cursor: pointer;
-            font-size: 0.875rem;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-
-        .btn-back:hover {
-            background: var(--primary-gradient);
-            transform: translateY(-2px);
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 600;
-        }
-
-        .status-pending {
-            background: #fef3c7;
-            color: #d97706;
-        }
-
-        /* MODAL STYLES */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 10001;
-            align-items: center;
-            justify-content: center;
-        }
-        .modal.show {
-            display: flex;
-        }
+        /* ========== MODAL PREMIUM ========== */
         .modal-content {
             background: white;
-            border-radius: 24px;
-            width: 500px;
+            border-radius: 32px;
+            width: 550px;
             max-width: 90%;
             max-height: 90%;
             overflow-y: auto;
-            animation: modalFadeIn 0.3s ease;
-            transition: all 0.3s ease;
+            animation: modalSlideIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
-        @keyframes modalFadeIn {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
         }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 24px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        .modal-header h3 {
-            font-size: 18px;
-            font-weight: 700;
-            margin: 0;
-        }
-        .modal-header h3 i {
-            color: #10b981;
-            margin-right: 10px;
-        }
-        .modal-close {
-            font-size: 28px;
-            cursor: pointer;
-            color: #94a3b8;
-            transition: color 0.2s;
-        }
-        .modal-close:hover {
-            color: #ef4444;
-        }
-        .modal-body {
-            padding: 24px;
-        }
-        .modal-footer {
-            padding: 16px 24px;
-            border-top: 1px solid #e2e8f0;
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 13px;
-            color: #334155;
-        }
-        .form-group label i {
-            color: #10b981;
-            margin-right: 6px;
-        }
-        select, textarea {
+
+        .form-control {
             width: 100%;
             padding: 12px 16px;
             border: 2px solid #e2e8f0;
-            border-radius: 12px;
+            border-radius: 16px;
             font-family: 'Inter', sans-serif;
             font-size: 14px;
             transition: all 0.3s;
         }
-        select:focus, textarea:focus {
+
+        .form-control:focus {
             outline: none;
             border-color: #10b981;
-            box-shadow: 0 0 0 3px rgba(16,185,129,0.1);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
         }
-        textarea {
-            resize: vertical;
-            min-height: 100px;
+
+        /* ========== ANIMATIONS ========== */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-        .quick-messages {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
+
+        .animate-fadeInUp {
+            animation: fadeInUp 0.6s ease-out;
         }
-        .quick-msg {
-            background: #f1f5f9;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .quick-msg:hover {
-            background: #10b981;
+
+        /* Style pour l'export PDF */
+        .pdf-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #052E16, #064e3b);
             color: white;
-        }
-        .btn-cancel, .btn-send {
-            padding: 10px 24px;
-            border-radius: 40px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: none;
-        }
-        .btn-cancel {
-            background: #f1f5f9;
-            color: #475569;
-        }
-        .btn-cancel:hover {
-            background: #e2e8f0;
-        }
-        .btn-send {
-            background: var(--primary-gradient);
-            color: white;
-        }
-        .btn-send:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(5, 46, 22, 0.3);
+            border-radius: 12px;
         }
 
-        /* Sort info */
-        .sort-info {
-            background: #e8f3e8;
-            padding: 10px 20px;
-            border-radius: 40px;
-            margin-bottom: 28px;
-            font-size: 13px;
-            color: #052E16;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            border: 1px solid rgba(5, 46, 22, 0.1);
+        .pdf-header h1 {
+            font-size: 28px;
+            margin: 0;
+            font-weight: 700;
         }
 
-        body.dark-mode .sort-info {
-            background: #334155;
-            color: #e2e8f0;
+        .pdf-header p {
+            margin: 5px 0 0;
+            opacity: 0.9;
+            font-size: 14px;
         }
 
+        /* ========== RESPONSIVE ========== */
         @media (max-width: 1024px) {
             .stats-grid {
                 grid-template-columns: repeat(2, 1fr);
-            }
-            .two-columns {
-                grid-template-columns: 1fr;
             }
         }
 
@@ -994,102 +510,80 @@ foreach($last_demandes as &$demande) {
             .stats-grid {
                 grid-template-columns: 1fr;
             }
-            .header-buttons {
-                flex-direction: column;
-                width: 100%;
-            }
-            .btn-notify, .btn-add-service, .btn-darkmode {
-                width: 100%;
-                justify-content: center;
-            }
-            .table-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
         }
     </style>
 </head>
 <body>
 
-    <!-- NOTIFICATIONS -->
+    <!-- NOTIFICATIONS FLOTTANTES -->
     <?php if($success_message): ?>
-    <div class="notification success">
+    <div class="notification success animate-fadeInUp">
         <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($success_message); ?>
     </div>
     <script>setTimeout(() => document.querySelector('.notification')?.remove(), 4000);</script>
     <?php endif; ?>
 
-    <?php if($error_message): ?>
-    <div class="notification error">
-        <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error_message); ?>
-    </div>
-    <script>setTimeout(() => document.querySelector('.notification')?.remove(), 4000);</script>
-    <?php endif; ?>
-
-    <!-- SIDEBAR VERT FONCÉ #052E16 -->
+    <!-- SIDEBAR AVEC LOGO -->
     <div class="sidebar">
         <div class="logo-container">
-            <img src="assets/images/logo.png" alt="Smart Municipality Logo">
+            <img src="assets/images/logo.png" alt="Smart Municipality Logo" onerror="this.src='https://via.placeholder.com/180x60?text=Smart+Municipality'">
         </div>
-        <a href="#" class="nav-item"><i class="fas fa-id-card"></i> Profil</a>
-        <a href="#" class="nav-item"><i class="fas fa-calendar-alt"></i> Événements</a>
-        <a href="#" class="nav-item"><i class="fas fa-brain"></i> Carte intelligente</a>
-        <a href="#" class="nav-item"><i class="fas fa-newspaper"></i> Blog</a>
-        <a href="index.php?action=list_services" class="nav-item"><i class="fas fa-concierge-bell"></i> Services en ligne</a>
-        <a href="#" class="nav-item"><i class="fas fa-calendar-check"></i> Rendez-vous</a>
+        <nav>
+            <a href="#" class="nav-item"><i class="fas fa-chart-line"></i> Tableau de bord</a>
+            <a href="#" class="nav-item"><i class="fas fa-users"></i> Citoyens</a>
+            <a href="#" class="nav-item"><i class="fas fa-calendar-alt"></i> Événements</a>
+            <a href="#" class="nav-item"><i class="fas fa-brain"></i> Carte intelligente</a>
+            <a href="#" class="nav-item"><i class="fas fa-newspaper"></i> Publications</a>
+            <a href="index.php?action=list_services" class="nav-item"><i class="fas fa-concierge-bell"></i> Services</a>
+            <a href="#" class="nav-item"><i class="fas fa-calendar-check"></i> Rendez-vous</a>
+            <a href="#" class="nav-item"><i class="fas fa-chart-pie"></i> Statistiques</a>
+        </nav>
     </div>
 
     <!-- MAIN CONTENT -->
     <div class="main">
         <div class="header">
             <div>
-                <h1>Tableau de bord</h1>
-                <p>Bienvenue dans l'interface d'administration</p>
+                <h1><i class="fas fa-chart-line"></i> Tableau de bord</h1>
+                <p style="color: #64748b; margin-top: 0.5rem;">Bienvenue dans l'espace d'administration</p>
             </div>
-            <div class="header-buttons">
-                <button id="darkModeToggle" class="btn-darkmode">
-                    <i class="fas fa-moon"></i> <span id="darkModeText">Sombre</span>
+            <div style="display: flex; gap: 16px;">
+                <button id="darkModeToggle" class="btn-premium">
+                    <i class="fas fa-moon"></i> Mode sombre
                 </button>
-                <button class="btn-notify" onclick="openNotifyModal()">
-                    <i class="fas fa-bell"></i> Envoyer notification
+                <button class="btn-premium" onclick="openNotifyModal()">
+                    <i class="fas fa-bell"></i> Notification
                 </button>
-                <a href="index.php?action=create_service" class="btn-add-service">
-                    <i class="fas fa-plus-circle"></i> Nouveau service
+                <a href="index.php?action=create_service" class="btn-premium">
+                    <i class="fas fa-plus"></i> Nouveau service
                 </a>
-                <div class="admin-info">
-                    <div class="admin-avatar"><i class="fas fa-user"></i></div>
-                    <div>
-                        <div class="admin-name">Admin Système</div>
-                        <div class="admin-role">Administrateur</div>
-                    </div>
-                </div>
             </div>
         </div>
 
-        <!-- STATISTIQUES -->
+        <!-- STATS CARDS -->
         <div class="stats-grid">
-            <div class="stat-card">
+            <div class="stat-card animate-fadeInUp" style="animation-delay: 0.1s">
                 <div class="stat-info">
                     <h3><?php echo $total_demandes; ?></h3>
                     <p>Demandes totales</p>
                 </div>
                 <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card animate-fadeInUp" style="animation-delay: 0.2s">
                 <div class="stat-info">
                     <h3><?php echo !empty($top_services[0]) ? $top_services[0]['nombre'] : 0; ?></h3>
                     <p>Service le plus demandé</p>
                 </div>
                 <div class="stat-icon"><i class="fas fa-trophy"></i></div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card animate-fadeInUp" style="animation-delay: 0.3s">
                 <div class="stat-info">
                     <h3><?php echo !empty($demandes_mois) ? $demandes_mois[0]['nombre'] : 0; ?></h3>
                     <p>Demandes ce mois</p>
                 </div>
-                <div class="stat-icon"><i class="fas fa-calendar"></i></div>
+                <div class="stat-icon"><i class="fas fa-calendar-week"></i></div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card animate-fadeInUp" style="animation-delay: 0.4s">
                 <div class="stat-info">
                     <h3><?php echo count($services_stats); ?></h3>
                     <p>Services actifs</p>
@@ -1098,242 +592,196 @@ foreach($last_demandes as &$demande) {
             </div>
         </div>
 
-        <!-- GRAPHIQUES -->
-        <div class="two-columns">
-            <div class="chart-box">
-                <h3><i class="fas fa-chart-bar"></i> Répartition par service</h3>
-                <div class="bar-chart">
-                    <?php 
-                    $maxCount = !empty($services_stats) ? max(array_column($services_stats, 'nombre')) : 1;
-                    foreach($services_stats as $service): 
-                        $percentage = ($service['nombre'] / $maxCount) * 100;
-                    ?>
-                        <div class="bar-item">
-                            <div class="bar-label">
-                                <span><?php echo htmlspecialchars($service['type_service']); ?></span>
-                                <span><?php echo $service['nombre']; ?> demande(s)</span>
-                            </div>
-                            <div class="bar-bg">
-                                <div class="bar-fill" style="width: <?php echo $percentage; ?>%;">
-                                    <?php if($percentage > 20): echo $service['nombre']; endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
+        <!-- GRAPHIQUES AVEC CHART.JS -->
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-bottom: 32px;">
+            <div class="glass-card" style="padding: 1.5rem; border-radius: 24px;">
+                <h3 style="margin-bottom: 1rem;"><i class="fas fa-chart-bar"></i> Évolution mensuelle</h3>
+                <canvas id="monthlyChart" height="200"></canvas>
             </div>
-
-            <div class="chart-box">
-                <h3><i class="fas fa-medal"></i> Top 3 des services</h3>
-                <ul class="service-list">
-                    <?php if(!empty($top_services)): $medals = ['🥇', '🥈', '🥉']; ?>
-                        <?php foreach($top_services as $index => $service): ?>
-                            <li class="service-item">
-                                <span class="service-name">
-                                    <span class="service-badge"><?php echo $medals[$index]; ?></span>
-                                    <?php echo htmlspecialchars($service['type_service']); ?>
-                                </span>
-                                <span class="service-count"><?php echo $service['nombre']; ?> demandes</span>
-                            </li>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <li class="service-item">Aucune donnée disponible</li>
-                    <?php endif; ?>
-                </ul>
+            <div class="glass-card" style="padding: 1.5rem; border-radius: 24px;">
+                <h3 style="margin-bottom: 1rem;"><i class="fas fa-chart-pie"></i> Répartition par service</h3>
+                <canvas id="servicesChart" height="200"></canvas>
             </div>
         </div>
 
-        <div class="chart-box" style="margin-bottom: 32px;">
-            <h3><i class="fas fa-chart-line"></i> Évolution des demandes (6 derniers mois)</h3>
-            <div class="bar-chart">
-                <?php if(!empty($demandes_mois)): 
-                    $maxMonthCount = max(array_column($demandes_mois, 'nombre'));
-                    foreach(array_reverse($demandes_mois) as $mois): 
-                        $percentage = ($mois['nombre'] / $maxMonthCount) * 100;
-                ?>
-                    <div class="bar-item">
-                        <div class="bar-label">
-                            <span><?php echo date('F Y', strtotime($mois['mois'] . '-01')); ?></span>
-                            <span><?php echo $mois['nombre']; ?> demande(s)</span>
-                        </div>
-                        <div class="bar-bg">
-                            <div class="bar-fill" style="width: <?php echo $percentage; ?>%;">
-                                <?php if($percentage > 20): echo $mois['nombre']; endif; ?>
-                            </div>
-                        </div>
-                    </div>
-                <?php endforeach; endif; ?>
-            </div>
-        </div>
-
-        <!-- TABLEAU DES DEMANDES AVEC BOUTON EXPORT PDF -->
-        <div class="last-demandes">
-            <div class="table-header">
+        <!-- TABLEAU DES DEMANDES -->
+        <div class="glass-table animate-fadeInUp" style="animation-delay: 0.5s">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                 <h3><i class="fas fa-clock"></i> Dernières demandes</h3>
-                <button id="exportPdfBtn" class="btn-export-pdf">
+                <button id="exportPdfBtn" class="btn-premium">
                     <i class="fas fa-file-pdf"></i> Exporter PDF
                 </button>
             </div>
             <div id="demandesTableContainer">
                 <table class="demandes-table" id="demandesTable">
                     <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Citoyen</th>
-                            <th>Service</th>
-                            <th>Documents requis</th>
-                            <th>Date</th>
-                            <th>Statut</th>
-                            <th>Fichiers</th>
-                        </tr>
+                        <tr><th>ID</th><th>Citoyen</th><th>Service</th><th>Documents requis</th><th>Date</th><th>Statut</th><th>Fichiers</th></tr>
                     </thead>
                     <tbody>
-                        <?php if(!empty($last_demandes)): ?>
-                            <?php foreach($last_demandes as $demande): ?>
-                                <tr>
-                                    <td>#<?php echo $demande['id']; ?></td>
-                                    <td><?php echo htmlspecialchars($demande['nom']); ?></td>
-                                    <td><?php echo htmlspecialchars($demande['type_service']); ?></td>
-                                    <td style="max-width: 180px;"><?php echo htmlspecialchars(substr($demande['documents'] ?? '', 0, 40)) . (strlen($demande['documents'] ?? '') > 40 ? '...' : ''); ?></td>
-                                    <td><?php echo date('d/m/Y', strtotime($demande['date_creation'])); ?></td>
-                                    <td><span class="status-badge status-pending">En attente</span></td>
-                                    <td class="file-section">
-                                        <div class="files-list">
-                                            <?php if($demande['fichiers_count'] > 0): ?>
-                                                <?php foreach($demande['fichiers'] as $doc): 
-                                                    $ext = pathinfo($doc['nom_fichier'], PATHINFO_EXTENSION);
-                                                    $iconClass = 'default';
-                                                    if($ext == 'pdf') $iconClass = 'pdf';
-                                                    elseif(in_array($ext, ['jpg','jpeg','png','gif'])) $iconClass = 'image';
-                                                    elseif(in_array($ext, ['doc','docx'])) $iconClass = 'doc';
-                                                ?>
-                                                    <div class="file-item">
-                                                        <div class="file-info">
-                                                            <i class="fas <?php echo $iconClass == 'pdf' ? 'fa-file-pdf' : ($iconClass == 'image' ? 'fa-file-image' : ($iconClass == 'doc' ? 'fa-file-word' : 'fa-file')); ?> file-icon <?php echo $iconClass; ?>"></i>
-                                                            <span class="file-name"><?php echo htmlspecialchars(substr($doc['nom_fichier'], 0, 25)); ?></span>
-                                                            <span class="file-size">(<?php echo round($doc['taille'] / 1024, 1); ?> KB)</span>
-                                                        </div>
-                                                        <div class="file-actions">
-                                                            <a href="index.php?action=download_document&id=<?php echo $doc['id']; ?>" class="download"><i class="fas fa-download"></i></a>
-                                                            <a href="index.php?action=delete_document&id=<?php echo $doc['id']; ?>" class="delete" onclick="return confirm('Supprimer ce document ?')"><i class="fas fa-trash-alt"></i></a>
-                                                        </div>
-                                                    </div>
-                                                <?php endforeach; ?>
-                                            <?php else: ?>
-                                                <div class="empty-files"><i class="fas fa-folder-open"></i> Aucun fichier</div>
-                                            <?php endif; ?>
+                        <?php foreach($last_demandes as $demande): ?>
+                        <tr>
+                            <td>#<?php echo $demande['id']; ?></td>
+                            <td><strong><?php echo htmlspecialchars($demande['nom']); ?></strong></td>
+                            <td><?php echo htmlspecialchars($demande['type_service']); ?></td>
+                            <td><?php echo substr(htmlspecialchars($demande['documents'] ?? ''), 0, 40); ?></td>
+                            <td><?php echo date('d/m/Y', strtotime($demande['date_creation'])); ?></td>
+                            <td><span class="status-pending">En attente</span></td>
+                            <td>
+                                <?php if($demande['fichiers_count'] > 0): ?>
+                                    <?php foreach($demande['fichiers'] as $doc): ?>
+                                        <div style="display: flex; gap: 8px; margin-bottom: 4px;">
+                                            <i class="fas fa-file"></i>
+                                            <span><?php echo substr($doc['nom_fichier'], 0, 20); ?></span>
+                                            <a href="index.php?action=download_document&id=<?php echo $doc['id']; ?>" style="color: #10b981;">
+                                                <i class="fas fa-download"></i>
+                                            </a>
                                         </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr><td colspan="7" style="text-align:center; padding:40px;">Aucune demande trouvée</td></tr>
-                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <span style="color: #94a3b8;">Aucun fichier</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
         </div>
 
         <div style="text-align: center; margin-top: 32px;">
-            <a href="index.php?action=manage"><button class="btn-back"><i class="fas fa-arrow-left"></i> Retour au Front Office</button></a>
+            <a href="index.php?action=manage">
+                <button class="btn-premium"><i class="fas fa-arrow-left"></i> Retour au site</button>
+            </a>
         </div>
     </div>
 
-    <!-- MODAL POUR ENVOYER UNE NOTIFICATION -->
-    <div id="notifyModal" class="modal">
+    <!-- MODAL NOTIFICATION -->
+    <div id="notifyModal" class="modal" style="display: none; position: fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;z-index:10001;">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header" style="padding: 20px 24px; border-bottom: 1px solid #e2e8f0;">
                 <h3><i class="fas fa-bell"></i> Envoyer une notification</h3>
-                <span class="modal-close" onclick="closeNotifyModal()">&times;</span>
+                <span class="modal-close" onclick="closeNotifyModal()" style="cursor:pointer;font-size:28px;">&times;</span>
             </div>
             <form action="send.php" method="POST">
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label><i class="fas fa-folder-open"></i> Demande concernée</label>
+                <div class="modal-body" style="padding: 24px;">
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label>Demande concernée</label>
                         <select name="demande_id" id="notify_demande_id" class="form-control" required>
-                            <option value="">-- Sélectionnez une demande --</option>
+                            <option value="">-- Sélectionnez --</option>
                             <?php foreach($all_demandes as $demande): ?>
-                                <option value="<?php echo $demande['id']; ?>">
-                                    #<?php echo $demande['id']; ?> - <?php echo htmlspecialchars($demande['nom']); ?>
-                                </option>
+                                <option value="<?php echo $demande['id']; ?>">#<?php echo $demande['id']; ?> - <?php echo htmlspecialchars($demande['nom']); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    
-                    <div class="form-group">
-                        <label><i class="fas fa-tag"></i> Messages rapides</label>
-                        <div class="quick-messages">
-                            <button type="button" class="quick-msg" data-msg="🔄 Votre demande est en cours de traitement. Nous vous tiendrons informé.">
-                                <i class="fas fa-spinner"></i> En cours
-                            </button>
-                            <button type="button" class="quick-msg" data-msg="✅ Félicitations ! Votre demande a été acceptée. Vous recevrez une confirmation sous 48h.">
-                                <i class="fas fa-check-circle"></i> Acceptée
-                            </button>
-                            <button type="button" class="quick-msg" data-msg="❌ Votre demande a été refusée. Veuillez contacter l'administration.">
-                                <i class="fas fa-times-circle"></i> Refusée
-                            </button>
-                            <button type="button" class="quick-msg" data-msg="📄 Des documents sont manquants pour votre demande. Merci de les fournir rapidement.">
-                                <i class="fas fa-file-alt"></i> Docs manquants
-                            </button>
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label>Document lié (optionnel)</label>
+                        <select name="document_id" id="notify_document_id" class="form-control">
+                            <option value="">-- Aucun --</option>
+                            <?php foreach($all_documents as $document): ?>
+                                <option value="<?php echo $document['id']; ?>">📄 <?php echo substr($document['nom_fichier'], 0, 40); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label>Messages rapides</label>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <button type="button" class="quick-msg" data-msg="Votre demande est en cours de traitement." style="padding:8px 12px;background:#f1f5f9;border:none;border-radius:20px;cursor:pointer;">📋 En cours</button>
+                            <button type="button" class="quick-msg" data-msg="Félicitations ! Votre demande a été acceptée." style="padding:8px 12px;background:#f1f5f9;border:none;border-radius:20px;cursor:pointer;">✅ Acceptée</button>
+                            <button type="button" class="quick-msg" data-msg="Votre demande a été refusée." style="padding:8px 12px;background:#f1f5f9;border:none;border-radius:20px;cursor:pointer;">❌ Refusée</button>
                         </div>
                     </div>
-                    
                     <div class="form-group">
-                        <label><i class="fas fa-envelope"></i> Message personnalisé</label>
-                        <textarea name="message" id="notify_message" rows="4" placeholder="Saisissez votre message ici..." required></textarea>
+                        <label>Message</label>
+                        <textarea name="message" id="notify_message" class="form-control" rows="4" required></textarea>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-cancel" onclick="closeNotifyModal()">Annuler</button>
-                    <button type="submit" class="btn-send">
-                        <i class="fas fa-paper-plane"></i> Envoyer
-                    </button>
+                <div class="modal-footer" style="padding: 16px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 12px;">
+                    <button type="button" class="btn-cancel" onclick="closeNotifyModal()" style="padding:10px 20px;background:#f1f5f9;border:none;border-radius:40px;">Annuler</button>
+                    <button type="submit" class="btn-send" style="padding:10px 20px;background:linear-gradient(135deg,#052E16,#10b981);color:white;border:none;border-radius:40px;">Envoyer</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        // ========== MODE SOMBRE ==========
-        function initDarkMode() {
-            const darkMode = localStorage.getItem('darkMode');
-            const darkModeToggle = document.getElementById('darkModeToggle');
-            const darkModeText = document.getElementById('darkModeText');
-            
-            if (darkMode === 'enabled') {
-                document.body.classList.add('dark-mode');
-                if (darkModeText) darkModeText.textContent = 'Clair';
-                if (darkModeToggle) darkModeToggle.innerHTML = '<i class="fas fa-sun"></i> Clair';
-            }
-            
-            if (darkModeToggle) {
-                darkModeToggle.addEventListener('click', () => {
-                    document.body.classList.toggle('dark-mode');
-                    
-                    if (document.body.classList.contains('dark-mode')) {
-                        localStorage.setItem('darkMode', 'enabled');
-                        darkModeToggle.innerHTML = '<i class="fas fa-sun"></i> Clair';
-                        if (darkModeText) darkModeText.textContent = 'Clair';
-                    } else {
-                        localStorage.setItem('darkMode', 'disabled');
-                        darkModeToggle.innerHTML = '<i class="fas fa-moon"></i> Sombre';
-                        if (darkModeText) darkModeText.textContent = 'Sombre';
-                    }
-                });
-            }
+        // MODE SOMBRE
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        darkModeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+            darkModeToggle.innerHTML = document.body.classList.contains('dark-mode') ? '<i class="fas fa-sun"></i> Mode clair' : '<i class="fas fa-moon"></i> Mode sombre';
+        });
+        if(localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+            darkModeToggle.innerHTML = '<i class="fas fa-sun"></i> Mode clair';
         }
 
-        // ========== EXPORT PDF ==========
+        // CHART.JS GRAPHIQUES
+        const monthlyData = <?php 
+            $months = array_reverse($demandes_mois);
+            $labels = array_map(function($m) { return date('M Y', strtotime($m['mois'] . '-01')); }, $months);
+            $counts = array_column($months, 'nombre');
+            echo json_encode(['labels' => $labels, 'counts' => $counts]);
+        ?>;
+        
+        new Chart(document.getElementById('monthlyChart'), {
+            type: 'line',
+            data: {
+                labels: monthlyData.labels,
+                datasets: [{
+                    label: 'Demandes',
+                    data: monthlyData.counts,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { position: 'top' }
+                }
+            }
+        });
+
+        const servicesData = <?php 
+            $serviceLabels = array_column($services_stats, 'type_service');
+            $serviceCounts = array_column($services_stats, 'nombre');
+            echo json_encode(['labels' => $serviceLabels, 'counts' => $serviceCounts]);
+        ?>;
+
+        new Chart(document.getElementById('servicesChart'), {
+            type: 'doughnut',
+            data: {
+                labels: servicesData.labels,
+                datasets: [{
+                    data: servicesData.counts,
+                    backgroundColor: ['#052E16', '#0a4a22', '#10b981', '#34d399', '#6ee7b7'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        // EXPORT PDF AVEC EN-TÊTE SMART MUNICIPALITY
         async function exportToPDF() {
             const btn = document.getElementById('exportPdfBtn');
             const originalText = btn.innerHTML;
             
             try {
-                // Désactiver le bouton et afficher chargement
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération...';
                 btn.disabled = true;
                 
-                // Créer un élément temporaire pour l'export
+                // Cloner le tableau
                 const element = document.getElementById('demandesTableContainer');
                 const tableClone = element.cloneNode(true);
                 
@@ -1344,20 +792,23 @@ foreach($last_demandes as &$demande) {
                 pdfContainer.style.width = '100%';
                 pdfContainer.style.fontFamily = 'Arial, sans-serif';
                 
-                // Ajouter l'en-tête
-                const header = document.createElement('div');
-                header.style.textAlign = 'center';
-                header.style.marginBottom = '20px';
-                header.style.padding = '10px';
-                header.style.borderBottom = '2px solid #052E16';
-                header.innerHTML = `
-                    <h2 style="color: #052E16; margin: 0;">Smart Municipality</h2>
-                    <p style="color: #64748b; margin: 5px 0 0;">Liste des dernières demandes</p>
-                    <p style="color: #94a3b8; font-size: 12px; margin-top: 5px;">Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
+                // Ajouter l'en-tête SMART MUNICIPALITY
+                const pdfHeader = document.createElement('div');
+                pdfHeader.style.textAlign = 'center';
+                pdfHeader.style.marginBottom = '30px';
+                pdfHeader.style.padding = '20px';
+                pdfHeader.style.background = 'linear-gradient(135deg, #052E16, #064e3b)';
+                pdfHeader.style.color = 'white';
+                pdfHeader.style.borderRadius = '12px';
+                pdfHeader.innerHTML = `
+                    <h1 style="margin: 0; font-size: 28px; font-weight: 700;">🏛️ SMART MUNICIPALITY</h1>
+                    <p style="margin: 10px 0 0; opacity: 0.9; font-size: 14px;">Administration moderne et innovante</p>
+                    <p style="margin: 5px 0 0; opacity: 0.8; font-size: 12px;">Liste des dernières demandes</p>
+                    <p style="margin: 10px 0 0; font-size: 11px; opacity: 0.7;">Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
                 `;
-                pdfContainer.appendChild(header);
+                pdfContainer.appendChild(pdfHeader);
                 
-                // Nettoyer le tableau cloné
+                // Nettoyer le tableau cloné (enlever les boutons d'action)
                 const clonedTable = tableClone.querySelector('#demandesTable');
                 if (clonedTable) {
                     // Supprimer les boutons d'action
@@ -1374,6 +825,15 @@ foreach($last_demandes as &$demande) {
                             files.forEach(file => {
                                 const actions = file.querySelector('.file-actions');
                                 if (actions) actions.remove();
+                                
+                                // Garder seulement le nom du fichier
+                                const fileInfo = file.querySelector('.file-info');
+                                if (fileInfo) {
+                                    const newContent = document.createElement('span');
+                                    newContent.innerHTML = fileInfo.innerHTML;
+                                    file.innerHTML = '';
+                                    file.appendChild(newContent);
+                                }
                             });
                         }
                     });
@@ -1386,21 +846,24 @@ foreach($last_demandes as &$demande) {
                 // Ajouter un pied de page
                 const footer = document.createElement('div');
                 footer.style.textAlign = 'center';
-                footer.style.marginTop = '20px';
-                footer.style.padding = '10px';
+                footer.style.marginTop = '30px';
+                footer.style.padding = '15px';
                 footer.style.borderTop = '1px solid #e2e8f0';
                 footer.style.fontSize = '10px';
                 footer.style.color = '#94a3b8';
-                footer.innerHTML = `Smart Municipality - Document généré automatiquement`;
+                footer.innerHTML = `
+                    <p>Smart Municipality - Solutions numériques pour les citoyens</p>
+                    <p>© ${new Date().getFullYear()} Tous droits réservés</p>
+                `;
                 pdfContainer.appendChild(footer);
                 
-                // Ajouter le conteneur au body temporairement
+                // Ajouter au body temporairement pour le rendu
                 pdfContainer.style.position = 'absolute';
                 pdfContainer.style.left = '-9999px';
                 pdfContainer.style.top = '-9999px';
                 document.body.appendChild(pdfContainer);
                 
-                // Utiliser html2canvas et jsPDF
+                // Générer le PDF
                 const canvas = await html2canvas(pdfContainer, {
                     scale: 2,
                     backgroundColor: '#ffffff',
@@ -1408,13 +871,11 @@ foreach($last_demandes as &$demande) {
                     useCORS: true
                 });
                 
-                // Supprimer le conteneur temporaire
                 document.body.removeChild(pdfContainer);
                 
-                // Créer le PDF
                 const { jsPDF } = window.jspdf;
                 const imgData = canvas.toDataURL('image/png');
-                const imgWidth = 297; // A4 en mm en paysage
+                const imgWidth = 280;
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
                 
                 const pdf = new jsPDF({
@@ -1423,60 +884,49 @@ foreach($last_demandes as &$demande) {
                     format: 'a4'
                 });
                 
-                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-                pdf.save('demandes_smart_municipality.pdf');
+                pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+                pdf.save('smart_municipality_demandes.pdf');
                 
-                // Réactiver le bouton
                 btn.innerHTML = originalText;
                 btn.disabled = false;
                 
                 // Notification de succès
-                showNotification('success', 'PDF généré avec succès !');
+                const notif = document.createElement('div');
+                notif.className = 'notification success';
+                notif.innerHTML = '<i class="fas fa-check-circle"></i> PDF généré avec succès !';
+                document.body.appendChild(notif);
+                setTimeout(() => notif.remove(), 3000);
                 
             } catch (error) {
-                console.error('Erreur lors de la génération du PDF:', error);
+                console.error('Erreur PDF:', error);
                 btn.innerHTML = originalText;
                 btn.disabled = false;
-                showNotification('error', 'Erreur lors de la génération du PDF');
+                
+                const notif = document.createElement('div');
+                notif.className = 'notification error';
+                notif.innerHTML = '<i class="fas fa-exclamation-circle"></i> Erreur lors de la génération du PDF';
+                document.body.appendChild(notif);
+                setTimeout(() => notif.remove(), 3000);
             }
         }
-
-        function showNotification(type, message) {
-            const notif = document.createElement('div');
-            notif.className = `notification ${type}`;
-            notif.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}`;
-            document.body.appendChild(notif);
-            setTimeout(() => notif.remove(), 4000);
-        }
-
-        function openNotifyModal() {
-            document.getElementById('notifyModal').classList.add('show');
-            document.getElementById('notify_demande_id').value = '';
-            document.getElementById('notify_message').value = '';
-        }
         
+        document.getElementById('exportPdfBtn').addEventListener('click', exportToPDF);
+
+        // MODAL
+        function openNotifyModal() {
+            document.getElementById('notifyModal').style.display = 'flex';
+        }
         function closeNotifyModal() {
-            document.getElementById('notifyModal').classList.remove('show');
+            document.getElementById('notifyModal').style.display = 'none';
         }
         
         document.querySelectorAll('.quick-msg').forEach(btn => {
             btn.addEventListener('click', function() {
-                document.getElementById('notify_message').value = this.dataset.msg;
+                const msg = this.dataset.msg;
+                const textarea = document.getElementById('notify_message');
+                textarea.value = textarea.value ? textarea.value + '\n\n' + msg : msg;
             });
         });
-        
-        document.getElementById('notifyModal')?.addEventListener('click', function(e) {
-            if (e.target === this) closeNotifyModal();
-        });
-
-        // Bouton export PDF
-        const exportBtn = document.getElementById('exportPdfBtn');
-        if (exportBtn) {
-            exportBtn.addEventListener('click', exportToPDF);
-        }
-
-        // Initialiser le mode sombre
-        initDarkMode();
     </script>
 </body>
 </html>

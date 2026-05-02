@@ -29,7 +29,12 @@ class NotificationController {
     // API: Récupérer toutes les notifications d'un utilisateur (pour la cloche)
     public function getUserNotifications() {
         if(isset($_GET['user_id'])) {
-            $sql = "SELECT * FROM notifications WHERE user_id = :user_id ORDER BY date_creation DESC LIMIT 50";
+            $sql = "SELECT n.*, d.id as demande_id, doc.nom_fichier as document_nom 
+                    FROM notifications n
+                    LEFT JOIN demandes d ON n.demande_id = d.id
+                    LEFT JOIN documents doc ON n.document_id = doc.id
+                    WHERE n.user_id = :user_id 
+                    ORDER BY n.date_creation DESC LIMIT 50";
             $stmt = $this->db->prepare($sql);
             $stmt->bindParam(":user_id", $_GET['user_id']);
             $stmt->execute();
@@ -98,6 +103,7 @@ class NotificationController {
         
         $demande_id = intval($_POST['demande_id']);
         $message = trim($_POST['message']);
+        $document_id = isset($_POST['document_id']) ? intval($_POST['document_id']) : null;
         
         if(empty($message)) {
             echo json_encode(['success' => false, 'message' => 'Le message ne peut pas être vide']);
@@ -119,11 +125,13 @@ class NotificationController {
         $user_id = !empty($demande['user_id']) ? $demande['user_id'] : 1;
         
         try {
-            $sql = "INSERT INTO notifications (user_id, message, statut, date_creation) 
-                    VALUES (:user_id, :message, 'non_lu', NOW())";
+            $sql = "INSERT INTO notifications (user_id, message, statut, date_creation, demande_id, document_id) 
+                    VALUES (:user_id, :message, 'non_lu', NOW(), :demande_id, :document_id)";
             $stmt = $this->db->prepare($sql);
             $stmt->bindParam(":user_id", $user_id, PDO::PARAM_INT);
             $stmt->bindParam(":message", $message, PDO::PARAM_STR);
+            $stmt->bindParam(":demande_id", $demande_id, PDO::PARAM_INT);
+            $stmt->bindParam(":document_id", $document_id, PDO::PARAM_INT);
             
             if($stmt->execute()) {
                 echo json_encode(['success' => true, 'message' => 'Notification envoyée avec succès à ' . htmlspecialchars($demande['nom'])]);

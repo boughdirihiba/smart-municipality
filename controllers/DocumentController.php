@@ -58,7 +58,6 @@ class DocumentController {
     // Upload d'un document
     public function upload() {
         if(!isset($_POST['demande_id']) || empty($_FILES['fichier']['name'])) {
-            // Pour les requêtes AJAX
             if($this->isAjaxRequest()) {
                 header('Content-Type: application/json');
                 echo json_encode(['success' => false, 'message' => 'Données manquantes']);
@@ -76,6 +75,7 @@ class DocumentController {
         }
 
         $extension = strtolower(pathinfo($_FILES["fichier"]["name"], PATHINFO_EXTENSION));
+        $original_name = pathinfo($_FILES["fichier"]["name"], PATHINFO_FILENAME);
         $nom_fichier = time() . "_" . uniqid() . "." . $extension;
         $chemin_fichier = $target_dir . $nom_fichier;
         $type_fichier = $_FILES["fichier"]["type"];
@@ -92,7 +92,27 @@ class DocumentController {
             $stmt->bindParam(":taille", $taille);
             
             if($stmt->execute()) {
-                // Pour les requêtes AJAX
+                $new_document_id = $this->db->lastInsertId();
+                
+                // === NOTIFICATION POUR LE DOCUMENT ===
+                $sqlUser = "SELECT user_id FROM demandes WHERE id = :demande_id";
+                $stmtUser = $this->db->prepare($sqlUser);
+                $stmtUser->bindParam(":demande_id", $demande_id);
+                $stmtUser->execute();
+                $user = $stmtUser->fetch(PDO::FETCH_ASSOC);
+                
+                if($user && !empty($user['user_id'])) {
+                    $message = "📄 Un nouveau document a été ajouté à votre demande #$demande_id : " . $original_name;
+                    $sqlNotif = "INSERT INTO notifications (user_id, message, demande_id, document_id, statut, date_creation) 
+                                 VALUES (:user_id, :message, :demande_id, :document_id, 'non_lu', NOW())";
+                    $stmtNotif = $this->db->prepare($sqlNotif);
+                    $stmtNotif->bindParam(":user_id", $user['user_id']);
+                    $stmtNotif->bindParam(":message", $message);
+                    $stmtNotif->bindParam(":demande_id", $demande_id);
+                    $stmtNotif->bindParam(":document_id", $new_document_id);
+                    $stmtNotif->execute();
+                }
+                
                 if($this->isAjaxRequest()) {
                     header('Content-Type: application/json');
                     echo json_encode(['success' => true, 'message' => 'Document téléversé avec succès']);
@@ -140,15 +160,18 @@ class DocumentController {
     public function update() {
         if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['id']) && isset($_POST['nom_fichier'])) {
             
-            // Récupérer l'extension actuelle du fichier
-            $sql = "SELECT nom_fichier FROM documents WHERE id = :id";
+            // Récupérer l'extension actuelle du fichier et les infos
+            $sql = "SELECT doc.*, d.user_id, d.id as demande_id 
+                    FROM documents doc 
+                    JOIN demandes d ON doc.demande_id = d.id 
+                    WHERE doc.id = :id";
             $stmt = $this->db->prepare($sql);
             $stmt->bindParam(":id", $_POST['id']);
             $stmt->execute();
             $old_doc = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if($old_doc) {
-                // Conserver l'extension
+                $ancien_nom = $old_doc['nom_fichier'];
                 $extension = pathinfo($old_doc['nom_fichier'], PATHINFO_EXTENSION);
                 $nouveau_nom = $_POST['nom_fichier'] . '.' . $extension;
                 
@@ -159,6 +182,18 @@ class DocumentController {
                 $stmt->bindParam(":id", $_POST['id']);
                 
                 if($stmt->execute()) {
+                    // === NOTIFICATION DE MODIFICATION ===
+                    if(!empty($old_doc['user_id'])) {
+                        $message = "✏️ Le document '" . $ancien_nom . "' a été renommé en '" . $nouveau_nom . "' pour votre demande #" . $old_doc['demande_id'];
+                        $sqlNotif = "INSERT INTO notifications (user_id, message, demande_id, document_id, statut, date_creation) 
+                                     VALUES (:user_id, :message, :demande_id, :document_id, 'non_lu', NOW())";
+                        $stmtNotif = $this->db->prepare($sqlNotif);
+                        $stmtNotif->bindParam(":user_id", $old_doc['user_id']);
+                        $stmtNotif->bindParam(":message", $message);
+                        $stmtNotif->bindParam(":demande_id", $old_doc['demande_id']);
+                        $stmtNotif->bindParam(":document_id", $_POST['id']);
+                        $stmtNotif->execute();
+                    }
                     header("Location: index.php?action=manage&success=1");
                 } else {
                     header("Location: index.php?action=edit_document&id=".$_POST['id']."&error=Erreur lors de la modification");
@@ -219,11 +254,15 @@ class DocumentController {
     // Supprimer un document
     public function delete() {
         if(isset($_GET['id'])) {
-            $sql = "SELECT chemin_fichier FROM documents WHERE id = :id";
-            $stmt = $this->db->prepare($sql);
-            $stmt->bindParam(":id", $_GET['id']);
-            $stmt->execute();
-            $doc = $stmt->fetch(PDO::FETCH_ASSOC);
+            // Récupérer les infos du document AVANT suppression
+            $sqlDoc = "SELECT doc.*, d.user_id, d.id as demande_id 
+                       FROM documents doc 
+                       JOIN demandes d ON doc.demande_id = d.id 
+                       WHERE doc.id = :id";
+            $stmtDoc = $this->db->prepare($sqlDoc);
+            $stmtDoc->bindParam(":id", $_GET['id']);
+            $stmtDoc->execute();
+            $doc = $stmtDoc->fetch(PDO::FETCH_ASSOC);
             
             if($doc && file_exists($doc['chemin_fichier'])) {
                 unlink($doc['chemin_fichier']);
@@ -234,6 +273,17 @@ class DocumentController {
             $stmt->bindParam(":id", $_GET['id']);
             
             if($stmt->execute()) {
+                // === NOTIFICATION DE SUPPRESSION ===
+                if($doc && !empty($doc['user_id'])) {
+                    $message = "⚠️ Le document '" . $doc['nom_fichier'] . "' a été supprimé de votre demande #" . $doc['demande_id'];
+                    $sqlNotif = "INSERT INTO notifications (user_id, message, demande_id, statut, date_creation) 
+                                 VALUES (:user_id, :message, :demande_id, 'non_lu', NOW())";
+                    $stmtNotif = $this->db->prepare($sqlNotif);
+                    $stmtNotif->bindParam(":user_id", $doc['user_id']);
+                    $stmtNotif->bindParam(":message", $message);
+                    $stmtNotif->bindParam(":demande_id", $doc['demande_id']);
+                    $stmtNotif->execute();
+                }
                 header("Location: index.php?action=manage");
             } else {
                 echo "Erreur lors de la suppression";

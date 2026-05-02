@@ -5,6 +5,8 @@ class Notification {
     private $message;
     private $statut;
     private $date_creation;
+    private $demande_id;
+    private $document_id;
     private $db;
     
     public function __construct($db = null) {
@@ -17,6 +19,8 @@ class Notification {
     public function getMessage() { return $this->message; }
     public function getStatut() { return $this->statut; }
     public function getDateCreation() { return $this->date_creation; }
+    public function getDemandeId() { return $this->demande_id; }
+    public function getDocumentId() { return $this->document_id; }
     public function getDb() { return $this->db; }
     
     // Setters
@@ -25,6 +29,8 @@ class Notification {
     public function setMessage($message) { $this->message = $message; }
     public function setStatut($statut) { $this->statut = $statut; }
     public function setDateCreation($date_creation) { $this->date_creation = $date_creation; }
+    public function setDemandeId($demande_id) { $this->demande_id = $demande_id; }
+    public function setDocumentId($document_id) { $this->document_id = $document_id; }
     public function setDb($db) { $this->db = $db; }
     
     // CRUD (toutes les méthodes retournent des valeurs par défaut)

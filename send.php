@@ -1,9 +1,9 @@
 <?php
-// send.php - Envoyer une notification
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_once "config/database.php";
+require_once "config/Language.php";  // ← AJOUTER CETTE LIGNE
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: index.php?action=dashboard");
@@ -24,11 +24,11 @@ if (!isset($_POST['message']) || empty(trim($_POST['message']))) {
 
 $demande_id = intval($_POST['demande_id']);
 $message = trim($_POST['message']);
+$document_id = isset($_POST['document_id']) && !empty($_POST['document_id']) ? intval($_POST['document_id']) : null;
 
 $database = new Database();
 $db = $database->connect();
 
-// Récupérer le user_id (l'ID du citoyen qui a fait la demande)
 $sqlUser = "SELECT user_id, nom FROM demandes WHERE id = :id";
 $stmtUser = $db->prepare($sqlUser);
 $stmtUser->bindParam(":id", $demande_id);
@@ -41,27 +41,26 @@ if (!$demande) {
     exit();
 }
 
-// Si la demande n'a pas de user_id, on met 1 par défaut
 $user_id = !empty($demande['user_id']) ? $demande['user_id'] : 1;
 
 try {
-    // Requête sans 'id' car AUTO_INCREMENT
-    $sql = "INSERT INTO notifications (user_id, message, statut, date_creation) 
-            VALUES (:user_id, :message, 'non_lu', NOW())";
+    $sql = "INSERT INTO notifications (user_id, message, statut, date_creation, demande_id, document_id) 
+            VALUES (:user_id, :message, 'non_lu', NOW(), :demande_id, :document_id)";
     $stmt = $db->prepare($sql);
     $stmt->bindParam(":user_id", $user_id);
     $stmt->bindParam(":message", $message);
+    $stmt->bindParam(":demande_id", $demande_id);
+    $stmt->bindParam(":document_id", $document_id);
     
     if ($stmt->execute()) {
-        $_SESSION['success_message'] = "✅ Notification envoyée avec succès à " . htmlspecialchars($demande['nom']);
+        $_SESSION['success_message'] = "✅ " . __('success_created');
     } else {
-        $_SESSION['error_message'] = "❌ Erreur lors de l'envoi";
+        $_SESSION['error_message'] = "❌ " . __('error_occurred');
     }
 } catch(PDOException $e) {
     $_SESSION['error_message'] = "❌ Erreur: " . $e->getMessage();
 }
 
-// Rediriger vers le dashboard
 header("Location: index.php?action=dashboard");
 exit();
 ?>

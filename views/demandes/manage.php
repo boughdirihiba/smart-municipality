@@ -2,14 +2,15 @@
 require_once "models/Document.php";
 require_once "config/database.php";
 require_once "controllers/ServiceController.php";
+require_once "controllers/RatingController.php";
 
 // Démarrer la session si ce n'est pas déjà fait
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Récupérer l'ID utilisateur depuis la session (à adapter selon votre système)
-$user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 1; // Temporaire
+// Récupérer l'ID utilisateur depuis la session
+$user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 1;
 
 // Connexion directe à la base
 $database = new Database();
@@ -23,45 +24,86 @@ $allowed_sort = ['nom', 'popularite', 'date'];
 $sort_column = in_array($sort, $allowed_sort) ? $sort : 'date';
 $order_direction = ($order === 'ASC' || $order === 'DESC') ? $order : 'DESC';
 
-// Récupérer tous les services UNIQUES
-$sql = "SELECT * FROM services GROUP BY nom ORDER BY id DESC";
+// Récupérer les services depuis la table services
+$sql = "SELECT * FROM services ORDER BY id DESC";
 $stmt = $db->prepare($sql);
 $stmt->execute();
 $allServices = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Ajouter le compteur de demandes
-foreach($allServices as &$service) {
-    $sqlCount = "SELECT COUNT(*) as count FROM demandes WHERE type_service = :service_name";
-    $stmtCount = $db->prepare($sqlCount);
-    $stmtCount->bindParam(":service_name", $service['nom']);
-    $stmtCount->execute();
-    $count = $stmtCount->fetch(PDO::FETCH_ASSOC);
-    $service['demandes_count'] = $count['count'];
-}
-
-// Supprimer les doublons
+// Filtrer les services uniques par nom et ajouter le compteur de demandes
 $uniqueServices = [];
 $seenNames = [];
+
 foreach($allServices as $service) {
     $nomKey = strtolower(trim($service['nom']));
     if (!in_array($nomKey, $seenNames)) {
         $seenNames[] = $nomKey;
+        
+        // Compter les demandes pour ce service
+        $sqlCount = "SELECT COUNT(*) as count FROM demandes WHERE type_service = :service_name";
+        $stmtCount = $db->prepare($sqlCount);
+        $stmtCount->bindParam(":service_name", $service['nom']);
+        $stmtCount->execute();
+        $count = $stmtCount->fetch(PDO::FETCH_ASSOC);
+        
+        $service['demandes_count'] = $count['count'];
+        
+        // Récupérer la moyenne des notes pour ce service
+        $sqlRating = "SELECT AVG(rating) as average, COUNT(*) as rating_count FROM ratings WHERE service_id = :service_id";
+        $stmtRating = $db->prepare($sqlRating);
+        $stmtRating->bindParam(":service_id", $service['id']);
+        $stmtRating->execute();
+        $ratingData = $stmtRating->fetch(PDO::FETCH_ASSOC);
+        $service['rating_avg'] = round($ratingData['average'] ?? 0, 1);
+        $service['rating_count'] = $ratingData['rating_count'] ?? 0;
+        
         $uniqueServices[] = $service;
     }
 }
 $allServices = $uniqueServices;
 
 // Appliquer le tri
-usort($allServices, function($a, $b) use ($sort_column, $order_direction) {
-    if($sort_column == 'nom') {
-        $result = strcmp(strtolower($a['nom']), strtolower($b['nom']));
-    } elseif($sort_column == 'popularite') {
-        $result = $a['demandes_count'] - $b['demandes_count'];
+if($sort_column == 'nom') {
+    if($order_direction == 'ASC') {
+        usort($allServices, function($a, $b) {
+            return strcoll(
+                mb_strtolower(trim($a['nom']), 'UTF-8'), 
+                mb_strtolower(trim($b['nom']), 'UTF-8')
+            );
+        });
     } else {
-        $result = strtotime($a['date_creation']) - strtotime($b['date_creation']);
+        usort($allServices, function($a, $b) {
+            return strcoll(
+                mb_strtolower(trim($b['nom']), 'UTF-8'), 
+                mb_strtolower(trim($a['nom']), 'UTF-8')
+            );
+        });
     }
-    return ($order_direction == 'ASC') ? $result : -$result;
-});
+} elseif($sort_column == 'popularite') {
+    if($order_direction == 'ASC') {
+        usort($allServices, function($a, $b) {
+            return $a['demandes_count'] - $b['demandes_count'];
+        });
+    } else {
+        usort($allServices, function($a, $b) {
+            return $b['demandes_count'] - $a['demandes_count'];
+        });
+    }
+} else {
+    if($order_direction == 'ASC') {
+        usort($allServices, function($a, $b) {
+            $dateA = strtotime($a['date_creation']);
+            $dateB = strtotime($b['date_creation']);
+            return $dateA - $dateB;
+        });
+    } else {
+        usort($allServices, function($a, $b) {
+            $dateA = strtotime($a['date_creation']);
+            $dateB = strtotime($b['date_creation']);
+            return $dateB - $dateA;
+        });
+    }
+}
 
 // Récupérer les demandes
 $sql = "SELECT * FROM demandes ORDER BY date_creation DESC";
@@ -103,7 +145,6 @@ foreach($demandes as &$demande) {
         transition: all 0.3s ease;
     }
 
-    /* ========== MODE SOMBRE ========== */
     body.dark-mode {
         background: #0f172a;
         color: #e2e8f0;
@@ -219,7 +260,29 @@ foreach($demandes as &$demande) {
         color: #94a3b8;
     }
 
-    /* Bouton mode sombre */
+    .notification-link {
+        margin-left: 15px;
+        color: #10b981;
+        text-decoration: none;
+        font-size: 11px;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .notification-link:hover {
+        text-decoration: underline;
+        opacity: 0.8;
+    }
+
+    body.dark-mode .notification-link {
+        color: #4ade80;
+    }
+
+    .notification-link i {
+        font-size: 10px;
+        margin-right: 3px;
+    }
+
     .btn-darkmode {
         background: #f1f5f9;
         border: none;
@@ -250,7 +313,6 @@ foreach($demandes as &$demande) {
         color: white;
     }
 
-    /* Couleurs élégantes - Vert foncé #052E16 */
     :root {
         --primary: #052E16;
         --primary-dark: #022c0f;
@@ -266,7 +328,6 @@ foreach($demandes as &$demande) {
         --card-hover-shadow: 0 20px 35px rgba(5, 46, 22, 0.12);
     }
 
-    /* Modern Navbar */
     .navbar {
         background: rgba(255, 255, 255, 0.97);
         backdrop-filter: blur(10px);
@@ -372,7 +433,6 @@ foreach($demandes as &$demande) {
         color: var(--primary);
     }
 
-    /* ========== STYLES CLOCHE NOTIFICATION ========== */
     .nav-right {
         display: flex;
         align-items: center;
@@ -420,8 +480,8 @@ foreach($demandes as &$demande) {
         position: absolute;
         top: 55px;
         right: 0;
-        width: 380px;
-        max-height: 450px;
+        width: 420px;
+        max-height: 500px;
         background: white;
         border-radius: 20px;
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
@@ -483,7 +543,7 @@ foreach($demandes as &$demande) {
     }
 
     .notification-list {
-        max-height: 370px;
+        max-height: 400px;
         overflow-y: auto;
     }
 
@@ -510,7 +570,7 @@ foreach($demandes as &$demande) {
     .notification-message {
         font-size: 13px;
         color: #1e293b;
-        margin-bottom: 6px;
+        margin-bottom: 8px;
         line-height: 1.4;
     }
 
@@ -519,7 +579,8 @@ foreach($demandes as &$demande) {
         color: #94a3b8;
         display: flex;
         align-items: center;
-        gap: 5px;
+        flex-wrap: wrap;
+        gap: 8px;
     }
 
     .empty-notifications {
@@ -556,7 +617,6 @@ foreach($demandes as &$demande) {
         color: white !important;
     }
 
-    /* Hero */
     .hero {
         background: var(--primary-gradient);
         padding: 55px 40px;
@@ -598,7 +658,6 @@ foreach($demandes as &$demande) {
         padding: 40px;
     }
 
-    /* Tabs */
     .tabs-container {
         background: white;
         border-radius: 60px;
@@ -660,7 +719,6 @@ foreach($demandes as &$demande) {
         to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Services header */
     .services-header {
         display: flex;
         justify-content: space-between;
@@ -685,7 +743,6 @@ foreach($demandes as &$demande) {
         margin-top: 5px;
     }
 
-    /* BOUTONS DE TRI */
     .sort-bar {
         background: white;
         padding: 8px 20px;
@@ -767,7 +824,6 @@ foreach($demandes as &$demande) {
         transition: all 0.3s ease;
     }
 
-    /* GRILLE DES SERVICES */
     .services-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -868,6 +924,199 @@ foreach($demandes as &$demande) {
         gap: 8px;
     }
 
+    /* STYLES POUR LE RATING */
+    .rating-container {
+        margin: 15px 0;
+        padding-top: 10px;
+        border-top: 1px solid #eef2ff;
+    }
+
+    .rating-display {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+    }
+
+    .stars-static {
+        display: flex;
+        gap: 3px;
+    }
+
+    .star-filled {
+        color: #fbbf24;
+    }
+
+    .star-empty {
+        color: #cbd5e1;
+    }
+
+    .rating-average {
+        font-weight: 700;
+        font-size: 15px;
+        color: var(--primary);
+    }
+
+    .rating-count {
+        font-size: 11px;
+        color: #64748b;
+    }
+
+    .stars-input {
+        display: flex;
+        gap: 5px;
+        margin: 10px 0;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+    }
+
+    .star-input {
+        display: none;
+    }
+
+    .star-label {
+        font-size: 28px;
+        color: #cbd5e1;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .star-label:hover,
+    .star-label:hover ~ .star-label,
+    .star-input:checked ~ .star-label {
+        color: #fbbf24;
+    }
+
+    .rating-comment {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        font-family: inherit;
+        font-size: 12px;
+        resize: vertical;
+        margin-top: 10px;
+        display: block;
+    }
+
+    .btn-rating {
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 40px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 10px;
+        font-size: 12px;
+        transition: all 0.3s;
+        display: block;
+        width: 100%;
+    }
+
+    .btn-rating:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(5, 46, 22, 0.3);
+    }
+
+    .btn-delete-rating {
+        background: #fee2e2;
+        color: #dc2626;
+        border: none;
+        padding: 5px 12px;
+        border-radius: 40px;
+        font-size: 11px;
+        cursor: pointer;
+        margin-left: 10px;
+        transition: all 0.2s;
+    }
+
+    .btn-delete-rating:hover {
+        background: #fecaca;
+    }
+
+    .user-rating-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        font-size: 13px;
+        color: var(--primary);
+        background: var(--primary-soft);
+        padding: 8px 15px;
+        border-radius: 40px;
+        margin-top: 10px;
+    }
+
+    .rating-list {
+        margin-top: 15px;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .rating-item {
+        padding: 10px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .rating-item:last-child {
+        border-bottom: none;
+    }
+
+    .rating-user {
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+    .rating-stars-small {
+        display: inline-flex;
+        gap: 2px;
+        margin-left: 8px;
+    }
+
+    .rating-stars-small i {
+        font-size: 10px;
+    }
+
+    .rating-comment-text {
+        font-size: 11px;
+        color: #64748b;
+        margin-top: 5px;
+    }
+
+    .rating-date {
+        font-size: 9px;
+        color: #94a3b8;
+        float: right;
+    }
+
+    .loading-rating {
+        text-align: center;
+        padding: 10px;
+        color: #94a3b8;
+        font-size: 12px;
+    }
+
+    body.dark-mode .rating-container {
+        border-top-color: #334155;
+    }
+
+    body.dark-mode .rating-comment {
+        background: #334155;
+        border-color: #475569;
+        color: #e2e8f0;
+    }
+
+    body.dark-mode .rating-item {
+        border-bottom-color: #334155;
+    }
+
+    body.dark-mode .user-rating-info {
+        background: #064e3b;
+        color: #4ade80;
+    }
+
     .card-btn {
         background: transparent;
         border: 1.5px solid #e2e8f0;
@@ -900,7 +1149,6 @@ foreach($demandes as &$demande) {
         transform: translateX(5px);
     }
 
-    /* Section demandes */
     .demandes-section {
         background: white;
         border-radius: 28px;
@@ -1066,7 +1314,6 @@ foreach($demandes as &$demande) {
         transition: all 0.3s ease;
     }
 
-    /* Footer */
     .footer {
         background: var(--primary-gradient);
         color: white;
@@ -1146,9 +1393,10 @@ foreach($demandes as &$demande) {
         .footer { padding: 35px 20px 25px; }
         .nav-links { justify-content: flex-start; gap: 4px; }
         .nav-links a { padding: 6px 12px; font-size: 12px; }
-        .notification-dropdown { width: 320px; right: -50px; }
+        .notification-dropdown { width: 350px; right: -60px; }
     }
 </style>
+<link rel="stylesheet" href="assets/css/chatbot.css">
 </head>
 <body>
 
@@ -1173,11 +1421,9 @@ foreach($demandes as &$demande) {
             <a href="index.php?action=rendez_vous"><i class="fas fa-calendar-check"></i> Rendez-vous</a>
         </div>
         <div class="nav-right">
-            <!-- Bouton mode sombre -->
             <button id="darkModeToggle" class="btn-darkmode">
                 <i class="fas fa-moon"></i> <span id="darkModeText">Sombre</span>
             </button>
-            <!-- CLOCHE DE NOTIFICATION -->
             <div class="notification-bell" id="notificationBell">
                 <i class="fas fa-bell"></i>
                 <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
@@ -1213,7 +1459,6 @@ foreach($demandes as &$demande) {
         </div>
     </div>
 
-    <!-- PANNEAU SERVICES -->
     <div class="panel active" id="panel-services">
         <div class="services-header">
             <div class="services-header-left">
@@ -1271,7 +1516,7 @@ foreach($demandes as &$demande) {
         <div class="services-grid">
             <?php if (!empty($allServices) && count($allServices) > 0): ?>
                 <?php foreach ($allServices as $service): ?>
-                    <div class="service-card">
+                    <div class="service-card" data-service-id="<?php echo $service['id']; ?>">
                         <div class="card-icon">
                             <i class="<?php echo htmlspecialchars($service['icone']); ?>"></i>
                         </div>
@@ -1285,6 +1530,32 @@ foreach($demandes as &$demande) {
                         <div class="service-meta">
                             <i class="fas fa-calendar-alt"></i> Créé le <?php echo date('d/m/Y', strtotime($service['date_creation'])); ?>
                         </div>
+                        
+                        <div class="rating-container" id="rating-<?php echo $service['id']; ?>">
+                            <div class="rating-display">
+                                <div class="stars-static" id="stars-static-<?php echo $service['id']; ?>">
+                                    <?php 
+                                    $fullStars = floor($service['rating_avg']);
+                                    $halfStar = ($service['rating_avg'] - $fullStars) >= 0.5;
+                                    for($i = 1; $i <= 5; $i++):
+                                        if($i <= $fullStars):
+                                    ?>
+                                        <i class="fas fa-star star-filled"></i>
+                                    <?php elseif($i == $fullStars + 1 && $halfStar): ?>
+                                        <i class="fas fa-star-half-alt star-filled"></i>
+                                    <?php else: ?>
+                                        <i class="far fa-star star-empty"></i>
+                                    <?php endif; endfor; ?>
+                                </div>
+                                <span class="rating-average"><?php echo $service['rating_avg']; ?>/5</span>
+                                <span class="rating-count">(<?php echo $service['rating_count']; ?> avis)</span>
+                            </div>
+                            <div id="rating-input-<?php echo $service['id']; ?>">
+                                <div class="loading-rating">Chargement...</div>
+                            </div>
+                            <div id="rating-list-<?php echo $service['id']; ?>" class="rating-list"></div>
+                        </div>
+                        
                         <a href="index.php?action=create&service=<?php echo urlencode($service['nom']); ?>" class="card-btn">
                             Accéder au service <i class="fas fa-arrow-right"></i>
                         </a>
@@ -1299,7 +1570,6 @@ foreach($demandes as &$demande) {
         </div>
     </div>
 
-    <!-- PANNEAU MES DEMANDES -->
     <div class="panel" id="panel-demandes">
         <div class="demandes-section">
             <div class="demandes-header">
@@ -1368,7 +1638,6 @@ foreach($demandes as &$demande) {
         </div>
     </div>
 
-    <!-- PANNEAU DOCUMENTS -->
     <div class="panel" id="panel-documents">
         <div class="documents-section">
             <div class="documents-header" style="margin-bottom:25px; padding-bottom:15px; border-bottom:1px solid #eef2ff;">
@@ -1463,7 +1732,6 @@ foreach($demandes as &$demande) {
         if (darkModeToggle) {
             darkModeToggle.addEventListener('click', () => {
                 document.body.classList.toggle('dark-mode');
-                
                 if (document.body.classList.contains('dark-mode')) {
                     localStorage.setItem('darkMode', 'enabled');
                     darkModeToggle.innerHTML = '<i class="fas fa-sun"></i> Clair';
@@ -1477,10 +1745,9 @@ foreach($demandes as &$demande) {
         }
     }
 
-    // ========== ID UTILISATEUR (à adapter selon votre session) ==========
     const USER_ID = <?php echo $user_id; ?>;
 
-    // ========== GESTION DES ONGLETS ==========
+    // ========== ONGLETS ==========
     const tabs = document.querySelectorAll('.tab-btn');
     const panels = document.querySelectorAll('.panel');
     
@@ -1494,7 +1761,235 @@ foreach($demandes as &$demande) {
         });
     });
 
-    // ========== SYSTÈME DE NOTIFICATIONS ==========
+    // ========== SYSTÈME DE RATING COMPLET ET FONCTIONNEL ==========
+    
+    // Fonction pour charger le formulaire ou la note existante
+    function loadRatingForService(serviceId) {
+        const inputDiv = document.getElementById(`rating-input-${serviceId}`);
+        if (!inputDiv) return;
+        
+        inputDiv.innerHTML = '<div class="loading-rating">Chargement...</div>';
+        
+        fetch(`index.php?action=get_ratings&service_id=${serviceId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Mettre à jour les étoiles statiques
+                    updateStarsStatic(serviceId, data.average);
+                    
+                    // Mettre à jour moyenne et compteur
+                    const avgSpan = document.querySelector(`#rating-${serviceId} .rating-average`);
+                    const countSpan = document.querySelector(`#rating-${serviceId} .rating-count`);
+                    if (avgSpan) avgSpan.textContent = (data.average || 0) + '/5';
+                    if (countSpan) countSpan.textContent = '(' + (data.count || 0) + ' avis)';
+                    
+                    // Afficher formulaire ou note existante
+                    if (data.user_rating) {
+                        displayUserRating(serviceId, data.user_rating);
+                    } else {
+                        displayRatingForm(serviceId);
+                    }
+                    
+                    // Charger la liste des avis
+                    loadRatingsList(serviceId);
+                } else {
+                    inputDiv.innerHTML = '<div class="loading-rating">Erreur de chargement</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Erreur chargement rating:', error);
+                inputDiv.innerHTML = '<div class="loading-rating">Erreur de chargement</div>';
+            });
+    }
+    
+    function updateStarsStatic(serviceId, average) {
+        const container = document.getElementById(`stars-static-${serviceId}`);
+        if (!container) return;
+        
+        const fullStars = Math.floor(average);
+        const hasHalf = (average - fullStars) >= 0.5;
+        let starsHtml = '';
+        
+        for (let i = 1; i <= 5; i++) {
+            if (i <= fullStars) {
+                starsHtml += '<i class="fas fa-star star-filled"></i>';
+            } else if (i === fullStars + 1 && hasHalf) {
+                starsHtml += '<i class="fas fa-star-half-alt star-filled"></i>';
+            } else {
+                starsHtml += '<i class="far fa-star star-empty"></i>';
+            }
+        }
+        container.innerHTML = starsHtml;
+    }
+    
+    function displayRatingForm(serviceId) {
+        const inputDiv = document.getElementById(`rating-input-${serviceId}`);
+        if (!inputDiv) return;
+        
+        inputDiv.innerHTML = `
+            <div class="stars-input" id="stars-input-${serviceId}">
+                <input type="radio" class="star-input" name="rating-${serviceId}" value="5" id="star5-${serviceId}">
+                <label for="star5-${serviceId}" class="star-label">★</label>
+                <input type="radio" class="star-input" name="rating-${serviceId}" value="4" id="star4-${serviceId}">
+                <label for="star4-${serviceId}" class="star-label">★</label>
+                <input type="radio" class="star-input" name="rating-${serviceId}" value="3" id="star3-${serviceId}">
+                <label for="star3-${serviceId}" class="star-label">★</label>
+                <input type="radio" class="star-input" name="rating-${serviceId}" value="2" id="star2-${serviceId}">
+                <label for="star2-${serviceId}" class="star-label">★</label>
+                <input type="radio" class="star-input" name="rating-${serviceId}" value="1" id="star1-${serviceId}">
+                <label for="star1-${serviceId}" class="star-label">★</label>
+            </div>
+            <textarea class="rating-comment" id="comment-${serviceId}" placeholder="Votre commentaire (optionnel)" rows="2"></textarea>
+            <button class="btn-rating" onclick="submitRating(${serviceId})">⭐ Donner mon avis</button>
+        `;
+    }
+    
+    function displayUserRating(serviceId, userRating) {
+        const inputDiv = document.getElementById(`rating-input-${serviceId}`);
+        if (!inputDiv) return;
+        
+        inputDiv.innerHTML = `
+            <div class="user-rating-info">
+                <span>⭐ Votre note : ${userRating}/5</span>
+                <button class="btn-delete-rating" onclick="deleteRating(${serviceId})">🗑 Supprimer ma note</button>
+            </div>
+        `;
+    }
+    
+    // Fonction globale pour soumettre une note
+    window.submitRating = function(serviceId) {
+        const selectedStar = document.querySelector(`input[name="rating-${serviceId}"]:checked`);
+        if (!selectedStar) {
+            alert('⭐ Veuillez sélectionner une note (1 à 5 étoiles)');
+            return;
+        }
+        
+        const rating = selectedStar.value;
+        const comment = document.getElementById(`comment-${serviceId}`)?.value || '';
+        
+        const formData = new FormData();
+        formData.append('service_id', serviceId);
+        formData.append('rating', rating);
+        formData.append('comment', comment);
+        
+        fetch('index.php?action=add_rating', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Mettre à jour l'affichage
+                updateStarsStatic(serviceId, data.average);
+                const avgSpan = document.querySelector(`#rating-${serviceId} .rating-average`);
+                const countSpan = document.querySelector(`#rating-${serviceId} .rating-count`);
+                if (avgSpan) avgSpan.textContent = (data.average || 0) + '/5';
+                if (countSpan) countSpan.textContent = '(' + (data.count || 0) + ' avis)';
+                displayUserRating(serviceId, data.user_rating);
+                loadRatingsList(serviceId);
+                alert('✅ Merci pour votre avis !');
+            } else {
+                alert('❌ Erreur: ' + (data.message || 'Une erreur est survenue'));
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('❌ Erreur lors de l\'envoi de la note');
+        });
+    };
+    
+    // Fonction globale pour supprimer une note
+    window.deleteRating = function(serviceId) {
+        if (!confirm('Voulez-vous vraiment supprimer votre note ?')) return;
+        
+        const formData = new FormData();
+        formData.append('service_id', serviceId);
+        
+        fetch('index.php?action=delete_rating', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateStarsStatic(serviceId, data.average);
+                const avgSpan = document.querySelector(`#rating-${serviceId} .rating-average`);
+                const countSpan = document.querySelector(`#rating-${serviceId} .rating-count`);
+                if (avgSpan) avgSpan.textContent = (data.average || 0) + '/5';
+                if (countSpan) countSpan.textContent = '(' + (data.count || 0) + ' avis)';
+                displayRatingForm(serviceId);
+                loadRatingsList(serviceId);
+                alert('✅ Votre note a été supprimée');
+            } else {
+                alert('❌ Erreur: ' + (data.message || 'Une erreur est survenue'));
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('❌ Erreur lors de la suppression');
+        });
+    };
+    
+    function loadRatingsList(serviceId) {
+        const listContainer = document.getElementById(`rating-list-${serviceId}`);
+        if (!listContainer) return;
+        
+        listContainer.innerHTML = '<div class="loading-rating">Chargement des avis...</div>';
+        
+        fetch(`index.php?action=get_ratings&service_id=${serviceId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.ratings && data.ratings.length > 0) {
+                    listContainer.innerHTML = data.ratings.map(r => `
+                        <div class="rating-item">
+                            <div>
+                                <span class="rating-user">${escapeHtml(r.user_name || 'Utilisateur')}</span>
+                                <span class="rating-stars-small">
+                                    ${generateSmallStars(r.rating)}
+                                </span>
+                                <span class="rating-date">${formatDateRating(r.created_at)}</span>
+                            </div>
+                            ${r.comment ? `<div class="rating-comment-text">${escapeHtml(r.comment)}</div>` : ''}
+                        </div>
+                    `).join('');
+                } else {
+                    listContainer.innerHTML = '<div class="loading-rating">⭐ Aucun avis pour le moment, soyez le premier à donner votre avis !</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                listContainer.innerHTML = '<div class="loading-rating">❌ Erreur de chargement des avis</div>';
+            });
+    }
+    
+    function generateSmallStars(rating) {
+        let stars = '';
+        for (let i = 1; i <= 5; i++) {
+            if (i <= rating) {
+                stars += '<i class="fas fa-star star-filled"></i>';
+            } else {
+                stars += '<i class="far fa-star star-empty"></i>';
+            }
+        }
+        return stars;
+    }
+    
+    function formatDateRating(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('fr-FR');
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // ========== NOTIFICATIONS ==========
     function loadNotifications() {
         fetch(`index.php?action=get_user_notifications&user_id=${USER_ID}`)
             .then(response => response.json())
@@ -1546,8 +2041,7 @@ foreach($demandes as &$demande) {
         `).join('');
         
         document.querySelectorAll('.notification-item').forEach(item => {
-            item.addEventListener('click', function(e) {
-                e.stopPropagation();
+            item.addEventListener('click', function() {
                 const id = this.dataset.id;
                 if (this.classList.contains('unread')) {
                     markAsRead(id);
@@ -1564,9 +2058,7 @@ foreach($demandes as &$demande) {
         })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                loadNotifications();
-            }
+            if (data.success) loadNotifications();
         })
         .catch(error => console.error('Erreur:', error));
     }
@@ -1579,9 +2071,7 @@ foreach($demandes as &$demande) {
         })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                loadNotifications();
-            }
+            if (data.success) loadNotifications();
         })
         .catch(error => console.error('Erreur:', error));
     }
@@ -1599,16 +2089,6 @@ foreach($demandes as &$demande) {
         if (hours < 24) return `Il y a ${hours} h`;
         if (days < 7) return `Il y a ${days} j`;
         return date.toLocaleDateString('fr-FR');
-    }
-
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
     }
 
     const bell = document.getElementById('notificationBell');
@@ -1807,8 +2287,26 @@ foreach($demandes as &$demande) {
         })
         .catch(console.error);
 
-    // Initialiser le mode sombre
     initDarkMode();
+    
+    // Initialiser les ratings pour tous les services APRÈS le chargement de la page
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.service-card').forEach(card => {
+            const serviceId = card.dataset.serviceId;
+            if (serviceId) {
+                loadRatingForService(serviceId);
+            }
+        });
+    });
 </script>
+
+<?php 
+require_once "controllers/ChatbotController.php";
+$chatbotController = new ChatbotController();
+$chatbotController->widget(); 
+?>
+
+<script src="assets/js/chatbot.js"></script>
+
 </body>
 </html>

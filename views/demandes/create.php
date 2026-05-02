@@ -410,6 +410,8 @@ unset($_SESSION['old_input']);
         <?php endif; ?>
 
         <form id="demandeForm" action="index.php?action=store" method="POST" novalidate>
+            <input type="hidden" name="service_id" id="service_id" value="">
+            
             <div class="form-row">
                 <div class="form-group">
                     <label><i class="fas fa-hashtag"></i> ID <span class="required">*</span></label>

@@ -17,7 +17,11 @@ class DemandeController {
         $serviceController = new ServiceController();
         $allServices = $serviceController->getServicesFront();
         
-        $sql = "SELECT * FROM demandes ORDER BY date_creation DESC";
+        // Récupérer les demandes avec le nom du service
+        $sql = "SELECT d.*, s.nom as service_nom, s.icone as service_icone 
+                FROM demandes d
+                LEFT JOIN services s ON d.service_id = s.id
+                ORDER BY d.date_creation DESC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
         $demandes = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -75,8 +79,19 @@ class DemandeController {
             exit();
         }
         
-        $sql = "INSERT INTO demandes (id, nom, type_service, documents, date_creation)
-                VALUES (:id, :nom, :type_service, :documents, :date_creation)";
+        // Récupérer le service_id à partir du nom du service
+        $service_id = null;
+        $sqlService = "SELECT id FROM services WHERE nom = :nom";
+        $stmtService = $this->db->prepare($sqlService);
+        $stmtService->bindParam(":nom", $_POST['type_service']);
+        $stmtService->execute();
+        $service = $stmtService->fetch(PDO::FETCH_ASSOC);
+        if($service) {
+            $service_id = $service['id'];
+        }
+        
+        $sql = "INSERT INTO demandes (id, nom, type_service, documents, date_creation, service_id, user_id)
+                VALUES (:id, :nom, :type_service, :documents, :date_creation, :service_id, 1)";
         
         $stmt = $this->db->prepare($sql);
         
@@ -85,6 +100,7 @@ class DemandeController {
         $stmt->bindParam(":type_service", $_POST['type_service']);
         $stmt->bindParam(":documents", $_POST['documents']);
         $stmt->bindParam(":date_creation", $_POST['date_creation']);
+        $stmt->bindParam(":service_id", $service_id);
         
         if($stmt->execute()){
             header("Location: index.php?action=manage&success=1");
@@ -99,7 +115,10 @@ class DemandeController {
     public function edit() {
         if(isset($_GET['id'])) {
             $id = $_GET['id'];
-            $sql = "SELECT * FROM demandes WHERE id = :id";
+            $sql = "SELECT d.*, s.nom as service_nom 
+                    FROM demandes d
+                    LEFT JOIN services s ON d.service_id = s.id
+                    WHERE d.id = :id";
             $stmt = $this->db->prepare($sql);
             $stmt->bindParam(":id", $id);
             $stmt->execute();
@@ -122,11 +141,23 @@ class DemandeController {
             exit();
         }
 
+        // Récupérer le service_id
+        $service_id = null;
+        $sqlService = "SELECT id FROM services WHERE nom = :nom";
+        $stmtService = $this->db->prepare($sqlService);
+        $stmtService->bindParam(":nom", $_POST['type_service']);
+        $stmtService->execute();
+        $service = $stmtService->fetch(PDO::FETCH_ASSOC);
+        if($service) {
+            $service_id = $service['id'];
+        }
+
         $sql = "UPDATE demandes 
                 SET nom = :nom, 
                     type_service = :type_service, 
                     documents = :documents, 
-                    date_creation = :date_creation 
+                    date_creation = :date_creation,
+                    service_id = :service_id
                 WHERE id = :id";
         
         $stmt = $this->db->prepare($sql);
@@ -136,6 +167,7 @@ class DemandeController {
         $stmt->bindParam(":type_service", $_POST['type_service']);
         $stmt->bindParam(":documents", $_POST['documents']);
         $stmt->bindParam(":date_creation", $_POST['date_creation']);
+        $stmt->bindParam(":service_id", $service_id);
         
         if($stmt->execute()){
             header("Location: index.php?action=manage&success=1");
@@ -165,12 +197,17 @@ class DemandeController {
     }
 
     public function dashboard() {
+        // Utiliser service_id pour les statistiques
         $sql = "SELECT COUNT(*) as total FROM demandes";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
         $total_demandes = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
         
-        $sql = "SELECT type_service, COUNT(*) as nombre FROM demandes GROUP BY type_service ORDER BY nombre DESC";
+        $sql = "SELECT s.nom as type_service, COUNT(d.id) as nombre 
+                FROM demandes d
+                JOIN services s ON d.service_id = s.id
+                GROUP BY d.service_id 
+                ORDER BY nombre DESC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
         $services_stats = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -184,16 +221,20 @@ class DemandeController {
         $stmt->execute();
         $demandes_mois = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        $sql = "SELECT type_service, COUNT(*) as nombre 
-                FROM demandes 
-                GROUP BY type_service 
+        $sql = "SELECT s.nom as type_service, COUNT(d.id) as nombre 
+                FROM demandes d
+                JOIN services s ON d.service_id = s.id
+                GROUP BY d.service_id 
                 ORDER BY nombre DESC 
                 LIMIT 3";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
         $top_services = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        $sql = "SELECT * FROM demandes ORDER BY date_creation DESC LIMIT 5";
+        $sql = "SELECT d.*, s.nom as service_nom 
+                FROM demandes d
+                LEFT JOIN services s ON d.service_id = s.id
+                ORDER BY d.date_creation DESC LIMIT 5";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
         $last_demandes = $stmt->fetchAll(PDO::FETCH_ASSOC);

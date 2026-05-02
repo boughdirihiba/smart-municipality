@@ -5,6 +5,10 @@ if(!isset($demande)) {
     header("Location: index.php?action=manage");
     exit;
 }
+
+require_once "controllers/ServiceController.php";
+$serviceController = new ServiceController();
+$allServices = $serviceController->getServicesFront();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -379,12 +383,12 @@ if(!isset($demande)) {
                 <label><i class="fas fa-concierge-bell"></i> Type de service *</label>
                 <select name="type_service" required>
                     <option value="">-- Sélectionnez un service --</option>
-                    <option value="Légalisation de documents" <?php echo ($demande['type_service'] == 'Légalisation de documents') ? 'selected' : ''; ?>>📜 Légalisation de documents</option>
-                    <option value="Extrait de naissance" <?php echo ($demande['type_service'] == 'Extrait de naissance') ? 'selected' : ''; ?>>👶 Extrait de naissance</option>
-                    <option value="Acte de mariage" <?php echo ($demande['type_service'] == 'Acte de mariage') ? 'selected' : ''; ?>>💍 Acte de mariage</option>
-                    <option value="Paiement taxes" <?php echo ($demande['type_service'] == 'Paiement taxes') ? 'selected' : ''; ?>>💰 Paiement taxes</option>
-                    <option value="Dépôt de dossier" <?php echo ($demande['type_service'] == 'Dépôt de dossier') ? 'selected' : ''; ?>>📁 Dépôt de dossier</option>
-                    <option value="Réclamation citoyenne" <?php echo ($demande['type_service'] == 'Réclamation citoyenne') ? 'selected' : ''; ?>>📢 Réclamation citoyenne</option>
+                    <?php foreach($allServices as $service): ?>
+                        <option value="<?php echo htmlspecialchars($service['nom']); ?>" 
+                            <?php echo ($demande['type_service'] == $service['nom']) ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($service['nom']); ?>
+                        </option>
+                    <?php endforeach; ?>
                 </select>
             </div>
 
