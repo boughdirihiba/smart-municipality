@@ -88,7 +88,7 @@
   };
 
   const validateLogin = (form) => {
-    const names = ['mail', 'motdepasse'];
+    const names = ['mail', 'motdepasse', 'captcha'];
     clearAll(form, names);
 
     const mail = trimValue(form, 'mail');
@@ -106,6 +106,14 @@
 
     if (password === '') {
       setError(form, 'motdepasse', 'Le mot de passe est obligatoire.');
+      ok = false;
+    }
+
+    // Frontend checkbox CAPTCHA (login only).
+    const checkbox = form.querySelector('#robot_check');
+    const checked = checkbox && checkbox instanceof HTMLInputElement ? checkbox.checked : false;
+    if (!checked) {
+      setError(form, 'captcha', 'Please verify that you are not a robot.');
       ok = false;
     }
 
@@ -392,7 +400,38 @@
   };
 
   const loginForm = document.getElementById('loginForm');
-  if (loginForm) attach(loginForm, validateLogin, ['mail', 'motdepasse']);
+  const initLoginCaptchaUi = (form) => {
+    const submitWrap = form.querySelector('[data-js-login-submit]');
+    const captchaCard = form.querySelector('[data-js-login-captcha]');
+
+    if (!submitWrap || !(submitWrap instanceof HTMLElement)) return;
+    if (!captchaCard || !(captchaCard instanceof HTMLElement)) return;
+
+    const setVisible = (visible) => {
+      submitWrap.classList.toggle('is-visible', !!visible);
+    };
+
+    const checkbox = form.querySelector('#robot_check');
+    if (!checkbox || !(checkbox instanceof HTMLInputElement)) return;
+
+    const updateUi = () => {
+      const checked = checkbox.checked;
+      captchaCard.classList.toggle('is-checked', checked);
+      setVisible(checked);
+      if (checked) {
+        clearError(form, 'captcha');
+      }
+    };
+
+    checkbox.addEventListener('change', updateUi);
+    setVisible(false);
+    updateUi();
+  };
+
+  if (loginForm) {
+    attach(loginForm, validateLogin, ['mail', 'motdepasse', 'captcha']);
+    initLoginCaptchaUi(loginForm);
+  }
 
   const signupForm = document.getElementById('signupForm');
   if (signupForm) attach(signupForm, validateSignup, ['prenom', 'nom', 'email', 'motdepasse', 'confirmMotdepasse']);

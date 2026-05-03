@@ -37,6 +37,7 @@ spl_autoload_register(function (string $class): void {
 });
 
 use Controles\AuthController;
+use Controles\FaceIdController;
 use Controles\AdminUsersController;
 use Controles\DashboardController;
 use Controles\ProfileController;
@@ -54,6 +55,16 @@ if (($route === 'login' || $route === 'signup') && Auth::check()) {
 }
 
 switch ($route) {
+    case 'faceid-enroll':
+        $face = new FaceIdController();
+        $face->enroll();
+        break;
+
+    case 'faceid-login':
+        $face = new FaceIdController();
+        $face->login();
+        break;
+
     case 'login':
         $auth = new AuthController();
         if ($method === 'POST') {

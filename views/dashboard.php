@@ -208,10 +208,24 @@ $err = static function (string $key) use ($errors): string {
         <div style="font-weight:950; font-size:18px;">Tous les membres</div>
         <div class="muted" style="font-weight:700;">Liste des utilisateurs du site.</div>
       </div>
+
+      <div style="display:flex; align-items:center; gap:10px;">
+        <label class="muted" style="font-weight:800; font-size:12px;" for="membersSort">Trier par</label>
+        <select class="input" id="membersSort" data-members-sort style="width:220px;">
+          <option value="id_desc" selected>ID (récent → ancien)</option>
+          <option value="id_asc">ID (ancien → récent)</option>
+          <option value="prenom_asc">Prénom (A → Z)</option>
+          <option value="prenom_desc">Prénom (Z → A)</option>
+          <option value="nom_asc">Nom (A → Z)</option>
+          <option value="nom_desc">Nom (Z → A)</option>
+          <option value="mail_asc">Email (A → Z)</option>
+          <option value="mail_desc">Email (Z → A)</option>
+        </select>
+      </div>
     </div>
 
     <div style="overflow:auto; margin-top:12px;">
-      <table class="table" aria-label="Membres">
+      <table class="table" aria-label="Membres" data-members-table>
         <thead>
           <tr>
             <th>ID</th>
@@ -242,6 +256,10 @@ $err = static function (string $key) use ($errors): string {
         <?php endforeach; ?>
         </tbody>
       </table>
+    </div>
+
+    <div class="muted" data-members-empty style="margin-top:10px; font-weight:800; display:none;">
+      Aucun membre trouvé.
     </div>
   </div>
 </section>
@@ -286,5 +304,99 @@ $err = static function (string $key) use ($errors): string {
         options: { plugins: { legend: { position: 'bottom' } } }
       });
     }
+
+    // Members: search + sort (client-side)
+    const searchInput = document.querySelector('[data-admin-search]');
+    const table = document.querySelector('[data-members-table]');
+    const sortSelect = document.querySelector('[data-members-sort]');
+    const emptyEl = document.querySelector('[data-members-empty]');
+
+    if (!table) return;
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+
+    const normalize = (v) => String(v || '').toLowerCase().trim();
+    const getRows = () => Array.from(tbody.querySelectorAll('tr'));
+
+    const getRowData = (tr) => {
+      const tds = Array.from(tr.querySelectorAll('td'));
+      const idText = tds[0] ? tds[0].textContent : '';
+      const id = parseInt(String(idText).replace(/[^0-9]/g, ''), 10) || 0;
+      const prenom = tds[1] ? tds[1].textContent : '';
+      const nom = tds[2] ? tds[2].textContent : '';
+      const mail = tds[3] ? tds[3].textContent : '';
+      const telephone = tds[4] ? tds[4].textContent : '';
+      const haystack = normalize([idText, prenom, nom, mail, telephone].join(' '));
+      return { id, prenom: normalize(prenom), nom: normalize(nom), mail: normalize(mail), haystack };
+    };
+
+    const applySearch = () => {
+      const q = normalize(searchInput ? searchInput.value : '');
+      const rows = getRows();
+
+      let shown = 0;
+      rows.forEach((tr) => {
+        const data = getRowData(tr);
+        const ok = q === '' ? true : data.haystack.includes(q);
+        tr.style.display = ok ? '' : 'none';
+        if (ok) shown += 1;
+      });
+
+      if (emptyEl) {
+        emptyEl.style.display = shown === 0 ? '' : 'none';
+      }
+    };
+
+    const applySort = () => {
+      const value = sortSelect ? String(sortSelect.value || 'id_desc') : 'id_desc';
+      const rows = getRows();
+
+      const compareText = (a, b, dir) => {
+        if (a === b) return 0;
+        return a < b ? -dir : dir;
+      };
+
+      rows.sort((ra, rb) => {
+        const a = getRowData(ra);
+        const b = getRowData(rb);
+
+        switch (value) {
+          case 'id_asc':
+            return a.id - b.id;
+          case 'id_desc':
+            return b.id - a.id;
+          case 'prenom_asc':
+            return compareText(a.prenom, b.prenom, 1) || (a.id - b.id);
+          case 'prenom_desc':
+            return compareText(a.prenom, b.prenom, -1) || (a.id - b.id);
+          case 'nom_asc':
+            return compareText(a.nom, b.nom, 1) || (a.id - b.id);
+          case 'nom_desc':
+            return compareText(a.nom, b.nom, -1) || (a.id - b.id);
+          case 'mail_asc':
+            return compareText(a.mail, b.mail, 1) || (a.id - b.id);
+          case 'mail_desc':
+            return compareText(a.mail, b.mail, -1) || (a.id - b.id);
+          default:
+            return b.id - a.id;
+        }
+      });
+
+      rows.forEach((tr) => tbody.appendChild(tr));
+    };
+
+    const refresh = () => {
+      applySort();
+      applySearch();
+    };
+
+    if (searchInput) {
+      searchInput.addEventListener('input', () => applySearch());
+    }
+    if (sortSelect) {
+      sortSelect.addEventListener('change', () => refresh());
+    }
+
+    refresh();
   });
 </script>

@@ -9,6 +9,7 @@ use Config\Database;
 use Config\Flash;
 use Config\Validation;
 use Config\View;
+use Models\PdoFaceIdRepository;
 use Models\PdoUserRepository;
 use Models\User;
 use Models\UserRepository;
@@ -216,6 +217,172 @@ final class AuthController
         unset($_SESSION['_flash']);
 
         return is_array($flash) ? $flash : null;
+    }
+}
+
+final class FaceIdController
+{
+    private const DESCRIPTOR_SIZE = 128;
+    private const ACCEPT_DISTANCE = 0.55;
+
+    public function enroll(): void
+    {
+        Auth::requireLogin();
+
+        if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST') {
+            $this->json(['error' => 'Method Not Allowed'], 405);
+            return;
+        }
+
+        try {
+            $payload = $this->readJson();
+            $descriptor = $this->validateDescriptor($payload['descriptor'] ?? null);
+
+            $pdo = (new Database())->getConnection();
+            $repo = new PdoFaceIdRepository($pdo);
+            $repo->upsert(Auth::id(), $descriptor);
+
+            $this->json(['ok' => true]);
+        } catch (\InvalidArgumentException $e) {
+            error_log('[FaceIdController::enroll] InvalidArgumentException: ' . $e->getMessage());
+            $this->json([
+                'error' => "Données Face ID invalides (descripteur). Réessaie après avoir ouvert la caméra et bien cadré le visage.",
+            ], 400);
+        } catch (\PDOException $e) {
+            $sqlState = (string)$e->getCode();
+            error_log('[FaceIdController::enroll] PDOException ' . $sqlState . ': ' . $e->getMessage());
+
+            $driverMsg = '';
+            if (isset($e->errorInfo) && is_array($e->errorInfo) && isset($e->errorInfo[2]) && is_string($e->errorInfo[2])) {
+                $driverMsg = $e->errorInfo[2];
+            }
+
+            if ($sqlState === '42S02') {
+                $this->json([
+                    'error' => "Table Face ID introuvable. Exécute database/faceid.sql pour créer 'utilisateur_face_id'.",
+                ], 400);
+                return;
+            }
+
+            if ($sqlState === '23000') {
+                $this->json([
+                    'error' => "Enregistrement refusé (contrainte BD). Vérifie que ton compte existe dans la table 'utilisateur' et que l'ID session est valide.",
+                ], 400);
+                return;
+            }
+
+            $this->json([
+                'error' => "Erreur BD pendant l'enregistrement du Face ID (SQLSTATE: {$sqlState})." . ($driverMsg !== '' ? ' ' . $driverMsg : ''),
+            ], 400);
+        } catch (Throwable $e) {
+            error_log('[FaceIdController::enroll] ' . get_class($e) . ': ' . $e->getMessage());
+            $this->json([
+                'error' => "Impossible d'enregistrer le Face ID. Réessaie plus tard.",
+            ], 400);
+        }
+    }
+
+    public function login(): void
+    {
+        if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST') {
+            $this->json(['error' => 'Method Not Allowed'], 405);
+            return;
+        }
+
+        try {
+            $payload = $this->readJson();
+            $mail = trim((string)($payload['mail'] ?? ''));
+            if ($mail === '') {
+                $this->json(['error' => 'Veuillez saisir votre email.'], 400);
+                return;
+            }
+
+            $descriptor = $this->validateDescriptor($payload['descriptor'] ?? null);
+
+            $pdo = (new Database())->getConnection();
+            $users = new PdoUserRepository($pdo);
+            $user = $users->findByMail($mail);
+            if (!$user) {
+                $this->json(['error' => "Aucun compte trouvé pour cet email."], 400);
+                return;
+            }
+
+            $faces = new PdoFaceIdRepository($pdo);
+            $stored = $faces->getByUserId($user->getId());
+            if (!$stored) {
+                $this->json(['error' => "Aucun Face ID enregistré. Va dans Profil → Enregistrer Face ID."], 400);
+                return;
+            }
+
+            $distance = $this->euclideanDistance($stored, $descriptor);
+            if ($distance > self::ACCEPT_DISTANCE) {
+                $this->json(['error' => 'Visage non reconnu. Accès refusé.'], 401);
+                return;
+            }
+
+            Auth::login($user);
+            $this->json([
+                'ok' => true,
+                'redirect' => Auth::isAdmin() ? 'index.php?route=dashboard' : 'index.php?route=profile',
+            ]);
+        } catch (Throwable $e) {
+            error_log('[FaceIdController::login] ' . get_class($e) . ': ' . $e->getMessage());
+            $this->json(['error' => 'Une erreur est survenue. Réessaie plus tard.'], 400);
+        }
+    }
+
+    /** @return array<string,mixed> */
+    private function readJson(): array
+    {
+        $raw = file_get_contents('php://input');
+        $raw = is_string($raw) ? $raw : '';
+        $decoded = json_decode($raw, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /** @return array<int,float> */
+    private function validateDescriptor(mixed $value): array
+    {
+        if (!is_array($value)) {
+            throw new \InvalidArgumentException('Invalid descriptor');
+        }
+        if (count($value) !== self::DESCRIPTOR_SIZE) {
+            throw new \InvalidArgumentException('Invalid descriptor size');
+        }
+
+        $out = [];
+        foreach ($value as $v) {
+            if (!is_numeric($v)) {
+                throw new \InvalidArgumentException('Invalid descriptor value');
+            }
+            $f = (float)$v;
+            if (!is_finite($f)) {
+                throw new \InvalidArgumentException('Invalid descriptor value');
+            }
+            $out[] = $f;
+        }
+
+        return $out;
+    }
+
+    /** @param array<int,float> $a @param array<int,float> $b */
+    private function euclideanDistance(array $a, array $b): float
+    {
+        $sum = 0.0;
+        $n = min(count($a), count($b));
+        for ($i = 0; $i < $n; $i += 1) {
+            $d = $a[$i] - $b[$i];
+            $sum += $d * $d;
+        }
+        return sqrt($sum);
+    }
+
+    /** @param array<string,mixed> $data */
+    private function json(array $data, int $status = 200): void
+    {
+        http_response_code($status);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
     }
 }
 
@@ -467,13 +634,22 @@ final class ProfileController
         Auth::requireLogin();
         $flash = Flash::consume();
 
-        $repo = new PdoUserRepository((new Database())->getConnection());
+        $pdo = (new Database())->getConnection();
+        $repo = new PdoUserRepository($pdo);
         $user = $repo->findById(Auth::id());
 
         if (!$user) {
             Auth::logout();
             header('Location: index.php?route=login');
             exit;
+        }
+
+        $hasFaceId = false;
+        try {
+            $faceRepo = new PdoFaceIdRepository($pdo);
+            $hasFaceId = (bool)$faceRepo->getByUserId(Auth::id());
+        } catch (Throwable $e) {
+            $hasFaceId = false;
         }
 
         View::render('layout/app.php', [
@@ -483,6 +659,7 @@ final class ProfileController
             'page' => 'profile',
             'flash' => $flash,
             'user' => $user,
+            'hasFaceId' => $hasFaceId,
         ]);
     }
 

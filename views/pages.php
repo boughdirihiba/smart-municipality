@@ -82,8 +82,19 @@ $url = static function (string $path) use ($base): string {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="<?= htmlspecialchars($asset('assets/css/theme.css'), ENT_QUOTES, 'UTF-8') ?>">
+        <link rel="stylesheet" href="<?= htmlspecialchars($asset('assets/css/face-id.css'), ENT_QUOTES, 'UTF-8') ?>">
         <link rel="stylesheet" href="<?= htmlspecialchars($asset('views/Login.css'), ENT_QUOTES, 'UTF-8') ?>">
         <script defer src="<?= htmlspecialchars($asset('assets/js/form-validation.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+        <script>
+            window.__FACEID_CONFIG = {
+                faceApiLocal: <?= json_encode($asset('assets/vendor/face-api/face-api.min.js'), JSON_UNESCAPED_SLASHES) ?>,
+                faceApiCdn: 'https://unpkg.com/face-api.js@0.22.2/dist/face-api.min.js',
+                modelUrl: <?= json_encode($asset('assets/vendor/face-api/models'), JSON_UNESCAPED_SLASHES) ?>,
+                enrollUrl: <?= json_encode($url('index.php?route=faceid-enroll'), JSON_UNESCAPED_SLASHES) ?>,
+                loginUrl: <?= json_encode($url('index.php?route=faceid-login'), JSON_UNESCAPED_SLASHES) ?>
+            };
+        </script>
+        <script defer src="<?= htmlspecialchars($asset('assets/js/face-id.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
     <?php endif; ?>
 </head>
 
@@ -208,12 +219,56 @@ $url = static function (string $path) use ($base): string {
             </div>
             <div class="error-message" id="error-motdepasse"><?= isset($errors['motdepasse']) ? htmlspecialchars((string)$errors['motdepasse'], ENT_QUOTES, 'UTF-8') : '' ?></div>
 
-            <button class="btn btn-primary" type="submit">Se connecter</button>
+            <div class="captcha-card" data-js-login-captcha>
+                <div class="captcha-row">
+                    <label class="captcha-check" for="robot_check">
+                        <input id="robot_check" name="robot_check" type="checkbox" autocomplete="off">
+                        <span class="captcha-box" aria-hidden="true"></span>
+                        <span class="captcha-text">I’m not a robot</span>
+                    </label>
+
+                    <div class="captcha-robot" aria-hidden="true">
+                        <svg viewBox="0 0 48 48" focusable="false" aria-hidden="true">
+                            <path fill="currentColor" d="M22 6a2 2 0 0 1 4 0v2.1a16 16 0 0 1 14 13.7l2.1.2a2 2 0 1 1-.4 4l-1.7-.2V34a8 8 0 0 1-8 8H16a8 8 0 0 1-8-8v-8.2l-1.7.2a2 2 0 1 1-.4-4l2.1-.2A16 16 0 0 1 22 8.1zM16 18a10 10 0 0 0-10 10v6a4 4 0 0 0 4 4h28a4 4 0 0 0 4-4v-6a10 10 0 0 0-10-10zm5 6a3 3 0 1 1 0 6a3 3 0 0 1 0-6m14 0a3 3 0 1 1 0 6a3 3 0 0 1 0-6"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="error-message" id="error-captcha"><?= isset($errors['captcha']) ? htmlspecialchars((string)$errors['captcha'], ENT_QUOTES, 'UTF-8') : '' ?></div>
+
+            <div class="login-submitWrap" data-js-login-submit>
+                <button class="btn btn-primary" type="submit">Se connecter</button>
+            </div>
+
+            <button class="btn btn-ghost" type="button" data-faceid-login-btn>Connexion avec Face ID</button>
 
             <a href="<?= htmlspecialchars($url('index.php?route=signup'), ENT_QUOTES, 'UTF-8') ?>">S'inscrire?</a>
             <a href="<?= htmlspecialchars($url('index.php?route=page&page=forgot'), ENT_QUOTES, 'UTF-8') ?>">Mot de passe oublié ?</a>
 
         </form>
+
+        <div id="faceIdLoginModal" class="faceid-modal" aria-hidden="true">
+            <div class="faceid-backdrop"></div>
+            <div class="faceid-dialog" role="dialog" aria-modal="true" aria-label="Connexion Face ID">
+                <div class="faceid-head">
+                    <div class="faceid-title">Connexion avec Face ID</div>
+                    <button class="faceid-close" type="button" data-faceid-close>Fermer</button>
+                </div>
+                <div class="faceid-body">
+                    <div class="faceid-videoWrap">
+                        <video class="faceid-video" playsinline autoplay muted></video>
+                    </div>
+                    <div class="faceid-msg" data-faceid-msg></div>
+                    <div class="faceid-actions">
+                        <button class="btn btn-ghost" type="button" data-faceid-start>Ouvrir la caméra</button>
+                        <button class="btn btn-primary" type="button" data-faceid-login>Se connecter</button>
+                    </div>
+                    <div class="muted" style="font-size:12px; font-weight:700;">
+                        Astuce: saisissez votre email puis regardez la caméra.
+                    </div>
+                </div>
+            </div>
+        </div>
 
     <?php elseif ($page === 'signup'): ?>
         <form id="signupForm" data-form="signup" novalidate action="<?= htmlspecialchars($url('index.php?route=signup'), ENT_QUOTES, 'UTF-8') ?>" method="post">

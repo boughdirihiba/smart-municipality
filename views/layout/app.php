@@ -62,7 +62,19 @@ $navItems = [
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= $h($asset('assets/css/theme.css')) ?>">
   <link rel="stylesheet" href="<?= $h($asset('assets/css/app.css')) ?>">
+  <link rel="stylesheet" href="<?= $h($asset('assets/css/face-id.css')) ?>">
+
+  <script>
+    window.__FACEID_CONFIG = {
+      faceApiLocal: <?= json_encode($asset('assets/vendor/face-api/face-api.min.js'), JSON_UNESCAPED_SLASHES) ?>,
+      faceApiCdn: 'https://unpkg.com/face-api.js@0.22.2/dist/face-api.min.js',
+      modelUrl: <?= json_encode($asset('assets/vendor/face-api/models'), JSON_UNESCAPED_SLASHES) ?>,
+      enrollUrl: <?= json_encode($url('index.php?route=faceid-enroll'), JSON_UNESCAPED_SLASHES) ?>,
+      loginUrl: <?= json_encode($url('index.php?route=faceid-login'), JSON_UNESCAPED_SLASHES) ?>
+    };
+  </script>
   <script defer src="<?= $h($asset('assets/js/form-validation.js')) ?>"></script>
+  <script defer src="<?= $h($asset('assets/js/face-id.js')) ?>"></script>
 </head>
 <body class="<?= $isDark ? 'theme-dark' : '' ?>">
   <div class="app-shell">

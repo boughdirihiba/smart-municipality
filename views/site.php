@@ -22,6 +22,8 @@ switch ($page) {
         $old = is_array($flash) && isset($flash['old']) && is_array($flash['old']) ? $flash['old'] : [];
         $success = is_array($flash) && isset($flash['success']) ? (string)$flash['success'] : '';
 
+      $hasFaceId = isset($hasFaceId) ? (bool)$hasFaceId : false;
+
       $userModel = (isset($user) && $user instanceof User)
         ? $user
         : ((isset($userModel) && $userModel instanceof User) ? $userModel : null);
@@ -111,6 +113,25 @@ switch ($page) {
             <div class="card" style="padding:16px;">
               <h2 class="section-title">Sécurité</h2>
 
+              <div class="card" style="box-shadow:none; border:1px solid var(--border); padding:12px; border-radius:16px; margin: 10px 0 14px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                  <div>
+                    <div style="font-weight:950;">Face ID</div>
+                    <div class="muted" style="font-weight:700; margin-top:2px; font-size:12px;">
+                      <?= $hasFaceId ? 'Enregistré sur ce compte.' : 'Aucun Face ID enregistré.' ?>
+                    </div>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <?php if ($hasFaceId): ?>
+                      <span class="badge badge-success">Activé</span>
+                    <?php endif; ?>
+                    <button class="btn btn-ghost" type="button" data-faceid-enroll-btn>
+                      <?= $hasFaceId ? 'Mettre à jour Face ID' : 'Enregistrer Face ID' ?>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <form method="post" action="index.php?route=profile" style="display:grid; gap:12px;">
                 <input type="hidden" name="action" value="password">
 
@@ -180,6 +201,29 @@ switch ($page) {
               </form>
             </div>
           </aside>
+        </div>
+
+        <div id="faceIdEnrollModal" class="faceid-modal" aria-hidden="true">
+          <div class="faceid-backdrop"></div>
+          <div class="faceid-dialog" role="dialog" aria-modal="true" aria-label="Enregistrer Face ID">
+            <div class="faceid-head">
+              <div class="faceid-title">Enregistrer Face ID</div>
+              <button class="faceid-close" type="button" data-faceid-close>Fermer</button>
+            </div>
+            <div class="faceid-body">
+              <div class="faceid-videoWrap">
+                <video class="faceid-video" playsinline autoplay muted></video>
+              </div>
+              <div class="faceid-msg" data-faceid-msg></div>
+              <div class="faceid-actions">
+                <button class="btn btn-ghost" type="button" data-faceid-start>Ouvrir la caméra</button>
+                <button class="btn btn-primary" type="button" data-faceid-save>Enregistrer</button>
+              </div>
+              <div class="muted" style="font-size:12px; font-weight:700;">
+                Conseil: placez votre visage au centre et assurez-vous d'avoir une bonne lumière.
+              </div>
+            </div>
+          </div>
         </div>
 
         <?php if (Auth::isAdmin()): ?>
