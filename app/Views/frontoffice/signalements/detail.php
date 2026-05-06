@@ -4,6 +4,17 @@
 	<p><?php echo e($item['description'] ?? ''); ?></p>
 	<p><strong>Catégorie:</strong> <?php echo e($item['categorie'] ?? '-'); ?></p>
 	<p><strong>Statut:</strong> <span class="badge status-<?php echo e($item['statut'] ?? 'en_attente'); ?>"><?php echo e($item['statut'] ?? 'en_attente'); ?></span></p>
+	<?php $detailProgression = max(0, min(100, (int)($item['progression'] ?? 0))); ?>
+	<?php $detailProgressClass = $detailProgression <= 30 ? 'progress-line--danger' : ($detailProgression <= 70 ? 'progress-line--warning' : 'progress-line--success'); ?>
+	<div class="progress-line <?php echo e($detailProgressClass); ?>" style="max-width: 360px; margin-top: 0.75rem;">
+		<div class="progress-line__label">
+			<span>Progression</span>
+			<strong><?php echo $detailProgression; ?>%</strong>
+		</div>
+		<div class="progress-line__track">
+			<div class="progress-line__fill" style="width: <?php echo $detailProgression; ?>%;"></div>
+		</div>
+	</div>
 	<p><strong>Date:</strong> <?php echo e($item['date_signalement'] ?? ''); ?></p>
 </div>
 

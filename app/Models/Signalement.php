@@ -173,12 +173,12 @@ class Signalement implements MapDataProviderInterface
         $params = [];
 
         if ($categorie !== null && $categorie !== '') {
-            $sql .= ' AND categorie = :categorie';
+            $sql .= ' AND s.categorie = :categorie';
             $params[':categorie'] = $categorie;
         }
 
         if ($statut !== null && $statut !== '') {
-            $sql .= ' AND statut = :statut';
+            $sql .= ' AND s.statut = :statut';
             $params[':statut'] = $statut;
         }
 
@@ -286,21 +286,21 @@ class Signalement implements MapDataProviderInterface
         $params = [];
 
         if ($categorie !== null && $categorie !== '') {
-            $sql .= ' AND categorie = :categorie';
+            $sql .= ' AND s.categorie = :categorie';
             $params[':categorie'] = $categorie;
         }
 
         if ($date !== null && $date !== '') {
-            $sql .= ' AND DATE(date_signalement) = :d';
+            $sql .= ' AND DATE(s.date_signalement) = :d';
             $params[':d'] = $date;
         }
 
         if ($zone === 'centre') {
-            $sql .= ' AND latitude BETWEEN 36.78 AND 36.84 AND longitude BETWEEN 10.14 AND 10.24';
+            $sql .= ' AND s.latitude BETWEEN 36.78 AND 36.84 AND s.longitude BETWEEN 10.14 AND 10.24';
         } elseif ($zone === 'nord') {
-            $sql .= ' AND latitude > 36.84';
+            $sql .= ' AND s.latitude > 36.84';
         } elseif ($zone === 'sud') {
-            $sql .= ' AND latitude < 36.78';
+            $sql .= ' AND s.latitude < 36.78';
         }
 
         $sql .= ' ORDER BY s.date_signalement DESC';
@@ -352,5 +352,22 @@ class Signalement implements MapDataProviderInterface
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM signalements WHERE user_id = :user_id');
         $stmt->execute([':user_id' => $userId]);
         return (int)$stmt->fetchColumn();
+    }
+
+    public function findLocalisationByCoordinates(float $latitude, float $longitude, float $tolerance = 0.02): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT * FROM localisations
+             WHERE ABS(latitude - :latitude) < :tolerance AND ABS(longitude - :longitude) < :tolerance
+             ORDER BY ABS(latitude - :latitude) + ABS(longitude - :longitude) ASC
+             LIMIT 1'
+        );
+        $stmt->execute([
+            ':latitude' => $latitude,
+            ':longitude' => $longitude,
+            ':tolerance' => $tolerance,
+        ]);
+        $row = $stmt->fetch();
+        return $row ?: null;
     }
 }

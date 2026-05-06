@@ -7,8 +7,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/public/css/style.css">
 </head>
-<body>
 <?php $currentRoute = $_GET['route'] ?? 'home/index'; ?>
+<?php $userRole = $_SESSION['user']['role'] ?? 'citoyen'; ?>
+<body class="role-<?php echo $userRole; ?>">
+<?php if ($userRole !== 'admin'): ?>
 <nav class="navbar" id="navbar">
     <a class="nav-brand" href="<?php echo BASE_URL; ?>/index.php?route=home/index">
         <img src="<?php echo BASE_URL; ?>/public/uploads/sidebar-photo.svg" alt="Logo Smart Municipality">
@@ -32,8 +34,11 @@
         </div>
     </div>
 </nav>
+<?php endif; ?>
 <div class="app-shell">
-    <?php require BASE_PATH . '/app/Views/layouts/sidebar.php'; ?>
+    <?php if ($userRole !== 'citoyen'): ?>
+        <?php require BASE_PATH . '/app/Views/layouts/sidebar.php'; ?>
+    <?php endif; ?>
     <main class="app-content">
     <script>
     (function () {

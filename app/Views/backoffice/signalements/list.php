@@ -44,8 +44,14 @@
 			<option value="nord">Nord</option>
 			<option value="sud">Sud</option>
 		</select>
+		<select id="filterEntity" name="entity">
+			<option value="">Tous (Signalements + Interventions)</option>
+			<option value="signalement">Signalements</option>
+			<option value="intervention">Interventions</option>
+		</select>
 		<button id="btnFiltrer" type="button" class="btn-principal">Filtrer carte</button>
 		<button type="submit" class="btn-secondaire">Filtrer tableau</button>
+		<a id="btnExport" href="<?php echo BASE_URL; ?>/index.php?route=export/exportCsv" class="btn-export" style="display:inline-flex; align-items:center; padding:8px 14px; background:#059669; color:#fff; text-decoration:none; border-radius:6px; font-weight:700; font-size:0.9rem;">📥 Exporter CSV</a>
 	</form>
 </div>
 
@@ -67,12 +73,15 @@
 				<th>Priorité IA</th>
 				<th>Raison IA</th>
 				<th>Statut</th>
+				<th>Progression</th>
 				<th>Date</th>
 				<th>Actions</th>
 			</tr>
 		</thead>
 		<tbody>
 			<?php foreach ($items as $item): ?>
+				<?php $progression = max(0, min(100, (int)($item['progression'] ?? 0))); ?>
+				<?php $progressClass = $progression <= 30 ? 'progress-line--danger' : ($progression <= 70 ? 'progress-line--warning' : 'progress-line--success'); ?>
 				<tr>
 					<td><?php echo (int)$item['id']; ?></td>
 					<td><?php echo e($item['titre']); ?></td>
@@ -81,6 +90,12 @@
 					<td><span class="badge triage-<?php echo e($item['triage_level'] ?? 'faible'); ?>"><?php echo e($item['triage_level'] ?? 'faible'); ?></span></td>
 					<td><?php echo e($item['triage_reason'] ?? '-'); ?></td>
 					<td><span class="badge status-<?php echo e($item['statut']); ?>"><?php echo e($item['statut']); ?></span></td>
+					<td>
+						<div class="progress-line <?php echo e($progressClass); ?>">
+							<div class="progress-line__label"><span><?php echo $progression; ?>%</span></div>
+							<div class="progress-line__track"><div class="progress-line__fill" style="width: <?php echo $progression; ?>%;"></div></div>
+						</div>
+					</td>
 					<td><?php echo e($item['date_signalement']); ?></td>
 					<td>
 						<a class="btn-secondaire" href="<?php echo BASE_URL; ?>/index.php?route=admin/edit&id=<?php echo (int)$item['id']; ?>">Edit</a>

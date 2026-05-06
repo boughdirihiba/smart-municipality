@@ -57,4 +57,31 @@ class MapController
 
         echo json_encode($items, JSON_UNESCAPED_UNICODE);
     }
+
+    public function findLocalisation(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+
+        $latitude = (float)($_GET['latitude'] ?? 0);
+        $longitude = (float)($_GET['longitude'] ?? 0);
+
+        if ($latitude === 0.0 || $longitude === 0.0) {
+            echo json_encode(['error' => 'Coordonnées invalides']);
+            return;
+        }
+
+        $localisation = $this->model->findLocalisationByCoordinates($latitude, $longitude);
+
+        if ($localisation) {
+            echo json_encode([
+                'ok' => true,
+                'localisation' => $localisation,
+            ]);
+        } else {
+            echo json_encode([
+                'ok' => false,
+                'message' => 'Aucune localisation trouvée à ces coordonnées',
+            ]);
+        }
+    }
 }

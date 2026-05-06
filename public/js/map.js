@@ -160,6 +160,10 @@
   function buildSignalementPopup(it, lat, lng, showActions = true) {
     const detailsUrl = `${window.location.origin}${window.location.pathname}?route=signalements/detail&id=${encodeURIComponent(it.id)}`;
     const adminEditUrl = `${window.location.origin}${window.location.pathname}?route=admin/edit&id=${encodeURIComponent(it.id)}`;
+    const progression = Number.isFinite(Number(it.progression)) ? Math.max(0, Math.min(100, Number(it.progression))) : 0;
+    const progressColor = progression <= 30
+      ? 'linear-gradient(90deg,#f97316,#dc2626)'
+      : (progression <= 70 ? 'linear-gradient(90deg,#f59e0b,#d97706)' : 'linear-gradient(90deg,#22c55e,#16a34a)');
     const imageHtml = it.image_url
       ? `<img src="${it.image_url}" alt="photo" style="width:100%; max-width:220px; height:110px; object-fit:cover; border-radius:12px; margin-top:8px; border:1px solid #dbe6ef;">`
       : '';
@@ -177,6 +181,12 @@
         <div style="display:grid; gap:5px; font-size:0.8rem; color:#334155;">
           <div><strong>Catégorie:</strong> ${escapeHtml(it.categorie)}</div>
           <div><strong>Statut:</strong> ${escapeHtml(it.statut)}</div>
+          <div>
+            <strong>Progression:</strong> ${progression}%
+            <div style="margin-top:5px; height:8px; border-radius:999px; background:#e2e8f0; overflow:hidden;">
+              <div style="height:100%; width:${progression}%; background:${progressColor};"></div>
+            </div>
+          </div>
           ${it.adresse ? `<div><strong>Adresse:</strong> ${escapeHtml(it.adresse)}</div>` : ''}
           ${it.quartier ? `<div><strong>Quartier:</strong> ${escapeHtml(it.quartier)}</div>` : ''}
           <div><strong>Coordonnées:</strong> ${lat.toFixed(5)}, ${lng.toFixed(5)}</div>
@@ -185,12 +195,16 @@
 
         ${imageHtml}
 
-        ${showActions ? `
+        ${showActions ? (() => {
+          const createInterventionUrl = `${window.location.origin}${window.location.pathname}?route=interventions/create&latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lng)}&from_signalement=${encodeURIComponent(it.id)}`;
+          return `
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
           <a href="${detailsUrl}" style="display:inline-flex; align-items:center; justify-content:center; padding:7px 10px; background:linear-gradient(135deg,#2FA084,#0f3b2c); color:#fff; text-decoration:none; border-radius:999px; font-size:11px; font-weight:700; box-shadow:0 10px 18px rgba(15,59,44,0.18);">Voir détail</a>
           ${cfg.isAdmin ? `<a href="${adminEditUrl}" style="display:inline-flex; align-items:center; justify-content:center; padding:7px 10px; background:#1d4ed8; color:#fff; text-decoration:none; border-radius:999px; font-size:11px; font-weight:700;">Modifier</a>` : ''}
+          ${cfg.isAdmin ? `<a href="${createInterventionUrl}" style="display:inline-flex; align-items:center; justify-content:center; padding:7px 10px; background:#8b5cf6; color:#fff; text-decoration:none; border-radius:999px; font-size:11px; font-weight:700;">Ajouter intervention</a>` : ''}
           <a href="${openStreetMapLink(lat, lng)}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; justify-content:center; padding:7px 10px; background:#e2e8f0; color:#0f172a; text-decoration:none; border-radius:999px; font-size:11px; font-weight:700;">Ouvrir</a>
-        </div>` : ''}
+        </div>`;
+        })() : ''}
       </div>
     `;
   }
@@ -607,6 +621,8 @@
     const categorie = document.getElementById('filterCategorie')?.value || '';
     const date = document.getElementById('filterDate')?.value || '';
     const zone = document.getElementById('filterZone')?.value || '';
+    const entityFilter = document.getElementById('filterEntity')?.value || '';
+    const sortBy = document.getElementById('sortBy')?.value || 'date-desc';
     const query = new URLSearchParams({ categorie, date, zone });
 
     let items = null;
@@ -637,12 +653,42 @@
     const bounds = new maplibreRef.LngLatBounds();
     const safeItems = Array.isArray(items) ? items : [];
 
+    // Apply client-side entity filtering (signalement / intervention / all)
+    let filteredItems = safeItems;
+    if (entityFilter === 'intervention') {
+      filteredItems = safeItems.filter((i) => (i.entity_type === 'intervention' || i.entity_type === 'Intervention'));
+    } else if (entityFilter === 'signalement') {
+      filteredItems = safeItems.filter((i) => !(i.entity_type === 'intervention' || i.entity_type === 'Intervention'));
+    }
+
+    // Tri des éléments
+    safeItems.sort((a, b) => {
+      switch (sortBy) {
+        case 'date-desc':
+          return new Date(b.date_signalement || b.date_intervention) - new Date(a.date_signalement || a.date_intervention);
+        case 'date-asc':
+          return new Date(a.date_signalement || a.date_intervention) - new Date(b.date_signalement || b.date_intervention);
+        case 'priority-desc':
+          const priorityOrder = { urgent: 3, moyen: 2, faible: 1 };
+          return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+        case 'priority-asc':
+          const priorityOrder2 = { faible: 1, moyen: 2, urgent: 3 };
+          return (priorityOrder2[a.priority] || 0) - (priorityOrder2[b.priority] || 0);
+        case 'statut':
+          return (a.statut || '').localeCompare(b.statut || '');
+        case 'categorie':
+          return (a.categorie || '').localeCompare(b.categorie || '');
+        default:
+          return 0;
+      }
+    });
+
     const features = [];
     const signalementMap = {};
     const interventionMap = {};
     const signalementItemsForZones = [];
 
-    safeItems.forEach((it) => {
+    filteredItems.forEach((it) => {
       const lng = Number(it.longitude);
       const lat = Number(it.latitude);
       if (!Number.isFinite(lng) || !Number.isFinite(lat)) {
@@ -856,6 +902,37 @@
     }
 
     loadMarkers();
+  });
+
+  // Ajouter les event listeners pour les contrôles de tri et filtrage
+  document.getElementById('sortBy')?.addEventListener('change', () => {
+    if (hasFocusedTunisia) {
+      loadMarkers();
+    }
+  });
+
+  document.getElementById('filterCategorie')?.addEventListener('change', () => {
+    if (hasFocusedTunisia) {
+      loadMarkers();
+    }
+  });
+
+  document.getElementById('filterZone')?.addEventListener('change', () => {
+    if (hasFocusedTunisia) {
+      loadMarkers();
+    }
+  });
+
+  document.getElementById('filterZone')?.addEventListener('input', () => {
+    if (hasFocusedTunisia) {
+      loadMarkers();
+    }
+  });
+
+  document.getElementById('filterEntity')?.addEventListener('change', () => {
+    if (hasFocusedTunisia) {
+      loadMarkers();
+    }
   });
 
   bootstrapMap();

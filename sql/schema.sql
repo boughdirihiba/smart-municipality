@@ -139,14 +139,116 @@ CREATE TABLE IF NOT EXISTS interventions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     titre VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
+    tasks_json LONGTEXT NULL,
     type ENUM('route', 'eclairage', 'eau', 'transport', 'ordures', 'autre') NOT NULL,
     latitude DECIMAL(10,8) NOT NULL,
     longitude DECIMAL(11,8) NOT NULL,
     statut ENUM('planifiee', 'en_cours', 'terminee', 'annulee') NOT NULL DEFAULT 'planifiee',
     progression TINYINT UNSIGNED NOT NULL DEFAULT 0,
     date_intervention DATE NULL,
+    signalement_id INT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_intervention_signalement FOREIGN KEY (signalement_id) REFERENCES signalements(id) ON DELETE SET NULL
+);
+
+-- ========================================
+-- 6. GESTION DES ÉQUIPES & RESSOURCES
+-- ========================================
+
+CREATE TABLE IF NOT EXISTS equipes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nom VARCHAR(100) NOT NULL,
+    description TEXT NULL,
+    type_intervention VARCHAR(50) NOT NULL,
+    nombre_agents INT DEFAULT 1,
+    statut ENUM('disponible', 'en_mission', 'repos', 'inactif') DEFAULT 'disponible',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS agents_equipe (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    equipe_id INT NOT NULL,
+    user_id INT NOT NULL,
+    role VARCHAR(50) DEFAULT 'agent',
+    active TINYINT(1) DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_agents_equipe FOREIGN KEY (equipe_id) REFERENCES equipes(id) ON DELETE CASCADE,
+    CONSTRAINT fk_agents_user FOREIGN KEY (user_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
+);
+
+-- GPS TRACKING TEMPS RÉEL
+CREATE TABLE IF NOT EXISTS gps_tracking (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    equipe_id INT NOT NULL,
+    intervention_id INT NULL,
+    latitude DECIMAL(10,8) NOT NULL,
+    longitude DECIMAL(11,8) NOT NULL,
+    precision FLOAT DEFAULT NULL,
+    vitesse FLOAT DEFAULT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_gps_equipe FOREIGN KEY (equipe_id) REFERENCES equipes(id) ON DELETE CASCADE,
+    CONSTRAINT fk_gps_intervention FOREIGN KEY (intervention_id) REFERENCES interventions(id) ON DELETE SET NULL,
+    INDEX idx_equipe_date (equipe_id, created_at)
+);
+
+-- TIME TRACKING AUTOMATIQUE
+CREATE TABLE IF NOT EXISTS time_tracking (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    intervention_id INT NOT NULL,
+    equipe_id INT NOT NULL,
+    heure_debut DATETIME NOT NULL,
+    heure_fin DATETIME NULL,
+    duree_minutes INT NULL,
+    statut ENUM('en_cours', 'terminé', 'interrompu') DEFAULT 'en_cours',
+    notes TEXT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_time_intervention FOREIGN KEY (intervention_id) REFERENCES interventions(id) ON DELETE CASCADE,
+    CONSTRAINT fk_time_equipe FOREIGN KEY (equipe_id) REFERENCES equipes(id) ON DELETE CASCADE
+);
+
+-- ESTIMATION DE COÛTS (MODÈLE ML)
+CREATE TABLE IF NOT EXISTS couts_intervention (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    intervention_id INT NOT NULL,
+    type_intervention VARCHAR(50) NOT NULL,
+    cout_base DECIMAL(10,2) DEFAULT 0,
+    cout_materiel DECIMAL(10,2) DEFAULT 0,
+    cout_main_oeuvre DECIMAL(10,2) DEFAULT 0,
+    cout_deplacement DECIMAL(10,2) DEFAULT 0,
+    cout_total DECIMAL(10,2) DEFAULT 0,
+    estimations_ml VARCHAR(255) NULL,
+    facteurs_ajustement JSON NULL,
+    historique_similar JSON NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_cout_intervention FOREIGN KEY (intervention_id) REFERENCES interventions(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_cout_intervention (intervention_id)
+);
+
+-- RAPPORTS AUTOMATISÉS
+CREATE TABLE IF NOT EXISTS rapports (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    titre VARCHAR(255) NOT NULL,
+    type ENUM('mensuel', 'trimestriel', 'annuel', 'custom') NOT NULL,
+    periode_debut DATE NOT NULL,
+    periode_fin DATE NOT NULL,
+    contenu LONGTEXT NULL,
+    fichier_pdf VARCHAR(255) NULL,
+    metriques JSON NULL,
+    status ENUM('en_generation', 'termine', 'erreur') DEFAULT 'en_generation',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS rapports_metriques (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    rapport_id INT NOT NULL,
+    metric_key VARCHAR(100) NOT NULL,
+    metric_value VARCHAR(255) NOT NULL,
+    CONSTRAINT fk_metriques_rapport FOREIGN KEY (rapport_id) REFERENCES rapports(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS historique_positions (
@@ -307,3 +409,51 @@ INSERT INTO signalements (user_id, localisation_id, titre, description, image, c
 (1, 17, 'Poteau penche', 'Un poteau penche menace de tomber sur le passage pieton a Kasserine', NULL, 'eclairage', 35.16760000, 8.83670000, 'rejete'),
 (2, 18, 'Collecte en retard', 'La collecte des dechets a pris du retard dans plusieurs rues de Jendouba', NULL, 'ordures', 36.50100000, 8.77830000, 'en_attente'),
 (1, 19, 'Panne de bus', 'Un bus de ligne est tombe en panne pres de Sidi Bou Said', NULL, 'transport', 36.86940000, 10.34310000, 'en_attente');
+
+-- ========================================
+-- 8. GESTION BUDGETAIRE
+-- ========================================
+
+CREATE TABLE IF NOT EXISTS budgets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    titre VARCHAR(255) NOT NULL,
+    annee INT NOT NULL,
+    categorie VARCHAR(50) NOT NULL,
+    zone VARCHAR(100) NULL,
+    montant_alloue DECIMAL(12,2) NOT NULL,
+    montant_depense DECIMAL(12,2) DEFAULT 0,
+    montant_reserve DECIMAL(12,2) DEFAULT 0,
+    statut ENUM('planifie', 'en_cours', 'termine', 'depassement') DEFAULT 'planifie',
+    description TEXT NULL,
+    responsable_id INT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_budget_responsable FOREIGN KEY (responsable_id) REFERENCES utilisateurs(id) ON DELETE SET NULL,
+    UNIQUE KEY unique_budget_period (annee, categorie, zone)
+);
+
+CREATE TABLE IF NOT EXISTS budget_forecasts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    budget_id INT NOT NULL,
+    mois INT NOT NULL,
+    depenses_estimees DECIMAL(12,2) NOT NULL,
+    depenses_reelles DECIMAL(12,2) DEFAULT 0,
+    precision_score DECIMAL(5,2) DEFAULT 0,
+    facteurs JSON NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_forecast_budget FOREIGN KEY (budget_id) REFERENCES budgets(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_forecast_period (budget_id, mois)
+);
+
+CREATE TABLE IF NOT EXISTS budget_transactions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    budget_id INT NOT NULL,
+    intervention_id INT NULL,
+    montant DECIMAL(12,2) NOT NULL,
+    type ENUM('debit', 'credit') DEFAULT 'debit',
+    description VARCHAR(255) NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_transaction_budget FOREIGN KEY (budget_id) REFERENCES budgets(id) ON DELETE CASCADE,
+    CONSTRAINT fk_transaction_intervention FOREIGN KEY (intervention_id) REFERENCES interventions(id) ON DELETE SET NULL
+);

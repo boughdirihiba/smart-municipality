@@ -11,7 +11,8 @@
       return;
     }
     errorsBox.style.display = 'block';
-    errorsBox.innerHTML = `<ul>${errors.map(e => `<li>${e}</li>`).join('')}</ul>`;
+    errorsBox.innerHTML = `<ul>${errors.map(e => `<li>${e}</li>`).join('')}</ul>
+`;
   }
 
   function hasInvalidChars(value) {
@@ -59,10 +60,10 @@
     const lat = Number(latitude);
     const lng = Number(longitude);
     if (Number.isNaN(lat) || lat < -90 || lat > 90) {
-      errors.push('Latitude invalide.');
+      errors.push('Latitude invalide. Cliquez sur la carte pour sélectionner une localisation.');
     }
     if (Number.isNaN(lng) || lng < -180 || lng > 180) {
-      errors.push('Longitude invalide.');
+      errors.push('Longitude invalide. Cliquez sur la carte pour sélectionner une localisation.');
     }
 
     if (image) {
