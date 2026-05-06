@@ -2,14 +2,14 @@
 session_start();
 
 require_once '../../config/database.php';
-require_once '../../models/RendezVous.php';
+require_once '../../controllers/RendezVousController.php';
 
 $db = new Database();
 $conn = $db->getConnection();
 $rdv = new RendezVous($conn);
 
-$categories = $rdv->getAllCategories();
-$allRdv = $rdv->readAll();
+$categories = RendezVousController::getAllCategories($rdv);
+$allRdv = RendezVousController::readAll($rdv);
 
 $filterService = $_GET['service'] ?? '';
 $filterStatut = $_GET['statut'] ?? '';
@@ -141,6 +141,32 @@ $totalAnnule = count(array_filter($allRdv, function($r) { return $r['statut'] ==
             flex-grow: 1;
         }
 
+        .sub-nav {
+            list-style: none;
+            margin-left: 26px;
+            margin-top: 2px;
+            margin-bottom: 4px;
+        }
+
+        .sub-nav li {
+            padding: 6px 10px !important;
+            font-size: 12px;
+        }
+
+        .sub-nav li:hover {
+            background-color: rgba(255, 255, 255, 0.08) !important;
+            border-radius: 6px;
+        }
+
+        .sub-nav li.sub-active {
+            background: rgba(255, 255, 255, 0.14) !important;
+            border-radius: 6px;
+        }
+
+        .sub-nav li a {
+            font-size: 12px !important;
+        }
+
         .main-content {
             flex: 1;
             padding: 20px 25px;
@@ -157,6 +183,66 @@ $totalAnnule = count(array_filter($allRdv, function($r) { return $r['statut'] ==
         .top-bar h1 {
             font-size: 22px;
             color: #333;
+        }
+
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .btn-manage-cat {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 16px;
+            background: linear-gradient(135deg, #135D36, #2FA084);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 12.5px;
+            font-weight: 600;
+            box-shadow: 0 3px 10px rgba(19, 93, 54, 0.2);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-manage-cat:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 16px rgba(19, 93, 54, 0.3);
+        }
+
+        .btn-manage-cat:active {
+            transform: translateY(0);
+        }
+
+        .btn-manage-cat-icon {
+            width: 22px;
+            height: 22px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            transition: transform 0.3s ease;
+        }
+
+        .btn-manage-cat:hover .btn-manage-cat-icon {
+            transform: rotate(90deg);
+        }
+
+        .btn-manage-cat-arrow {
+            font-size: 14px;
+            opacity: 0.8;
+            transition: transform 0.25s ease;
+        }
+
+        .btn-manage-cat:hover .btn-manage-cat-arrow {
+            transform: translateX(3px);
+            opacity: 1;
         }
 
         .admin-info {
@@ -433,6 +519,10 @@ $totalAnnule = count(array_filter($allRdv, function($r) { return $r['statut'] ==
                         <a href="rendez-vous.php">Rendez-vous</a>
                     </li>
                 </ul>
+                <ul class="sub-nav">
+                    <li class="sub-active"><a href="rendez-vous.php">&rsaquo; Liste RDV</a></li>
+                    <li><a href="categories.php">&rsaquo; Catégories</a></li>
+                </ul>
             </nav>
 
             <hr>
@@ -455,7 +545,14 @@ $totalAnnule = count(array_filter($allRdv, function($r) { return $r['statut'] ==
         <main class="main-content">
 
             <header class="top-bar">
-                <h1>Dashboard - Rendez-vous</h1>
+                <div class="top-bar-left">
+                    <h1>Dashboard - Rendez-vous</h1>
+                    <a href="categories.php" class="btn-manage-cat">
+                        <span class="btn-manage-cat-icon">&#9881;</span>
+                        <span>Gérer les catégories</span>
+                        <span class="btn-manage-cat-arrow">&rarr;</span>
+                    </a>
+                </div>
                 <div class="admin-info">
                     <div>
                         <span>Admin</span><br>
