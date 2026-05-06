@@ -179,35 +179,7 @@ CREATE TABLE IF NOT EXISTS agents_equipe (
 );
 
 -- GPS TRACKING TEMPS RÉEL
-CREATE TABLE IF NOT EXISTS gps_tracking (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    equipe_id INT NOT NULL,
-    intervention_id INT NULL,
-    latitude DECIMAL(10,8) NOT NULL,
-    longitude DECIMAL(11,8) NOT NULL,
-    precision FLOAT DEFAULT NULL,
-    vitesse FLOAT DEFAULT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_gps_equipe FOREIGN KEY (equipe_id) REFERENCES equipes(id) ON DELETE CASCADE,
-    CONSTRAINT fk_gps_intervention FOREIGN KEY (intervention_id) REFERENCES interventions(id) ON DELETE SET NULL,
-    INDEX idx_equipe_date (equipe_id, created_at)
-);
-
--- TIME TRACKING AUTOMATIQUE
-CREATE TABLE IF NOT EXISTS time_tracking (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    intervention_id INT NOT NULL,
-    equipe_id INT NOT NULL,
-    heure_debut DATETIME NOT NULL,
-    heure_fin DATETIME NULL,
-    duree_minutes INT NULL,
-    statut ENUM('en_cours', 'terminé', 'interrompu') DEFAULT 'en_cours',
-    notes TEXT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_time_intervention FOREIGN KEY (intervention_id) REFERENCES interventions(id) ON DELETE CASCADE,
-    CONSTRAINT fk_time_equipe FOREIGN KEY (equipe_id) REFERENCES equipes(id) ON DELETE CASCADE
-);
+-- GPS TRACKING and time_tracking tables removed (not used)
 
 -- ESTIMATION DE COÛTS (MODÈLE ML)
 CREATE TABLE IF NOT EXISTS couts_intervention (
@@ -229,38 +201,9 @@ CREATE TABLE IF NOT EXISTS couts_intervention (
 );
 
 -- RAPPORTS AUTOMATISÉS
-CREATE TABLE IF NOT EXISTS rapports (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    titre VARCHAR(255) NOT NULL,
-    type ENUM('mensuel', 'trimestriel', 'annuel', 'custom') NOT NULL,
-    periode_debut DATE NOT NULL,
-    periode_fin DATE NOT NULL,
-    contenu LONGTEXT NULL,
-    fichier_pdf VARCHAR(255) NULL,
-    metriques JSON NULL,
-    status ENUM('en_generation', 'termine', 'erreur') DEFAULT 'en_generation',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+-- rapports and rapports_metriques tables removed (not used)
 
-CREATE TABLE IF NOT EXISTS rapports_metriques (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    rapport_id INT NOT NULL,
-    metric_key VARCHAR(100) NOT NULL,
-    metric_value VARCHAR(255) NOT NULL,
-    CONSTRAINT fk_metriques_rapport FOREIGN KEY (rapport_id) REFERENCES rapports(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS historique_positions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    signalement_id INT NOT NULL,
-    latitude DECIMAL(10,8) NOT NULL,
-    longitude DECIMAL(11,8) NOT NULL,
-    source ENUM('citoyen', 'admin', 'systeme') NOT NULL DEFAULT 'systeme',
-    commentaire VARCHAR(255) NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_historique_signalement FOREIGN KEY (signalement_id) REFERENCES signalements(id) ON DELETE CASCADE
-);
+-- historique_positions table removed (not used)
 
 CREATE TABLE IF NOT EXISTS alertes (
     id INT AUTO_INCREMENT PRIMARY KEY,
