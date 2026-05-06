@@ -12,11 +12,23 @@ if (session_status() === PHP_SESSION_NONE) {
 
 class DashboardController {
     private $db;
-    
+    private static $blogController = null; // Instance unique chargée à la demande
+
     public function __construct() {
         $this->db = Database::getInstance()->getConnection();
     }
-    
+
+    /**
+     * Charge BlogController uniquement si nécessaire (lazy loading)
+     */
+    private function getBlogController() {
+        if (self::$blogController === null) {
+            require_once __DIR__ . '/BlogController.php';
+            self::$blogController = new BlogController();
+        }
+        return self::$blogController;
+    }
+
     private function checkAdmin() {
         if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
             $_SESSION['error'] = "Accès réservé aux administrateurs.";
@@ -24,46 +36,99 @@ class DashboardController {
             exit();
         }
     }
-    
+
+    // ========== FONCTIONS DE GESTION DES PRÉFÉRENCES ==========
+    public function setTheme() {
+        if (isset($_GET['theme']) && in_array($_GET['theme'], ['light', 'dark'])) {
+            $_SESSION['user_theme'] = $_GET['theme'];
+        }
+        $this->redirectBack();
+    }
+
+    public function setFontSize() {
+        if (isset($_GET['size']) && is_numeric($_GET['size'])) {
+            $size = min(130, max(80, (int)$_GET['size']));
+            $_SESSION['font_size'] = $size;
+        }
+        $this->redirectBack();
+    }
+
+    public function setLanguage() {
+        if (isset($_GET['lang']) && in_array($_GET['lang'], ['fr', 'en', 'ar'])) {
+            $_SESSION['app_lang'] = $_GET['lang'];
+        }
+        $this->redirectBack();
+    }
+
+    public function getSpeakText() {
+        $this->getBlogController()->getSpeakText();
+    }
+
+    public function getCurrentLang() {
+        return $_SESSION['app_lang'] ?? 'fr';
+    }
+
+    public function getCurrentTheme() {
+        return $_SESSION['user_theme'] ?? 'light';
+    }
+
+    public function getCurrentFontSize() {
+        return $_SESSION['font_size'] ?? 100;
+    }
+
+    public function isRtl() {
+        return $this->getCurrentLang() === 'ar';
+    }
+
+    public function t($key) {
+        return $this->getBlogController()->t($key);
+    }
+
+    // ========== STATISTIQUES ==========
     public function getStats() {
         $this->checkAdmin();
         $totalPosts = $this->db->query("SELECT COUNT(*) FROM posts")->fetchColumn();
         $totalUsers = $this->db->query("SELECT COUNT(*) FROM users")->fetchColumn();
         $totalComments = $this->db->query("SELECT COUNT(*) FROM comments")->fetchColumn();
         $totalReactions = $this->db->query("SELECT COUNT(*) FROM reactions")->fetchColumn();
-        
+
         $stmt = $this->db->query("SELECT DATE(created_at) as date, COUNT(*) as count FROM posts WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) GROUP BY DATE(created_at) ORDER BY date ASC");
         $postsByDay = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         $stmt = $this->db->query("SELECT SUM(CASE WHEN image IS NOT NULL AND image != '' THEN 1 ELSE 0 END) as with_image, SUM(CASE WHEN video IS NOT NULL AND video != '' THEN 1 ELSE 0 END) as with_video, SUM(CASE WHEN (image IS NULL OR image = '') AND (video IS NULL OR video = '') THEN 1 ELSE 0 END) as text_only FROM posts");
         $contentDist = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         $stmt = $this->db->query("SELECT DATE(created_at) as date, COUNT(*) as posts_count FROM posts WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) GROUP BY DATE(created_at) ORDER BY date ASC");
         $activityTimeline = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         return [
             'totalPosts' => $totalPosts,
             'totalUsers' => $totalUsers,
             'totalComments' => $totalComments,
             'totalReactions' => $totalReactions,
             'postsByDay' => $postsByDay,
-            'contentDistribution' => ['with_image' => (int)$contentDist['with_image'], 'with_video' => (int)$contentDist['with_video'], 'text_only' => (int)$contentDist['text_only']],
+            'contentDistribution' => [
+                'with_image' => (int)$contentDist['with_image'],
+                'with_video' => (int)$contentDist['with_video'],
+                'text_only'  => (int)$contentDist['text_only']
+            ],
             'activityTimeline' => $activityTimeline
         ];
     }
-    
+
     public function getAllPosts() {
         $this->checkAdmin();
         $stmt = $this->db->query("SELECT p.*, u.name as user_name, (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments_count FROM posts p JOIN users u ON p.user_id = u.id ORDER BY p.created_at DESC");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-    
+
     public function getAllComments() {
         $this->checkAdmin();
         $stmt = $this->db->query("SELECT c.*, u.name as user_name, p.content as post_content FROM comments c JOIN users u ON c.user_id = u.id JOIN posts p ON c.post_id = p.id ORDER BY c.created_at DESC LIMIT 50");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-    
+
+    // ========== CRUD POSTS ==========
     public function createPost($data, $files) {
         $this->checkAdmin();
         $content = trim(htmlspecialchars($data['content']));
@@ -74,7 +139,6 @@ class DashboardController {
         }
         $image = null;
         $video = null;
-        // Vérifier qu'on n'a pas les deux fichiers en même temps
         if (!empty($files['image']['tmp_name']) && !empty($files['video']['tmp_name'])) {
             $_SESSION['error'] = "Vous ne pouvez pas ajouter une image ET une vidéo en même temps.";
             $this->redirectBack();
@@ -109,7 +173,7 @@ class DashboardController {
         $_SESSION[$result ? 'success' : 'error'] = $result ? "Post ajouté" : "Erreur lors de l'ajout";
         $this->redirectBack();
     }
-    
+
     public function updatePost($data, $files) {
         $this->checkAdmin();
         if (empty($data['post_id']) || empty($data['content'])) {
@@ -119,16 +183,13 @@ class DashboardController {
         }
         $post_id = (int)$data['post_id'];
         $content = htmlspecialchars(trim($data['content']));
-        
-        // Récupérer les anciens médias
+
         $stmt = $this->db->prepare("SELECT image, video FROM posts WHERE id = ?");
         $stmt->execute([$post_id]);
         $old = $stmt->fetch(PDO::FETCH_ASSOC);
         $image = $old['image'];
         $video = $old['video'];
-        
-    
-        // Nouveaux fichiers (priorité sur les anciens)
+
         if (!empty($files['image']['tmp_name']) && !empty($files['video']['tmp_name'])) {
             $_SESSION['error'] = "Vous ne pouvez pas remplacer par une image ET une vidéo en même temps.";
             $this->redirectBack();
@@ -158,14 +219,14 @@ class DashboardController {
             $videoData = file_get_contents($files['video']['tmp_name']);
             $video = 'data:video/' . pathinfo($files['video']['name'], PATHINFO_EXTENSION) . ';base64,' . base64_encode($videoData);
         }
-        
+
         $sql = "UPDATE posts SET content = ?, image = ?, video = ? WHERE id = ?";
         $stmt = $this->db->prepare($sql);
         $result = $stmt->execute([$content, $image, $video, $post_id]);
         $_SESSION[$result ? 'success' : 'error'] = $result ? "Post modifié avec succès" : "Erreur lors de la modification";
         $this->redirectBack();
     }
-    
+
     public function deletePost($data) {
         $this->checkAdmin();
         if (empty($data['post_id'])) {
@@ -181,7 +242,8 @@ class DashboardController {
         $_SESSION[$result ? 'success' : 'error'] = $result ? "Post supprimé" : "Erreur suppression";
         $this->redirectBack();
     }
-    
+
+    // ========== CRUD COMMENTAIRES ==========
     public function createComment($data) {
         $this->checkAdmin();
         if (empty($data['post_id']) || empty($data['content'])) {
@@ -194,7 +256,7 @@ class DashboardController {
         $_SESSION[$result ? 'success' : 'error'] = $result ? "Commentaire ajouté" : "Erreur";
         $this->redirectBack();
     }
-    
+
     public function updateComment($data) {
         $this->checkAdmin();
         if (empty($data['comment_id']) || empty($data['content'])) {
@@ -207,7 +269,7 @@ class DashboardController {
         $_SESSION[$result ? 'success' : 'error'] = $result ? "Commentaire modifié" : "Erreur";
         $this->redirectBack();
     }
-    
+
     public function deleteComment($data) {
         $this->checkAdmin();
         if (empty($data['comment_id'])) {
@@ -220,7 +282,7 @@ class DashboardController {
         $_SESSION[$result ? 'success' : 'error'] = $result ? "Commentaire supprimé" : "Erreur";
         $this->redirectBack();
     }
-    
+
     private function redirectBack() {
         $url = $_SERVER['HTTP_REFERER'] ?? '/projetweb/views/backoffice.php';
         header('Location: ' . $url);
@@ -228,27 +290,40 @@ class DashboardController {
     }
 }
 
-// Gestion des actions
+// ========== ROUTEUR ==========
 $controller = new DashboardController();
-$action = $_POST['action'] ?? '';
+$action = $_POST['action'] ?? ($_GET['action'] ?? '');
+
 switch($action) {
-    case 'updatePost': 
-        $controller->updatePost($_POST, $_FILES); 
+    case 'updatePost':
+        $controller->updatePost($_POST, $_FILES);
         break;
-    case 'deletePost': 
-        $controller->deletePost($_POST); 
+    case 'deletePost':
+        $controller->deletePost($_POST);
         break;
-    case 'createPost': 
-        $controller->createPost($_POST, $_FILES); 
+    case 'createPost':
+        $controller->createPost($_POST, $_FILES);
         break;
-    case 'createComment': 
-        $controller->createComment($_POST); 
+    case 'createComment':
+        $controller->createComment($_POST);
         break;
-    case 'updateComment': 
-        $controller->updateComment($_POST); 
+    case 'updateComment':
+        $controller->updateComment($_POST);
         break;
-    case 'deleteComment': 
-        $controller->deleteComment($_POST); 
-        break; 
+    case 'deleteComment':
+        $controller->deleteComment($_POST);
+        break;
+    case 'setTheme':
+        $controller->setTheme();
+        break;
+    case 'setFontSize':
+        $controller->setFontSize();
+        break;
+    case 'setLanguage':
+        $controller->setLanguage();
+        break;
+    case 'getSpeakText':
+        $controller->getSpeakText();
+        break;
 }
 ?>

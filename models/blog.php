@@ -7,9 +7,13 @@ class Blog {
     private $video;
     private $created_at;
     private $db;
+    private $current_lang; // ajout
+    private $translations; // ajout
     
     public function __construct($db = null) {
         $this->db = $db;
+        $this->current_lang = 'fr';
+        $this->translations = [];
     }
     
     // Getters
@@ -20,6 +24,9 @@ class Blog {
     public function getVideo() { return $this->video; }
     public function getCreatedAt() { return $this->created_at; }
     public function getDb() { return $this->db; }
+    public function getCurrentLang() { return $this->current_lang; } // ajout
+    public function isRtl() { return $this->current_lang === 'ar'; } // ajout
+    public function t($key) { return $this->translations[$this->current_lang][$key] ?? $key; } // ajout
     
     // Setters
     public function setId($id) { $this->id = $id; }
@@ -29,8 +36,10 @@ class Blog {
     public function setVideo($video) { $this->video = $video; }
     public function setCreatedAt($created_at) { $this->created_at = $created_at; }
     public function setDb($db) { $this->db = $db; }
+    public function setCurrentLang($lang) { $this->current_lang = $lang; } // ajout
+    public function setTranslations($translations) { $this->translations = $translations; } // ajout
     
-    // Méthodes (appels vides, définies dans les contrôleurs)
+    // Méthodes existantes
     public function createPost() { return null; }
     public function getPosts() { return []; }
     public function updatePost() { return false; }
