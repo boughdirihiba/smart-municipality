@@ -23,11 +23,11 @@ class Blog
     {
         $stmt = $this->pdo->query('
             SELECT p.*, u.nom, u.prenom, u.avatar
-            FROM blog_posts p
-            LEFT JOIN users u ON p.user_id = u.id
+            FROM posts p
+            LEFT JOIN utilisateurs u ON p.user_id = u.id
             ORDER BY p.created_at DESC
         ');
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     /**
@@ -37,12 +37,12 @@ class Blog
     {
         $stmt = $this->pdo->prepare('
             SELECT p.*, u.nom, u.prenom, u.avatar, u.email
-            FROM blog_posts p
-            LEFT JOIN users u ON p.user_id = u.id
+            FROM posts p
+            LEFT JOIN utilisateurs u ON p.user_id = u.id
             WHERE p.id = :id
         ');
         $stmt->execute([':id' => $id]);
-        $row = $stmt->fetch();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
     }
 
@@ -53,12 +53,12 @@ class Blog
     {
         $stmt = $this->pdo->prepare('
             SELECT p.*
-            FROM blog_posts p
+            FROM posts p
             WHERE p.user_id = :user_id
             ORDER BY p.created_at DESC
         ');
         $stmt->execute([':user_id' => $userId]);
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     /**
@@ -67,8 +67,8 @@ class Blog
     public function create(array $data): bool
     {
         $stmt = $this->pdo->prepare('
-            INSERT INTO blog_posts (user_id, content, image, video, created_at)
-            VALUES (:user_id, :content, :image, :video, NOW())
+            INSERT INTO posts (user_id, content, image, video)
+            VALUES (:user_id, :content, :image, :video)
         ');
         return $stmt->execute([
             ':user_id' => $data['user_id'] ?? null,
@@ -84,7 +84,7 @@ class Blog
     public function update(int $id, array $data): bool
     {
         $stmt = $this->pdo->prepare('
-            UPDATE blog_posts 
+            UPDATE posts 
             SET content = :content, image = :image, video = :video
             WHERE id = :id
         ');
@@ -103,15 +103,15 @@ class Blog
     {
         try {
             // Delete comments first
-            $deleteComments = $this->pdo->prepare('DELETE FROM blog_comments WHERE post_id = :id');
+            $deleteComments = $this->pdo->prepare('DELETE FROM comments WHERE post_id = :id');
             $deleteComments->execute([':id' => $id]);
 
             // Delete reactions
-            $deleteReactions = $this->pdo->prepare('DELETE FROM blog_reactions WHERE post_id = :id');
+            $deleteReactions = $this->pdo->prepare('DELETE FROM reactions WHERE post_id = :id');
             $deleteReactions->execute([':id' => $id]);
 
             // Delete post
-            $stmt = $this->pdo->prepare('DELETE FROM blog_posts WHERE id = :id');
+            $stmt = $this->pdo->prepare('DELETE FROM posts WHERE id = :id');
             return $stmt->execute([':id' => $id]);
         } catch (\Exception $e) {
             return false;
@@ -126,13 +126,13 @@ class Blog
         $searchTerm = '%' . $query . '%';
         $stmt = $this->pdo->prepare('
             SELECT p.*, u.nom, u.prenom
-            FROM blog_posts p
-            LEFT JOIN users u ON p.user_id = u.id
+            FROM posts p
+            LEFT JOIN utilisateurs u ON p.user_id = u.id
             WHERE p.content LIKE :query OR u.nom LIKE :query OR u.prenom LIKE :query
             ORDER BY p.created_at DESC
         ');
         $stmt->execute([':query' => $searchTerm]);
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     /**
@@ -140,7 +140,7 @@ class Blog
      */
     public function count(): int
     {
-        $stmt = $this->pdo->query('SELECT COUNT(*) FROM blog_posts');
+        $stmt = $this->pdo->query('SELECT COUNT(*) FROM posts');
         return (int)$stmt->fetchColumn();
     }
 
@@ -151,14 +151,14 @@ class Blog
     {
         $stmt = $this->pdo->prepare('
             SELECT p.*, u.nom, u.prenom, u.avatar
-            FROM blog_posts p
-            LEFT JOIN users u ON p.user_id = u.id
+            FROM posts p
+            LEFT JOIN utilisateurs u ON p.user_id = u.id
             ORDER BY p.created_at DESC
             LIMIT :limit
         ');
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 }
 ?>

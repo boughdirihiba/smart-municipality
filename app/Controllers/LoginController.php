@@ -9,12 +9,22 @@ use App\Models\User;
 
 class LoginController extends Controller
 {
-    private User $user;
+    private ?User $user = null;
 
     public function __construct()
     {
         parent::__construct();
-        $this->user = new User();
+    }
+
+    /**
+     * Lazy load User model
+     */
+    private function getUser(): User
+    {
+        if ($this->user === null) {
+            $this->user = new User();
+        }
+        return $this->user;
     }
 
     /**
@@ -24,12 +34,16 @@ class LoginController extends Controller
     {
         // If already logged in, redirect to home
         if (isset($_SESSION['user'])) {
-            header('Location: ' . $GLOBALS['baseUrl'] . '?route=home/index');
+            header('Location: ' . BASE_URL . '?route=home/index');
             exit;
         }
 
+        $error = $_SESSION['error'] ?? null;
+        unset($_SESSION['error']);
+
         $this->render('auth/login', [
-            'pageTitle' => 'Connexion'
+            'pageTitle' => 'Connexion',
+            'error' => $error
         ]);
     }
 
@@ -46,7 +60,7 @@ class LoginController extends Controller
 
         // If already logged in, redirect
         if (isset($_SESSION['user'])) {
-            header('Location: ' . $GLOBALS['baseUrl'] . '?route=home/index');
+            header('Location: ' . BASE_URL . '?route=home/index');
             exit;
         }
 
@@ -60,54 +74,46 @@ class LoginController extends Controller
         } elseif (empty($password)) {
             $error = 'Veuillez saisir votre mot de passe';
         } else {
-            // Find user by email
-            $userData = $this->user->findByEmail($email);
+            try {
+                // Find user by email
+                $userData = $this->getUser()->findByEmail($email);
 
-            if ($userData) {
-                // Verify password
-                if ($this->user->verifyPassword($password, $userData['mot_de_passe'])) {
-                    // Set session
-                    $_SESSION['user'] = [
-                        'id' => $userData['id'],
-                        'nom' => $userData['nom'],
-                        'prenom' => $userData['prenom'],
-                        'email' => $userData['email'],
-                        'role' => $userData['role'],
-                        'telephone' => $userData['telephone'] ?? '',
-                        'adresse' => $userData['adresse'] ?? '',
-                        'avatar' => $userData['avatar'] ?? 'sidebar-photo.svg'
-                    ];
+                if ($userData) {
+                    // Verify password
+                    if ($this->getUser()->verifyPassword($password, $userData['mot_de_passe'])) {
+                        // Set session
+                        $_SESSION['user'] = [
+                            'id' => $userData['id'],
+                            'nom' => $userData['nom'],
+                            'prenom' => $userData['prenom'],
+                            'email' => $userData['email'],
+                            'role' => $userData['role'],
+                            'telephone' => $userData['telephone'] ?? '',
+                            'adresse' => $userData['adresse'] ?? '',
+                            'avatar' => $userData['avatar'] ?? 'sidebar-photo.svg'
+                        ];
 
-                    // Update MD5 password to bcrypt if needed
-                    if (!password_needs_rehash($userData['mot_de_passe'], PASSWORD_DEFAULT)) {
-                        // Already using bcrypt, no need to update
+                        // Redirect based on role
+                        if ($userData['role'] === 'admin') {
+                            header('Location: ' . BASE_URL . '?route=admin/list');
+                        } else {
+                            header('Location: ' . BASE_URL . '?route=home/index');
+                        }
+                        exit;
                     } else {
-                        // Update to bcrypt
-                        $updateStmt = $GLOBALS['pdo']->prepare('UPDATE users SET mot_de_passe = :pwd WHERE id = :id');
-                        $updateStmt->execute([
-                            ':pwd' => password_hash($password, PASSWORD_DEFAULT),
-                            ':id' => $userData['id']
-                        ]);
+                        $error = 'Mot de passe incorrect';
                     }
-
-                    // Redirect based on role
-                    if ($userData['role'] === 'admin') {
-                        header('Location: ' . $GLOBALS['baseUrl'] . '?route=admin/list');
-                    } else {
-                        header('Location: ' . $GLOBALS['baseUrl'] . '?route=home/index');
-                    }
-                    exit;
                 } else {
-                    $error = 'Mot de passe incorrect';
+                    $error = 'Aucun compte trouvé avec cet email';
                 }
-            } else {
-                $error = 'Aucun compte trouvé avec cet email';
+            } catch (\Exception $e) {
+                $error = 'Erreur de connexion. Veuillez réessayer.';
             }
         }
 
         // Re-render with error
         $_SESSION['error'] = $error;
-        header('Location: ' . $GLOBALS['baseUrl'] . '?route=login/index');
+        header('Location: ' . BASE_URL . '?route=login/index');
         exit;
     }
 
@@ -116,9 +122,11 @@ class LoginController extends Controller
      */
     public function logout()
     {
-        session_destroy();
-        header('Location: ' . $GLOBALS['baseUrl'] . '?route=login/index');
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_unset();
+            session_destroy();
+        }
+        header('Location: ' . BASE_URL . '/index.php?route=login/index');
         exit;
     }
 }
-?>

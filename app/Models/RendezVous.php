@@ -24,11 +24,11 @@ class RendezVous
         $stmt = $this->pdo->query('
             SELECT r.*, c.nom AS service_nom, u.nom AS user_nom, u.prenom AS user_prenom, u.email AS user_email
             FROM rendez_vous r
-            JOIN categorie c ON r.categorie_id = c.id
-            JOIN users u ON r.user_id = u.id
+            JOIN categories c ON r.categorie_id = c.id
+            JOIN utilisateurs u ON r.user_id = u.id
             ORDER BY r.date_rdv DESC, r.heure ASC
         ');
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     /**
@@ -39,12 +39,12 @@ class RendezVous
         $stmt = $this->pdo->prepare('
             SELECT r.*, c.nom AS service_nom
             FROM rendez_vous r
-            JOIN categorie c ON r.categorie_id = c.id
+            JOIN categories c ON r.categorie_id = c.id
             WHERE r.user_id = :user_id
             ORDER BY r.date_rdv DESC, r.heure ASC
         ');
         $stmt->execute([':user_id' => $userId]);
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     /**
@@ -55,12 +55,12 @@ class RendezVous
         $stmt = $this->pdo->prepare('
             SELECT r.*, c.nom AS service_nom, u.nom AS user_nom, u.prenom AS user_prenom
             FROM rendez_vous r
-            JOIN categorie c ON r.categorie_id = c.id
-            JOIN users u ON r.user_id = u.id
+            JOIN categories c ON r.categorie_id = c.id
+            JOIN utilisateurs u ON r.user_id = u.id
             WHERE r.id = :id
         ');
         $stmt->execute([':id' => $id]);
-        $row = $stmt->fetch();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
     }
 
@@ -167,8 +167,8 @@ class RendezVous
         $stmt = $this->pdo->prepare('
             SELECT r.*, c.nom AS service_nom, u.nom AS user_nom, u.prenom AS user_prenom
             FROM rendez_vous r
-            JOIN categorie c ON r.categorie_id = c.id
-            JOIN users u ON r.user_id = u.id
+            JOIN categories c ON r.categorie_id = c.id
+            JOIN utilisateurs u ON r.user_id = u.id
             WHERE r.date_rdv BETWEEN :start AND :end
             ORDER BY r.date_rdv ASC, r.heure ASC
         ');
@@ -176,7 +176,7 @@ class RendezVous
             ':start' => $startDate,
             ':end' => $endDate
         ]);
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 }
 ?>

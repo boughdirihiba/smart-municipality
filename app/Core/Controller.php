@@ -6,6 +6,11 @@ namespace App\Core;
 
 abstract class Controller
 {
+    // Provide a no-op constructor so child controllers can safely call parent::__construct()
+    public function __construct()
+    {
+        // Intentionally empty
+    }
     protected function render(string $view, array $data = []): void
     {
         extract($data, EXTR_SKIP);

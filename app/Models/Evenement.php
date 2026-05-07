@@ -1,89 +1,92 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Models;
 
 use App\Core\Database;
 use PDO;
 
-class Evenement
-{
+class Evenement {
     private PDO $pdo;
 
-    public function __construct()
-    {
+    public function __construct() {
         $this->pdo = Database::getConnection();
     }
 
-    public function all(): array
-    {
-        $stmt = $this->pdo->query('
-            SELECT e.*, c.nom AS categorie_nom, c.image_url AS categorie_image
-            FROM evenements e
-            LEFT JOIN categorie_evenement c ON e.categorie_id = c.id
-            ORDER BY e.date_evenement DESC
-        ');
-
-        return $stmt->fetchAll();
+    /**
+     * Get all events ordered by date
+     */
+    public function all(): array {
+        $sql = 'SELECT e.* FROM evenements e ORDER BY e.date_evenement DESC';
+        $stmt = $this->pdo->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function upcoming(): array
-    {
-        $stmt = $this->pdo->query('
-            SELECT e.*, c.nom AS categorie_nom, c.image_url AS categorie_image
-            FROM evenements e
-            LEFT JOIN categorie_evenement c ON e.categorie_id = c.id
-            WHERE e.date_evenement >= CURDATE()
-            ORDER BY e.date_evenement ASC
-        ');
-
-        return $stmt->fetchAll();
+    /**
+     * Get upcoming events (future dates)
+     */
+    public function upcoming(): array {
+        $sql = 'SELECT e.* FROM evenements e 
+                WHERE e.date_evenement >= CURDATE() 
+                ORDER BY e.date_evenement ASC';
+        $stmt = $this->pdo->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function find(int $id): ?array
-    {
-        $stmt = $this->pdo->prepare('
-            SELECT e.*, c.nom AS categorie_nom, c.image_url AS categorie_image
-            FROM evenements e
-            LEFT JOIN categorie_evenement c ON e.categorie_id = c.id
-            WHERE e.id = :id
-        ');
+    /**
+     * Get past events
+     */
+    public function past(): array {
+        $sql = 'SELECT e.* FROM evenements e 
+                WHERE e.date_evenement < CURDATE() 
+                ORDER BY e.date_evenement DESC';
+        $stmt = $this->pdo->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Find event by ID
+     */
+    public function find(int $id): ?array {
+        $sql = 'SELECT e.* FROM evenements e WHERE e.id = :id';
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute([':id' => $id]);
-
-        $row = $stmt->fetch();
-        return $row ?: null;
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result ?: null;
     }
 
-    public function create(array $data): bool
-    {
-        $stmt = $this->pdo->prepare('
-            INSERT INTO evenements (titre, description, max_participants, lieu, date_evenement, heure, categorie_id) 
-            VALUES (:titre, :description, :max_participants, :lieu, :date_evenement, :heure, :categorie_id)
-        ');
-        return $stmt->execute([
+    /**
+     * Create new event
+     */
+    public function create(array $data): int {
+        $sql = 'INSERT INTO evenements (titre, description, lieu, date_evenement, heure, categorie, image_url) 
+                VALUES (:titre, :description, :lieu, :date_evenement, :heure, :categorie, :image_url)';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
             ':titre' => $data['titre'] ?? null,
             ':description' => $data['description'] ?? null,
-            ':max_participants' => $data['max_participants'] ?? null,
             ':lieu' => $data['lieu'] ?? null,
             ':date_evenement' => $data['date_evenement'] ?? null,
             ':heure' => $data['heure'] ?? null,
-            ':categorie_id' => $data['categorie_id'] ?? null
+            ':categorie' => $data['categorie'] ?? null,
+            ':image_url' => $data['image_url'] ?? null
         ]);
+        return (int)$this->pdo->lastInsertId();
     }
 
-    public function update(int $id, array $data): bool
-    {
-        $stmt = $this->pdo->prepare('
-            UPDATE evenements SET 
-                titre = :titre, 
-                description = :description, 
-                lieu = :lieu, 
-                date_evenement = :date_evenement, 
-                heure = :heure, 
-                categorie_id = :categorie_id 
-            WHERE id = :id
-        ');
+    /**
+     * Update event
+     */
+    public function update(int $id, array $data): bool {
+        $sql = 'UPDATE evenements SET 
+                titre = :titre,
+                description = :description,
+                lieu = :lieu,
+                date_evenement = :date_evenement,
+                heure = :heure,
+                categorie = :categorie,
+                image_url = :image_url
+                WHERE id = :id';
+        $stmt = $this->pdo->prepare($sql);
         return $stmt->execute([
             ':id' => $id,
             ':titre' => $data['titre'] ?? null,
@@ -91,46 +94,85 @@ class Evenement
             ':lieu' => $data['lieu'] ?? null,
             ':date_evenement' => $data['date_evenement'] ?? null,
             ':heure' => $data['heure'] ?? null,
-            ':categorie_id' => $data['categorie_id'] ?? null
+            ':categorie' => $data['categorie'] ?? null,
+            ':image_url' => $data['image_url'] ?? null
         ]);
     }
 
-    public function delete(int $id): bool
-    {
-        try {
-            // Delete participations first
-            $deleteParticipation = $this->pdo->prepare('DELETE FROM participations WHERE event_id = :id');
-            $deleteParticipation->execute([':id' => $id]);
-            
-            // Then delete the event
-            $stmt = $this->pdo->prepare('DELETE FROM evenements WHERE id = :id');
-            return $stmt->execute([':id' => $id]);
-        } catch (\Exception $e) {
-            return false;
-        }
+    /**
+     * Delete event
+     */
+    public function delete(int $id): bool {
+        $sql = 'DELETE FROM evenements WHERE id = :id';
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute([':id' => $id]);
     }
 
-    public function count(): int
-    {
-        $stmt = $this->pdo->query('SELECT COUNT(*) FROM evenements');
-        return (int)$stmt->fetchColumn();
+    /**
+     * Get events by category
+     */
+    public function getByCategory(string $categorie): array {
+        $sql = 'SELECT e.* FROM evenements e 
+                WHERE e.categorie = :categorie
+                ORDER BY e.date_evenement DESC';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':categorie' => $categorie]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function countByCategory(int $categoryId): int
-    {
-        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM evenements WHERE categorie_id = :categorie_id');
-        $stmt->execute([':categorie_id' => $categoryId]);
-        return (int)$stmt->fetchColumn();
+    /**
+     * Count events by category
+     */
+    public function countByCategory(string $categorie): int {
+        $sql = 'SELECT COUNT(*) as count FROM evenements WHERE categorie = :categorie';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':categorie' => $categorie]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (int)($result['count'] ?? 0);
     }
 
-    public function countByCategories(): array
-    {
-        $stmt = $this->pdo->query('
-            SELECT c.nom, COUNT(e.id) as total 
-            FROM categorie_evenement c 
-            LEFT JOIN evenements e ON c.id = e.categorie_id 
-            GROUP BY c.id
-        ');
-        return $stmt->fetchAll();
+    /**
+     * Get all unique categories
+     */
+    public function getCategories(): array {
+        $sql = 'SELECT DISTINCT categorie FROM evenements WHERE categorie IS NOT NULL ORDER BY categorie';
+        $stmt = $this->pdo->query($sql);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        return array_column($results, 'categorie');
+    }
+
+    /**
+     * Count events by categories (for dashboard)
+     */
+    public function countByCategories(): array {
+        $sql = 'SELECT categorie, COUNT(*) as count FROM evenements 
+                WHERE categorie IS NOT NULL
+                GROUP BY categorie
+                ORDER BY count DESC';
+        $stmt = $this->pdo->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Search events
+     */
+    public function search(string $query): array {
+        $q = '%' . $query . '%';
+        $sql = 'SELECT e.* FROM evenements e 
+                WHERE e.titre LIKE :q OR e.description LIKE :q OR e.lieu LIKE :q
+                ORDER BY e.date_evenement DESC';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':q' => $q]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Count total events
+     */
+    public function count(): int {
+        $sql = 'SELECT COUNT(*) as count FROM evenements';
+        $stmt = $this->pdo->query($sql);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (int)($result['count'] ?? 0);
     }
 }
