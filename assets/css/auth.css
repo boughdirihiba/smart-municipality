@@ -1,0 +1,11 @@
+/* Optional extra auth rules (login/signup/forgot). */
+
+body{
+  background: var(--bg);
+}
+
+.main{
+  background: var(--bg);
+}
+
+.brand .title{color:var(--green-700);}
