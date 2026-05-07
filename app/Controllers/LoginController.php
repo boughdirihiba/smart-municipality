@@ -34,7 +34,7 @@ class LoginController extends Controller
     {
         // If already logged in, redirect to home
         if (isset($_SESSION['user'])) {
-            header('Location: ' . BASE_URL . '?route=home/index');
+            header('Location: ' . BASE_URL . '/index.php?route=home/index');
             exit;
         }
 
@@ -60,7 +60,7 @@ class LoginController extends Controller
 
         // If already logged in, redirect
         if (isset($_SESSION['user'])) {
-            header('Location: ' . BASE_URL . '?route=home/index');
+            header('Location: ' . BASE_URL . '/index.php?route=home/index');
             exit;
         }
 
@@ -95,9 +95,9 @@ class LoginController extends Controller
 
                         // Redirect based on role
                         if ($userData['role'] === 'admin') {
-                            header('Location: ' . BASE_URL . '?route=admin/list');
+                            header('Location: ' . BASE_URL . '/index.php?route=admin/list');
                         } else {
-                            header('Location: ' . BASE_URL . '?route=home/index');
+                            header('Location: ' . BASE_URL . '/index.php?route=home/index');
                         }
                         exit;
                     } else {
@@ -113,7 +113,7 @@ class LoginController extends Controller
 
         // Re-render with error
         $_SESSION['error'] = $error;
-        header('Location: ' . BASE_URL . '?route=login/index');
+        header('Location: ' . BASE_URL . '/index.php?route=login/index');
         exit;
     }
 
@@ -122,10 +122,28 @@ class LoginController extends Controller
      */
     public function logout()
     {
+        // Clear session data
+        $_SESSION = [];
+        
+        // Destroy session
         if (session_status() === PHP_SESSION_ACTIVE) {
-            session_unset();
             session_destroy();
         }
+        
+        // Delete session cookie
+        if (ini_get("session.use_cookies")) {
+            $params = session_get_cookie_params();
+            setcookie(
+                session_name(),
+                '',
+                time() - 42000,
+                $params["path"],
+                $params["domain"],
+                $params["secure"],
+                $params["httponly"]
+            );
+        }
+        
         header('Location: ' . BASE_URL . '/index.php?route=login/index');
         exit;
     }

@@ -21,7 +21,7 @@ class User
      */
     public function findByEmail(string $email): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM users WHERE email = :email');
+        $stmt = $this->pdo->prepare('SELECT * FROM utilisateurs WHERE email = :email');
         $stmt->execute([':email' => $email]);
         $row = $stmt->fetch();
         return $row ?: null;
@@ -32,7 +32,7 @@ class User
      */
     public function find(int $id): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM users WHERE id = :id');
+        $stmt = $this->pdo->prepare('SELECT * FROM utilisateurs WHERE id = :id');
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch();
         return $row ?: null;
@@ -43,7 +43,7 @@ class User
      */
     public function all(): array
     {
-        $stmt = $this->pdo->query('SELECT * FROM users ORDER BY created_at DESC');
+        $stmt = $this->pdo->query('SELECT * FROM utilisateurs ORDER BY created_at DESC');
         return $stmt->fetchAll();
     }
 
@@ -53,7 +53,7 @@ class User
     public function create(array $data): bool
     {
         $stmt = $this->pdo->prepare('
-            INSERT INTO users (nom, prenom, email, mot_de_passe, telephone, adresse, role, created_at)
+            INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, telephone, adresse, role, created_at)
             VALUES (:nom, :prenom, :email, :mot_de_passe, :telephone, :adresse, :role, NOW())
         ');
         return $stmt->execute([
@@ -73,7 +73,7 @@ class User
     public function update(int $id, array $data): bool
     {
         $stmt = $this->pdo->prepare('
-            UPDATE users 
+            UPDATE utilisateurs 
             SET nom = :nom, prenom = :prenom, email = :email, telephone = :telephone, adresse = :adresse
             WHERE id = :id
         ');
@@ -99,6 +99,10 @@ class User
         if (md5($password) === $hash) {
             return true;
         }
+        // Fallback for old seed data stored as plain text
+        if (hash_equals($hash, $password)) {
+            return true;
+        }
         return false;
     }
 
@@ -107,7 +111,7 @@ class User
      */
     public function count(): int
     {
-        $stmt = $this->pdo->query('SELECT COUNT(*) FROM users');
+        $stmt = $this->pdo->query('SELECT COUNT(*) FROM utilisateurs');
         return (int)$stmt->fetchColumn();
     }
 
@@ -116,7 +120,7 @@ class User
      */
     public function getByRole(string $role): array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM users WHERE role = :role ORDER BY created_at DESC');
+        $stmt = $this->pdo->prepare('SELECT * FROM utilisateurs WHERE role = :role ORDER BY created_at DESC');
         $stmt->execute([':role' => $role]);
         return $stmt->fetchAll();
     }
@@ -126,7 +130,7 @@ class User
      */
     public function delete(int $id): bool
     {
-        $stmt = $this->pdo->prepare('DELETE FROM users WHERE id = :id');
+        $stmt = $this->pdo->prepare('DELETE FROM utilisateurs WHERE id = :id');
         return $stmt->execute([':id' => $id]);
     }
 }

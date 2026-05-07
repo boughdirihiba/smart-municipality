@@ -5,8 +5,28 @@ declare(strict_types=1);
 require __DIR__ . '/config/config.php';
 require __DIR__ . '/app/Core/Autoloader.php';
 
-$route = trim((string)($_GET['route'] ?? 'home/index'));
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+	session_start();
+}
+
+$route = trim((string)($_GET['route'] ?? ''));
 $route = trim($route, '/');
+
+// If no route specified and not authenticated, show login
+if (empty($route) && empty($_SESSION['user'])) {
+	$route = 'login/index';
+} elseif (empty($route)) {
+	// Default to home if authenticated
+	$route = 'home/index';
+}
+
+// Redirect unauthenticated users to login, except for login-related routes
+$allowedUnauthenticatedRoutes = ['login/index', 'login/login'];
+if (empty($_SESSION['user']) && !in_array($route, $allowedUnauthenticatedRoutes)) {
+	header('Location: ' . BASE_URL . '/index.php?route=login/index');
+	exit;
+}
 
 [$controllerPart, $actionPart] = array_pad(explode('/', $route, 2), 2, 'index');
 

@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $db = config::getConnexion();
         
         // Vérifier si l'utilisateur existe
-        $query = $db->prepare('SELECT * FROM users WHERE email = :email');
+        $query = $db->prepare('SELECT * FROM utilisateurs WHERE email = :email');
         $query->execute(['email' => $email]);
         $user = $query->fetch(PDO::FETCH_ASSOC);
         
@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif (md5($password) === $user['mot_de_passe']) {
                 $passwordValid = true;
                 // Mettre à jour vers password_hash
-                $update = $db->prepare('UPDATE users SET mot_de_passe = :new_password WHERE id = :id');
+                $update = $db->prepare('UPDATE utilisateurs SET mot_de_passe = :new_password WHERE id = :id');
                 $update->execute([
                     'new_password' => password_hash($password, PASSWORD_DEFAULT),
                     'id' => $user['id']
@@ -44,11 +44,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             if ($passwordValid) {
+                // Full user object aligned with table utilisateurs
+                $_SESSION['user'] = [
+                    'id' => $user['id'],
+                    'nom' => $user['nom'],
+                    'prenom' => $user['prenom'],
+                    'email' => $user['email'],
+                    'avatar' => $user['avatar'] ?? 'default-avatar.png',
+                    'telephone' => $user['telephone'] ?? '',
+                    'adresse' => $user['adresse'] ?? '',
+                    'role' => $user['role'] ?? 'citoyen',
+                    'statut' => $user['statut'] ?? 'actif',
+                    'created_at' => $user['created_at'] ?? null,
+                    'updated_at' => $user['updated_at'] ?? null,
+                ];
+
+                // Backward compatibility for old code paths
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['nom'] = $user['nom'];
                 $_SESSION['prenom'] = $user['prenom'];
                 $_SESSION['email'] = $user['email'];
-                $_SESSION['role'] = $user['role'];
+                $_SESSION['role'] = $user['role'] ?? 'citoyen';
                 $_SESSION['telephone'] = $user['telephone'] ?? '';
                 $_SESSION['adresse'] = $user['adresse'] ?? '';
                 

@@ -75,7 +75,8 @@ function bootstrap_user_session_from_database(): void
     ];
 }
 
-bootstrap_user_session_from_database();
+// Disable automatic session bootstrap - use proper login instead
+// bootstrap_user_session_from_database();
 
 function e(string $value): string
 {
