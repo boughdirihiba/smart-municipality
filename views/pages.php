@@ -8,7 +8,6 @@ $allowedPages = [
     'home',
     'login',
     'signup',
-    'forgot',
     'propos',
     'services',
     'support',
@@ -26,7 +25,6 @@ $titles = [
     'home' => 'Accueil',
     'login' => 'Login',
     'signup' => 'Créer un compte',
-    'forgot' => 'Mot de passe oublié',
     'propos' => 'À propos',
     'services' => 'Services',
     'support' => 'Support',
@@ -39,10 +37,11 @@ $title = $titles[$page] ?? 'Page';
 $flash = isset($flash) && is_array($flash) ? $flash : null;
 $errors = is_array($flash) && isset($flash['errors']) && is_array($flash['errors']) ? $flash['errors'] : [];
 $old = is_array($flash) && isset($flash['old']) && is_array($flash['old']) ? $flash['old'] : [];
+$success = is_array($flash) && isset($flash['success']) ? (string)$flash['success'] : '';
 
-$forgotSent = isset($forgotSent) ? (bool) $forgotSent : false;
+$captchaSiteKey = isset($captchaSiteKey) ? (string) $captchaSiteKey : '';
 
-$isAuth = in_array($page, ['login', 'signup', 'forgot'], true);
+$isAuth = in_array($page, ['login', 'signup'], true);
 
 $scriptName = (string)($_SERVER['SCRIPT_NAME'] ?? '');
 $base = str_replace('\\', '/', dirname($scriptName));
@@ -84,6 +83,14 @@ $url = static function (string $path) use ($base): string {
         <link rel="stylesheet" href="<?= htmlspecialchars($asset('assets/css/theme.css'), ENT_QUOTES, 'UTF-8') ?>">
         <link rel="stylesheet" href="<?= htmlspecialchars($asset('assets/css/face-id.css'), ENT_QUOTES, 'UTF-8') ?>">
         <link rel="stylesheet" href="<?= htmlspecialchars($asset('views/Login.css'), ENT_QUOTES, 'UTF-8') ?>">
+
+        <?php if ($page === 'login'): ?>
+            <script>
+                window.__TURNSTILE_SITEKEY = <?= json_encode($captchaSiteKey, JSON_UNESCAPED_SLASHES) ?>;
+            </script>
+            <script defer src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>
+        <?php endif; ?>
+
         <script defer src="<?= htmlspecialchars($asset('assets/js/form-validation.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
         <script>
             window.__FACEID_CONFIG = {
@@ -201,6 +208,12 @@ $url = static function (string $path) use ($base): string {
                 <img src="<?= htmlspecialchars($asset('views/admin.jpeg'), ENT_QUOTES, 'UTF-8') ?>" alt="Photo admin">
             </div>
 
+            <?php if ($success !== ''): ?>
+                <div style="text-align:left; margin-top: 12px; font-size: 14px; line-height: 1.6; font-weight: 900; color: var(--green-700);">
+                    ✓ <?= htmlspecialchars($success, ENT_QUOTES, 'UTF-8') ?>
+                </div>
+            <?php endif; ?>
+
             <label for="mail">Email</label>
             <div class="input-group">
                 <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -233,6 +246,10 @@ $url = static function (string $path) use ($base): string {
                         </svg>
                     </div>
                 </div>
+
+                <!-- Real CAPTCHA (Turnstile) kept invisible to preserve the exact existing design -->
+                <div data-turnstile-container aria-hidden="true" style="position:absolute; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;"></div>
+                <input type="hidden" id="turnstile_token" name="turnstile_token" value="">
             </div>
             <div class="error-message" id="error-captcha"><?= isset($errors['captcha']) ? htmlspecialchars((string)$errors['captcha'], ENT_QUOTES, 'UTF-8') : '' ?></div>
 
@@ -243,7 +260,6 @@ $url = static function (string $path) use ($base): string {
             <button class="btn btn-ghost" type="button" data-faceid-login-btn>Connexion avec Face ID</button>
 
             <a href="<?= htmlspecialchars($url('index.php?route=signup'), ENT_QUOTES, 'UTF-8') ?>">S'inscrire?</a>
-            <a href="<?= htmlspecialchars($url('index.php?route=page&page=forgot'), ENT_QUOTES, 'UTF-8') ?>">Mot de passe oublié ?</a>
 
         </form>
 
@@ -331,36 +347,6 @@ $url = static function (string $path) use ($base): string {
             <button class="btn btn-primary" type="submit">Créer un compte</button>
 
             <a href="<?= htmlspecialchars($url('index.php?route=login'), ENT_QUOTES, 'UTF-8') ?>">Déjà un compte ? Se connecter</a>
-
-        </form>
-
-    <?php elseif ($page === 'forgot'): ?>
-        <form id="forgotForm" novalidate action="<?= htmlspecialchars($url('index.php?route=page&page=forgot'), ENT_QUOTES, 'UTF-8') ?>" method="post">
-
-            <div class="avatar">
-                <img src="<?= htmlspecialchars($asset('views/admin.jpeg'), ENT_QUOTES, 'UTF-8') ?>" alt="Photo admin">
-            </div>
-
-            <h2 class="title">Mot de passe oublié</h2>
-
-            <?php if ($forgotSent): ?>
-                <p style="text-align:left; margin-top: 12px; font-size: 14px; line-height: 1.6;">
-                    Si un compte existe, un email de réinitialisation sera envoyé.
-                </p>
-            <?php endif; ?>
-
-            <label for="mail">Email</label>
-            <div class="input-group">
-                <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <path fill="currentColor" d="M20 8l-8 5l-8-5V6l8 5l8-5m0-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2"/>
-                </svg>
-                <input id="mail" name="mail" type="text" placeholder="Email" value="<?= htmlspecialchars((string)($old['mail'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" class="input <?= isset($errors['mail']) ? 'is-invalid' : '' ?>">
-            </div>
-            <div class="error-message" id="error-mail"><?= isset($errors['mail']) ? htmlspecialchars((string)$errors['mail'], ENT_QUOTES, 'UTF-8') : '' ?></div>
-
-            <button class="btn btn-primary" type="submit">Envoyer</button>
-
-            <a href="<?= htmlspecialchars($url('index.php?route=login'), ENT_QUOTES, 'UTF-8') ?>">Retour au login</a>
 
         </form>
 

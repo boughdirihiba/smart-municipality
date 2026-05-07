@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Controles;
 
 use Config\Auth;
+use Config\Captcha;
 use Config\Database;
 use Config\Flash;
 use Config\Validation;
@@ -39,7 +40,11 @@ final class AuthController
     public function showLogin(): void
     {
         $flash = $this->consumeFlash();
-        View::render('pages.php', ['page' => 'login', 'flash' => $flash]);
+        View::render('pages.php', [
+            'page' => 'login',
+            'flash' => $flash,
+            'captchaSiteKey' => Captcha::siteKey(),
+        ]);
     }
 
     public function showSignup(): void
@@ -59,10 +64,38 @@ final class AuthController
         $mail = trim((string)($_POST['mail'] ?? ''));
         $motdepasse = (string)($_POST['motdepasse'] ?? '');
 
+        $turnstileToken = trim((string)($_POST['turnstile_token'] ?? ''));
+
         $errors = Validation::login($mail, $motdepasse);
 
         if ($errors !== []) {
             $this->setFlashErrors($errors, ['mail' => $mail]);
+            $this->redirect('index.php?route=login');
+            return;
+        }
+
+        // Real CAPTCHA check (Cloudflare Turnstile).
+        if (!Captcha::isConfigured()) {
+            $this->setFlashErrors([
+                'captcha' => 'CAPTCHA non configuré (TURNSTILE_SITEKEY / TURNSTILE_SECRETKEY).',
+            ], ['mail' => $mail]);
+            $this->redirect('index.php?route=login');
+            return;
+        }
+
+        if ($turnstileToken === '') {
+            $this->setFlashErrors([
+                'captcha' => 'Veuillez valider le CAPTCHA.',
+            ], ['mail' => $mail]);
+            $this->redirect('index.php?route=login');
+            return;
+        }
+
+        $remoteIp = isset($_SERVER['REMOTE_ADDR']) ? (string)$_SERVER['REMOTE_ADDR'] : null;
+        if (!Captcha::verifyTurnstile($turnstileToken, $remoteIp)) {
+            $this->setFlashErrors([
+                'captcha' => 'CAPTCHA invalide. Réessaie.',
+            ], ['mail' => $mail]);
             $this->redirect('index.php?route=login');
             return;
         }
@@ -76,44 +109,17 @@ final class AuthController
                 return;
             }
 
-            $storedPassword = $user->getMdp();
-
-            // If the DB schema truncates hashes (e.g., mdp VARCHAR(20/50)), login will always fail.
-            // Bcrypt hashes are typically 60 chars; Argon2 can be longer.
-            $looksHashed = str_starts_with($storedPassword, '$2y$')
-                || str_starts_with($storedPassword, '$2a$')
-                || str_starts_with($storedPassword, '$argon2');
-            if ($looksHashed && strlen($storedPassword) < 55) {
-                $this->setFlashErrors([
-                    'motdepasse' => "Compte non connectable: le hash du mot de passe a été tronqué (ancien schéma BD). Mets 'utilisateur.mdp' en VARCHAR(255) puis recrée le compte ou réinitialise le mot de passe.",
-                ], ['mail' => $mail]);
-                $this->redirect('index.php?route=login');
-                return;
-            }
-
-            $isOk = password_verify($motdepasse, $storedPassword);
-
-            // Compat: si mdp est encore en clair, on upgrade.
-            if (!$isOk && hash_equals($storedPassword, $motdepasse)) {
-                $isOk = true;
-                $repo->updatePassword($user->getId(), password_hash($motdepasse, PASSWORD_DEFAULT));
-            }
-
-            if (!$isOk) {
+            if (!password_verify($motdepasse, $user->getMdp())) {
                 $this->setFlashErrors(['motdepasse' => 'Email ou mot de passe incorrect.'], ['mail' => $mail]);
                 $this->redirect('index.php?route=login');
                 return;
             }
 
             Auth::login($user);
-            if (Auth::isAdmin()) {
-                $this->redirect('index.php?route=dashboard');
-            }
-            $this->redirect('index.php?route=profile');
+            $this->redirect('index.php?route=' . (Auth::isAdmin() ? 'dashboard' : 'profile'));
         } catch (Throwable $e) {
             error_log('[AuthController::login] ' . get_class($e) . ': ' . $e->getMessage());
-
-            $this->setFlashErrors(['motdepasse' => 'Une erreur est survenue. Réessaie plus tard.'], ['mail' => $mail]);
+            $this->setFlashErrors(['mail' => 'Une erreur est survenue. Réessaie plus tard.'], ['mail' => $mail]);
             $this->redirect('index.php?route=login');
         }
     }
@@ -147,7 +153,7 @@ final class AuthController
         }
 
         try {
-            $repo = new PdoUserRepository((new Database())->getConnection());
+            $repo = $this->repo();
             if ($repo->mailExists($mail)) {
                 $this->setFlashErrors(['email' => 'Cet email est déjà utilisé.'], $old);
                 $this->redirect('index.php?route=signup');
@@ -156,16 +162,6 @@ final class AuthController
 
             $hash = password_hash($motdepasse, PASSWORD_DEFAULT);
             $repo->createUser($nom, $prenom, $mail, $hash);
-
-            // Safety: if the DB truncates the hash, we block completion and show a clear fix.
-            $created = $repo->findByMail($mail);
-            if ($created && $created->getMdp() !== '' && !hash_equals($created->getMdp(), $hash)) {
-                $this->setFlashErrors([
-                    'motdepasse' => "Configuration BD: le hash du mot de passe est tronqué. Modifie 'utilisateur.mdp' en VARCHAR(255).",
-                ], $old);
-                $this->redirect('index.php?route=signup');
-                return;
-            }
 
             $this->redirect('index.php?route=login');
         } catch (Throwable $e) {
@@ -1034,5 +1030,49 @@ final class PdoUserRepositoryController
         $user->setTelephone((string)($row['telephone'] ?? ''));
 
         return $user;
+    }
+}
+
+final class PdoFaceIdRepositoryController
+{
+    /** @param array<int,float> $descriptor */
+    public static function upsert(PdoFaceIdRepository $repo, int $userId, array $descriptor): void
+    {
+        $json = json_encode($descriptor, JSON_UNESCAPED_UNICODE);
+        if (!is_string($json)) {
+            throw new \RuntimeException('Unable to encode face descriptor');
+        }
+
+        $stmt = $repo->getPdo()->prepare(
+            'INSERT INTO utilisateur_face_id (user_id, descriptor_json) VALUES (?, ?) '
+            . 'ON DUPLICATE KEY UPDATE descriptor_json = ?'
+        );
+        $stmt->execute([$userId, $json, $json]);
+    }
+
+    /** @return array<int,float>|null */
+    public static function getByUserId(PdoFaceIdRepository $repo, int $userId): ?array
+    {
+        $stmt = $repo->getPdo()->prepare('SELECT descriptor_json FROM utilisateur_face_id WHERE user_id = :user_id LIMIT 1');
+        $stmt->execute(['user_id' => $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row || !isset($row['descriptor_json'])) {
+            return null;
+        }
+
+        $decoded = json_decode((string)$row['descriptor_json'], true);
+        if (!is_array($decoded)) {
+            return null;
+        }
+
+        $out = [];
+        foreach ($decoded as $v) {
+            if (!is_numeric($v)) {
+                return null;
+            }
+            $out[] = (float)$v;
+        }
+
+        return $out;
     }
 }

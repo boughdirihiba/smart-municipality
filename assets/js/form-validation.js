@@ -88,11 +88,13 @@
   };
 
   const validateLogin = (form) => {
-    const names = ['mail', 'motdepasse', 'captcha'];
+    const names = ['mail', 'motdepasse'];
     clearAll(form, names);
 
     const mail = trimValue(form, 'mail');
     const password = rawValue(form, 'motdepasse');
+    const robotCheck = byName(form, 'robot_check');
+    const isRobotChecked = robotCheck && robotCheck instanceof HTMLInputElement ? robotCheck.checked : false;
 
     let ok = true;
 
@@ -109,11 +111,8 @@
       ok = false;
     }
 
-    // Frontend checkbox CAPTCHA (login only).
-    const checkbox = form.querySelector('#robot_check');
-    const checked = checkbox && checkbox instanceof HTMLInputElement ? checkbox.checked : false;
-    if (!checked) {
-      setError(form, 'captcha', 'Please verify that you are not a robot.');
+    if (!isRobotChecked) {
+      setError(form, 'motdepasse', 'Veuillez confirmer que vous n\'êtes pas un robot.');
       ok = false;
     }
 
@@ -169,24 +168,6 @@
     return ok;
   };
 
-  const validateForgot = (form) => {
-    const names = ['mail'];
-    clearAll(form, names);
-
-    const mail = trimValue(form, 'mail');
-
-    let ok = true;
-
-    if (mail === '') {
-      setError(form, 'mail', "L'email est obligatoire.");
-      ok = false;
-    } else if (!emailRegex.test(mail)) {
-      setError(form, 'mail', "Format d'email invalide.");
-      ok = false;
-    }
-
-    return ok;
-  };
 
   const validateAdminMemberCreate = (form) => {
     const names = ['prenom', 'nom', 'mail', 'telephone', 'password', 'confirm_password'];
@@ -401,6 +382,7 @@
 
   const loginForm = document.getElementById('loginForm');
   const initLoginCaptchaUi = (form) => {
+    
     const submitWrap = form.querySelector('[data-js-login-submit]');
     const captchaCard = form.querySelector('[data-js-login-captcha]');
 
@@ -414,8 +396,73 @@
     const checkbox = form.querySelector('#robot_check');
     if (!checkbox || !(checkbox instanceof HTMLInputElement)) return;
 
+    const tokenInput = byName(form, 'turnstile_token');
+    const container = form.querySelector('[data-turnstile-container]');
+
+    const siteKey = String(window.__TURNSTILE_SITEKEY || '').trim();
+    let widgetId = null;
+    let isExecuting = false;
+
+    const setToken = (token) => {
+      if (tokenInput && tokenInput instanceof HTMLInputElement) {
+        tokenInput.value = token ? String(token) : '';
+      }
+    };
+
+    const currentToken = () => {
+      if (tokenInput && tokenInput instanceof HTMLInputElement) {
+        return String(tokenInput.value || '').trim();
+      }
+      return '';
+    };
+
+    const canUseTurnstile = () => {
+      return !!(
+        siteKey &&
+        window.turnstile &&
+        typeof window.turnstile.render === 'function' &&
+        typeof window.turnstile.execute === 'function' &&
+        typeof window.turnstile.reset === 'function'
+      );
+    };
+
+    const ensureWidget = () => {
+      if (widgetId !== null) return true;
+      if (!canUseTurnstile()) return false;
+      if (!container || !(container instanceof HTMLElement)) return false;
+
+      widgetId = window.turnstile.render(container, {
+        sitekey: siteKey,
+        size: 'invisible',
+        callback: (token) => {
+          isExecuting = false;
+          setToken(token);
+          checkbox.checked = true;
+          updateUi();
+        },
+        'expired-callback': () => {
+          isExecuting = false;
+          setToken('');
+          checkbox.checked = false;
+          updateUi();
+        },
+        'error-callback': () => {
+          isExecuting = false;
+          setToken('');
+          checkbox.checked = false;
+          updateUi();
+          setError(form, 'captcha', 'CAPTCHA error. Please retry.');
+        },
+      });
+
+      return widgetId !== null;
+    };
+
     const updateUi = () => {
-      const checked = checkbox.checked;
+      const token = currentToken();
+      const verified = token !== '';
+      const checked = checkbox.checked && verified;
+
       captchaCard.classList.toggle('is-checked', checked);
       setVisible(checked);
       if (checked) {
@@ -423,7 +470,46 @@
       }
     };
 
-    checkbox.addEventListener('change', updateUi);
+    checkbox.addEventListener('change', () => {
+      // Uncheck => clear token and hide submit.
+      if (!checkbox.checked) {
+        setToken('');
+        if (widgetId !== null && window.turnstile) {
+          try {
+            window.turnstile.reset(widgetId);
+          } catch (e) {
+            // ignore
+          }
+        }
+        updateUi();
+        return;
+      }
+
+      // Check => run real CAPTCHA challenge, then check + reveal submit on success.
+      checkbox.checked = false;
+      setToken('');
+      updateUi();
+
+      if (!siteKey) {
+        setError(form, 'captcha', 'CAPTCHA not configured.');
+        return;
+      }
+
+      if (!ensureWidget()) {
+        setError(form, 'captcha', 'CAPTCHA is loading… please retry.');
+        return;
+      }
+
+      if (isExecuting) return;
+      isExecuting = true;
+      try {
+        window.turnstile.execute(widgetId);
+      } catch (e) {
+        isExecuting = false;
+        setError(form, 'captcha', 'CAPTCHA error. Please retry.');
+      }
+    });
+
     setVisible(false);
     updateUi();
   };
@@ -435,9 +521,6 @@
 
   const signupForm = document.getElementById('signupForm');
   if (signupForm) attach(signupForm, validateSignup, ['prenom', 'nom', 'email', 'motdepasse', 'confirmMotdepasse']);
-
-  const forgotForm = document.getElementById('forgotForm');
-  if (forgotForm) attach(forgotForm, validateForgot, ['mail']);
 
   document
     .querySelectorAll('form[action*="route=admin-users-create"]')

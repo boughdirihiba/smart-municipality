@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 // Front Controller (MVC)
 
+// Optional dotenv loader (keeps config consistent across terminals/Apache)
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'Env.php';
+\Config\Env::load(__DIR__ . DIRECTORY_SEPARATOR . '.env');
+
 // Autoload minimal (sans Composer)
 spl_autoload_register(function (string $class): void {
     // If controllers are bundled in a single file, load it once.
@@ -43,6 +47,7 @@ use Controles\DashboardController;
 use Controles\ProfileController;
 use Controles\PublicController;
 use Config\Auth;
+use Config\Flash;
 use Config\View;
 
 $route = (string)($_GET['route'] ?? 'page');
@@ -176,45 +181,17 @@ switch ($route) {
 
     case 'page':
         $page = (string)($_GET['page'] ?? 'home');
-
-        $flash = null;
-        if (session_status() !== PHP_SESSION_ACTIVE) {
-            @session_start();
-        }
-        if (isset($_SESSION['_flash']) && is_array($_SESSION['_flash'])) {
-            $flash = $_SESSION['_flash'];
-            unset($_SESSION['_flash']);
+        if ($page === 'forgot' || $page === 'reset') {
+            header('Location: index.php?route=login');
+            exit;
         }
 
-        $forgotSent = false;
-        if ($page === 'forgot' && $method === 'POST') {
-            $mail = trim((string)($_POST['mail'] ?? ''));
-            $errors = [];
+        $flash = Flash::consume();
 
-            if ($mail === '') {
-                $errors['mail'] = "L'email est obligatoire.";
-            } elseif (!filter_var($mail, FILTER_VALIDATE_EMAIL)) {
-                $errors['mail'] = "Format d'email invalide.";
-            }
-
-            if ($errors !== []) {
-                if (session_status() !== PHP_SESSION_ACTIVE) {
-                    @session_start();
-                }
-
-                $_SESSION['_flash'] = [
-                    'errors' => $errors,
-                    'old' => ['mail' => $mail],
-                ];
-
-                header('Location: index.php?route=page&page=forgot');
-                exit;
-            }
-
-            $forgotSent = true;
-        }
-
-        View::render('pages.php', ['page' => $page, 'flash' => $flash, 'forgotSent' => $forgotSent]);
+        View::render('pages.php', [
+            'page' => $page,
+            'flash' => $flash,
+        ]);
         break;
 
     default:
