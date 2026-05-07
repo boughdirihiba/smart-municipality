@@ -1,26 +1,50 @@
 <?php
-class Database {
 
+namespace Config;
+
+class Database
+{
     private $host = "localhost";
-    private $db_name = "smart_municipality";
+    private $port = 3305;
+    private $db_name = "projet";
     private $username = "root";
     private $password = "";
+    private $conn;
 
-    public function connect() {
+    public function getConnection(): \PDO
+    {
+        $this->conn = null;
 
         try {
-            $conn = new PDO(
-                "mysql:host=" . $this->host . ";dbname=" . $this->db_name,
-                $this->username,
-                $this->password
-            );
+            $hosts = [$this->host];
+            if ($this->host === 'localhost') {
+                $hosts[] = '127.0.0.1';
+            } elseif ($this->host === '127.0.0.1') {
+                $hosts[] = 'localhost';
+            }
 
-            $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $lastError = null;
+            foreach ($hosts as $h) {
+                try {
+                    $this->conn = new \PDO(
+                        'mysql:host=' . $h . ';port=' . (int)$this->port . ';dbname=' . $this->db_name . ';charset=utf8',
+                        $this->username,
+                        $this->password
+                    );
+                    $this->conn->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+                    return $this->conn;
+                } catch (\PDOException $e) {
+                    $lastError = $e;
+                }
+            }
 
-            return $conn;
+            if ($lastError instanceof \PDOException) {
+                throw $lastError;
+            }
 
-        } catch(PDOException $e) {
-            echo "Erreur connexion : " . $e->getMessage();
+            throw new \PDOException('Erreur de connexion (cause inconnue)');
+        } catch (\PDOException $e) {
+            die('Erreur de connexion : ' . $e->getMessage());
         }
     }
 }
