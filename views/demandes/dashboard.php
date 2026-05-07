@@ -3,6 +3,10 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+// ========== PLUS DE SYSTÈME DE LANGUE ==========
+// Les traductions sont désormais en dur en français.
+
 require_once "models/Document.php";
 require_once "config/database.php";
 
@@ -74,11 +78,11 @@ foreach($last_demandes as &$demande) {
 ?>
 
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Municipality | Administration Dashboard</title>
+    <title>Smart Municipality | Tableau de bord</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -523,7 +527,7 @@ foreach($last_demandes as &$demande) {
     <script>setTimeout(() => document.querySelector('.notification')?.remove(), 4000);</script>
     <?php endif; ?>
 
-    <!-- SIDEBAR AVEC LOGO -->
+    <!-- SIDEBAR AVEC LOGO (TEXTE FIXE) -->
     <div class="sidebar">
         <div class="logo-container">
             <img src="assets/images/logo.png" alt="Smart Municipality Logo" onerror="this.src='https://via.placeholder.com/180x60?text=Smart+Municipality'">
@@ -533,7 +537,7 @@ foreach($last_demandes as &$demande) {
             <a href="#" class="nav-item"><i class="fas fa-users"></i> Citoyens</a>
             <a href="#" class="nav-item"><i class="fas fa-calendar-alt"></i> Événements</a>
             <a href="#" class="nav-item"><i class="fas fa-brain"></i> Carte intelligente</a>
-            <a href="#" class="nav-item"><i class="fas fa-newspaper"></i> Publications</a>
+            <a href="#" class="nav-item"><i class="fas fa-newspaper"></i> Blog</a>
             <a href="index.php?action=list_services" class="nav-item"><i class="fas fa-concierge-bell"></i> Services</a>
             <a href="#" class="nav-item"><i class="fas fa-calendar-check"></i> Rendez-vous</a>
             <a href="#" class="nav-item"><i class="fas fa-chart-pie"></i> Statistiques</a>
@@ -545,14 +549,15 @@ foreach($last_demandes as &$demande) {
         <div class="header">
             <div>
                 <h1><i class="fas fa-chart-line"></i> Tableau de bord</h1>
-                <p style="color: #64748b; margin-top: 0.5rem;">Bienvenue dans l'espace d'administration</p>
+                <p style="color: #64748b; margin-top: 0.5rem;">Bienvenue sur votre espace d'administration</p>
             </div>
-            <div style="display: flex; gap: 16px;">
+            <div class="header-buttons" style="display: flex; gap: 16px; align-items: center;">
+                <!-- Suppression du sélecteur de langue -->
                 <button id="darkModeToggle" class="btn-premium">
                     <i class="fas fa-moon"></i> Mode sombre
                 </button>
                 <button class="btn-premium" onclick="openNotifyModal()">
-                    <i class="fas fa-bell"></i> Notification
+                    <i class="fas fa-bell"></i> Envoyer notification
                 </button>
                 <a href="index.php?action=create_service" class="btn-premium">
                     <i class="fas fa-plus"></i> Nouveau service
@@ -565,14 +570,14 @@ foreach($last_demandes as &$demande) {
             <div class="stat-card animate-fadeInUp" style="animation-delay: 0.1s">
                 <div class="stat-info">
                     <h3><?php echo $total_demandes; ?></h3>
-                    <p>Demandes totales</p>
+                    <p>Total des demandes</p>
                 </div>
                 <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
             </div>
             <div class="stat-card animate-fadeInUp" style="animation-delay: 0.2s">
                 <div class="stat-info">
                     <h3><?php echo !empty($top_services[0]) ? $top_services[0]['nombre'] : 0; ?></h3>
-                    <p>Service le plus demandé</p>
+                    <p>Plus demandé</p>
                 </div>
                 <div class="stat-icon"><i class="fas fa-trophy"></i></div>
             </div>
@@ -609,13 +614,13 @@ foreach($last_demandes as &$demande) {
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                 <h3><i class="fas fa-clock"></i> Dernières demandes</h3>
                 <button id="exportPdfBtn" class="btn-premium">
-                    <i class="fas fa-file-pdf"></i> Exporter PDF
+                    <i class="fas fa-file-pdf"></i> Exporter en PDF
                 </button>
             </div>
             <div id="demandesTableContainer">
                 <table class="demandes-table" id="demandesTable">
                     <thead>
-                        <tr><th>ID</th><th>Citoyen</th><th>Service</th><th>Documents requis</th><th>Date</th><th>Statut</th><th>Fichiers</th></tr>
+                        <tr><th>ID</th><th>Nom du citoyen</th><th>Type de service</th><th>Documents requis</th><th>Date</th><th>Statut</th><th>Fichiers</th></tr>
                     </thead>
                     <tbody>
                         <?php foreach($last_demandes as $demande): ?>
@@ -665,18 +670,18 @@ foreach($last_demandes as &$demande) {
             <form action="send.php" method="POST">
                 <div class="modal-body" style="padding: 24px;">
                     <div class="form-group" style="margin-bottom: 20px;">
-                        <label>Demande concernée</label>
+                        <label>Sélectionner une demande</label>
                         <select name="demande_id" id="notify_demande_id" class="form-control" required>
-                            <option value="">-- Sélectionnez --</option>
+                            <option value="">-- Sélectionner une demande --</option>
                             <?php foreach($all_demandes as $demande): ?>
                                 <option value="<?php echo $demande['id']; ?>">#<?php echo $demande['id']; ?> - <?php echo htmlspecialchars($demande['nom']); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="form-group" style="margin-bottom: 20px;">
-                        <label>Document lié (optionnel)</label>
+                        <label>Sélectionner un document (optionnel)</label>
                         <select name="document_id" id="notify_document_id" class="form-control">
-                            <option value="">-- Aucun --</option>
+                            <option value="">-- Sélectionner un document (optionnel) --</option>
                             <?php foreach($all_documents as $document): ?>
                                 <option value="<?php echo $document['id']; ?>">📄 <?php echo substr($document['nom_fichier'], 0, 40); ?></option>
                             <?php endforeach; ?>
@@ -685,9 +690,9 @@ foreach($last_demandes as &$demande) {
                     <div class="form-group" style="margin-bottom: 20px;">
                         <label>Messages rapides</label>
                         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                            <button type="button" class="quick-msg" data-msg="Votre demande est en cours de traitement." style="padding:8px 12px;background:#f1f5f9;border:none;border-radius:20px;cursor:pointer;">📋 En cours</button>
-                            <button type="button" class="quick-msg" data-msg="Félicitations ! Votre demande a été acceptée." style="padding:8px 12px;background:#f1f5f9;border:none;border-radius:20px;cursor:pointer;">✅ Acceptée</button>
-                            <button type="button" class="quick-msg" data-msg="Votre demande a été refusée." style="padding:8px 12px;background:#f1f5f9;border:none;border-radius:20px;cursor:pointer;">❌ Refusée</button>
+                            <button type="button" class="quick-msg" data-msg="Votre demande est en cours de traitement." style="padding:8px 12px;background:#f1f5f9;border:none;border-radius:20px;cursor:pointer;">En cours</button>
+                            <button type="button" class="quick-msg" data-msg="Félicitations ! Votre demande a été acceptée." style="padding:8px 12px;background:#f1f5f9;border:none;border-radius:20px;cursor:pointer;">Acceptée</button>
+                            <button type="button" class="quick-msg" data-msg="Votre demande a été refusée." style="padding:8px 12px;background:#f1f5f9;border:none;border-radius:20px;cursor:pointer;">Refusée</button>
                         </div>
                     </div>
                     <div class="form-group">
@@ -772,7 +777,7 @@ foreach($last_demandes as &$demande) {
             }
         });
 
-        // EXPORT PDF AVEC EN-TÊTE SMART MUNICIPALITY
+        // EXPORT PDF
         async function exportToPDF() {
             const btn = document.getElementById('exportPdfBtn');
             const originalText = btn.innerHTML;
@@ -781,18 +786,14 @@ foreach($last_demandes as &$demande) {
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération...';
                 btn.disabled = true;
                 
-                // Cloner le tableau
                 const element = document.getElementById('demandesTableContainer');
                 const tableClone = element.cloneNode(true);
-                
-                // Créer un conteneur pour le PDF
                 const pdfContainer = document.createElement('div');
                 pdfContainer.style.padding = '20px';
                 pdfContainer.style.backgroundColor = 'white';
                 pdfContainer.style.width = '100%';
                 pdfContainer.style.fontFamily = 'Arial, sans-serif';
                 
-                // Ajouter l'en-tête SMART MUNICIPALITY
                 const pdfHeader = document.createElement('div');
                 pdfHeader.style.textAlign = 'center';
                 pdfHeader.style.marginBottom = '30px';
@@ -801,32 +802,23 @@ foreach($last_demandes as &$demande) {
                 pdfHeader.style.color = 'white';
                 pdfHeader.style.borderRadius = '12px';
                 pdfHeader.innerHTML = `
-                    <h1 style="margin: 0; font-size: 28px; font-weight: 700;">🏛️ SMART MUNICIPALITY</h1>
-                    <p style="margin: 10px 0 0; opacity: 0.9; font-size: 14px;">Administration moderne et innovante</p>
-                    <p style="margin: 5px 0 0; opacity: 0.8; font-size: 12px;">Liste des dernières demandes</p>
-                    <p style="margin: 10px 0 0; font-size: 11px; opacity: 0.7;">Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
+                    <h1 style="margin:0;font-size:28px;font-weight:700;">🏛️ SMART MUNICIPALITY</h1>
+                    <p style="margin:10px 0 0;opacity:0.9;font-size:14px;">Administration moderne</p>
+                    <p style="margin:5px 0 0;opacity:0.8;font-size:12px;">Dernières demandes</p>
+                    <p style="margin:10px 0 0;font-size:11px;opacity:0.7;">Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
                 `;
                 pdfContainer.appendChild(pdfHeader);
                 
-                // Nettoyer le tableau cloné (enlever les boutons d'action)
                 const clonedTable = tableClone.querySelector('#demandesTable');
                 if (clonedTable) {
-                    // Supprimer les boutons d'action
-                    clonedTable.querySelectorAll('.file-actions, .download, .delete, .btn-icon, .file-icon-btn, .action-buttons').forEach(el => {
-                        if (el) el.remove();
-                    });
-                    
-                    // Simplifier l'affichage des fichiers
+                    clonedTable.querySelectorAll('.file-actions, .download, .delete, .btn-icon, .file-icon-btn, .action-buttons').forEach(el => el.remove());
                     clonedTable.querySelectorAll('.file-section .files-list').forEach(list => {
                         const files = list.querySelectorAll('.file-item');
-                        if (files.length === 0) {
-                            list.innerHTML = '<span style="color: #94a3b8;">Aucun fichier</span>';
-                        } else {
+                        if (files.length === 0) list.innerHTML = '<span style="color:#94a3b8;">Aucun fichier</span>';
+                        else {
                             files.forEach(file => {
                                 const actions = file.querySelector('.file-actions');
                                 if (actions) actions.remove();
-                                
-                                // Garder seulement le nom du fichier
                                 const fileInfo = file.querySelector('.file-info');
                                 if (fileInfo) {
                                     const newContent = document.createElement('span');
@@ -837,13 +829,9 @@ foreach($last_demandes as &$demande) {
                             });
                         }
                     });
-                    
                     pdfContainer.appendChild(clonedTable);
-                } else {
-                    pdfContainer.appendChild(tableClone);
-                }
+                } else pdfContainer.appendChild(tableClone);
                 
-                // Ajouter un pied de page
                 const footer = document.createElement('div');
                 footer.style.textAlign = 'center';
                 footer.style.marginTop = '30px';
@@ -851,60 +839,40 @@ foreach($last_demandes as &$demande) {
                 footer.style.borderTop = '1px solid #e2e8f0';
                 footer.style.fontSize = '10px';
                 footer.style.color = '#94a3b8';
-                footer.innerHTML = `
-                    <p>Smart Municipality - Solutions numériques pour les citoyens</p>
-                    <p>© ${new Date().getFullYear()} Tous droits réservés</p>
-                `;
+                footer.innerHTML = `<p>Smart Municipality - Solutions digitales</p><p>© ${new Date().getFullYear()} Tous droits réservés</p>`;
                 pdfContainer.appendChild(footer);
                 
-                // Ajouter au body temporairement pour le rendu
                 pdfContainer.style.position = 'absolute';
                 pdfContainer.style.left = '-9999px';
                 pdfContainer.style.top = '-9999px';
                 document.body.appendChild(pdfContainer);
                 
-                // Générer le PDF
-                const canvas = await html2canvas(pdfContainer, {
-                    scale: 2,
-                    backgroundColor: '#ffffff',
-                    logging: false,
-                    useCORS: true
-                });
-                
+                const canvas = await html2canvas(pdfContainer, { scale: 2, backgroundColor: '#ffffff', logging: false, useCORS: true });
                 document.body.removeChild(pdfContainer);
                 
                 const { jsPDF } = window.jspdf;
                 const imgData = canvas.toDataURL('image/png');
                 const imgWidth = 280;
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                
-                const pdf = new jsPDF({
-                    orientation: 'landscape',
-                    unit: 'mm',
-                    format: 'a4'
-                });
-                
+                const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
                 pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
                 pdf.save('smart_municipality_demandes.pdf');
                 
                 btn.innerHTML = originalText;
                 btn.disabled = false;
                 
-                // Notification de succès
                 const notif = document.createElement('div');
                 notif.className = 'notification success';
-                notif.innerHTML = '<i class="fas fa-check-circle"></i> PDF généré avec succès !';
+                notif.innerHTML = '<i class="fas fa-check-circle"></i> Export PDF réussi !';
                 document.body.appendChild(notif);
                 setTimeout(() => notif.remove(), 3000);
-                
             } catch (error) {
-                console.error('Erreur PDF:', error);
+                console.error(error);
                 btn.innerHTML = originalText;
                 btn.disabled = false;
-                
                 const notif = document.createElement('div');
                 notif.className = 'notification error';
-                notif.innerHTML = '<i class="fas fa-exclamation-circle"></i> Erreur lors de la génération du PDF';
+                notif.innerHTML = '<i class="fas fa-exclamation-circle"></i> Erreur lors de l\'export PDF.';
                 document.body.appendChild(notif);
                 setTimeout(() => notif.remove(), 3000);
             }
@@ -912,7 +880,6 @@ foreach($last_demandes as &$demande) {
         
         document.getElementById('exportPdfBtn').addEventListener('click', exportToPDF);
 
-        // MODAL
         function openNotifyModal() {
             document.getElementById('notifyModal').style.display = 'flex';
         }

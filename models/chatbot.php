@@ -27,18 +27,20 @@ class Chatbot {
     public function setCreatedAt($created_at) { $this->created_at = $created_at; }
     public function setDb($db) { $this->db = $db; }
     
-    // CRUD
+    // CRUD vide (compatible avec les autres modèles)
     public function create() { return false; }
     public function read() { return []; }
     public function getById($id) { return null; }
     public function update() { return false; }
     public function delete() { return false; }
     
-    // Méthodes spécifiques (vides)
-    public function ask($message) { return ""; }
-    public function getSuggestions() { return []; }
-    public function saveConversation() { return false; }
-    public function getHistory($user_id) { return []; }
-    public function clearHistory($user_id) { return false; }
+    // Suggestions (peut rester ici ou être déplacé)
+    public function getSuggestions() {
+        return [
+            "Acte de mariage", "Carte d'identité", "Passeport",
+            "Extrait de naissance", "Permis de conduire", "Horaires",
+            "Contact", "Événements ce weekend"
+        ];
+    }
 }
 ?>

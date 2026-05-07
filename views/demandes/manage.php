@@ -130,6 +130,7 @@ foreach($demandes as &$demande) {
 <title>Smart Municipality - Plateforme moderne</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
     * {
         margin: 0;
@@ -650,6 +651,167 @@ foreach($demandes as &$demande) {
         font-size: 16px;
         opacity: 0.92;
         position: relative;
+    }
+
+    /* QR Code Button */
+    .btn-qr {
+        background: rgba(255,255,255,0.2);
+        border: 2px solid rgba(255,255,255,0.3);
+        padding: 12px 28px;
+        border-radius: 50px;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 20px;
+        font-size: 14px;
+    }
+
+    .btn-qr:hover {
+        background: rgba(255,255,255,0.3);
+        transform: translateY(-2px);
+    }
+
+    /* MODAL QR CODE */
+    .qr-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 10001;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .qr-modal-content {
+        background: white;
+        border-radius: 32px;
+        padding: 35px;
+        max-width: 450px;
+        width: 90%;
+        text-align: center;
+        animation: modalFadeIn 0.3s ease;
+        position: relative;
+    }
+
+    body.dark-mode .qr-modal-content {
+        background: #1e293b;
+    }
+
+    @keyframes modalFadeIn {
+        from {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .qr-modal-header {
+        margin-bottom: 20px;
+    }
+
+    .qr-modal-header h3 {
+        font-size: 24px;
+        font-weight: 700;
+        color: #052E16;
+        margin-bottom: 8px;
+    }
+
+    body.dark-mode .qr-modal-header h3 {
+        color: #4ade80;
+    }
+
+    .qr-modal-header p {
+        font-size: 13px;
+        color: #64748b;
+    }
+
+    .qr-code-box {
+        background: white;
+        padding: 20px;
+        border-radius: 24px;
+        margin: 20px 0;
+        display: inline-block;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    #qrCodeContainer {
+        display: flex;
+        justify-content: center;
+    }
+
+    #qrCodeContainer canvas,
+    #qrCodeContainer img {
+        width: 200px !important;
+        height: 200px !important;
+    }
+
+    .qr-info {
+        background: #f0fdf4;
+        padding: 12px 15px;
+        border-radius: 16px;
+        margin: 15px 0;
+        font-size: 12px;
+        color: #166534;
+    }
+
+    body.dark-mode .qr-info {
+        background: #064e3b;
+        color: #4ade80;
+    }
+
+    .qr-info i {
+        margin-right: 8px;
+    }
+
+    .qr-modal-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin-top: 20px;
+    }
+
+    .btn-close-modal {
+        background: #f1f5f9;
+        color: #475569;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 40px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-close-modal:hover {
+        background: #e2e8f0;
+    }
+
+    .btn-download-qr {
+        background: linear-gradient(135deg, #052E16, #0a4a22);
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 40px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-download-qr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(5, 46, 22, 0.3);
     }
 
     .main-container {
@@ -1394,6 +1556,9 @@ foreach($demandes as &$demande) {
         .nav-links { justify-content: flex-start; gap: 4px; }
         .nav-links a { padding: 6px 12px; font-size: 12px; }
         .notification-dropdown { width: 350px; right: -60px; }
+        .qr-modal-content { padding: 25px; }
+        #qrCodeContainer canvas,
+        #qrCodeContainer img { width: 180px !important; height: 180px !important; }
     }
 </style>
 <link rel="stylesheet" href="assets/css/chatbot.css">
@@ -1448,7 +1613,34 @@ foreach($demandes as &$demande) {
 <section class="hero">
     <h1>Bienvenue sur Smart Municipality</h1>
     <p>Votre plateforme digitale pour les démarches administratives</p>
+    <button class="btn-qr" onclick="openQrModal()">
+        <i class="fas fa-qrcode"></i> QR Code - Accès rapide aux services
+    </button>
 </section>
+
+<!-- MODAL QR CODE -->
+<div id="qrModal" class="qr-modal">
+    <div class="qr-modal-content">
+        <div class="qr-modal-header">
+            <h3><i class="fas fa-qrcode"></i> Scannez ce QR Code</h3>
+            <p>Utilisez votre smartphone pour accéder directement à tous nos services</p>
+        </div>
+        <div class="qr-code-box">
+            <div id="qrCodeContainer"></div>
+        </div>
+        <div class="qr-info">
+            <i class="fas fa-info-circle"></i> Scannez ce code avec l'appareil photo de votre smartphone
+        </div>
+        <div class="qr-modal-buttons">
+            <button class="btn-download-qr" onclick="downloadQRCode()">
+                <i class="fas fa-download"></i> Télécharger
+            </button>
+            <button class="btn-close-modal" onclick="closeQrModal()">
+                <i class="fas fa-times"></i> Fermer
+            </button>
+        </div>
+    </div>
+</div>
 
 <main class="main-container">
     <div class="tabs-container">
@@ -1596,7 +1788,7 @@ foreach($demandes as &$demande) {
                                     <td><span class="demande-id">#<?php echo htmlspecialchars($demande['id']); ?></span></td>
                                     <td><strong><?php echo htmlspecialchars($demande['nom']); ?></strong></td>
                                     <td><?php echo htmlspecialchars($demande['type_service']); ?></td>
-                                    <td><?php echo htmlspecialchars(substr($demande['documents'] ?? '', 0, 35)); ?></td>
+                                    </tr><?php echo htmlspecialchars(substr($demande['documents'] ?? '', 0, 35)); ?></td>
                                     <td><?php echo date('d/m/Y', strtotime($demande['date_creation'])); ?></td>
                                     <td class="files-cell">
                                         <?php if ($demande['fichiers_count'] > 0): ?>
@@ -1717,6 +1909,54 @@ foreach($demandes as &$demande) {
 </footer>
 
 <script>
+    // ========== QR CODE MODAL ==========
+    const baseUrl = window.location.origin + window.location.pathname;
+    const servicesListUrl = baseUrl + '?action=services_list';
+    let qrCode = null;
+
+    function openQrModal() {
+        const modal = document.getElementById('qrModal');
+        modal.style.display = 'flex';
+        
+        // Générer le QR code
+        const container = document.getElementById('qrCodeContainer');
+        container.innerHTML = '';
+        
+        qrCode = new QRCode(container, {
+            text: servicesListUrl,
+            width: 200,
+            height: 200,
+            colorDark: "#052E16",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    }
+
+    function closeQrModal() {
+        const modal = document.getElementById('qrModal');
+        modal.style.display = 'none';
+    }
+
+    function downloadQRCode() {
+        const canvas = document.querySelector('#qrCodeContainer canvas');
+        if (canvas) {
+            const link = document.createElement('a');
+            link.download = 'smart_municipality_services.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        } else {
+            alert('Impossible de télécharger le QR code');
+        }
+    }
+
+    // Fermer le modal en cliquant en dehors
+    window.onclick = function(event) {
+        const modal = document.getElementById('qrModal');
+        if (event.target === modal) {
+            closeQrModal();
+        }
+    }
+
     // ========== MODE SOMBRE ==========
     function initDarkMode() {
         const darkMode = localStorage.getItem('darkMode');
@@ -1763,7 +2003,6 @@ foreach($demandes as &$demande) {
 
     // ========== SYSTÈME DE RATING COMPLET ET FONCTIONNEL ==========
     
-    // Fonction pour charger le formulaire ou la note existante
     function loadRatingForService(serviceId) {
         const inputDiv = document.getElementById(`rating-input-${serviceId}`);
         if (!inputDiv) return;
@@ -1774,23 +2013,19 @@ foreach($demandes as &$demande) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Mettre à jour les étoiles statiques
                     updateStarsStatic(serviceId, data.average);
                     
-                    // Mettre à jour moyenne et compteur
                     const avgSpan = document.querySelector(`#rating-${serviceId} .rating-average`);
                     const countSpan = document.querySelector(`#rating-${serviceId} .rating-count`);
                     if (avgSpan) avgSpan.textContent = (data.average || 0) + '/5';
                     if (countSpan) countSpan.textContent = '(' + (data.count || 0) + ' avis)';
                     
-                    // Afficher formulaire ou note existante
                     if (data.user_rating) {
                         displayUserRating(serviceId, data.user_rating);
                     } else {
                         displayRatingForm(serviceId);
                     }
                     
-                    // Charger la liste des avis
                     loadRatingsList(serviceId);
                 } else {
                     inputDiv.innerHTML = '<div class="loading-rating">Erreur de chargement</div>';
@@ -1856,7 +2091,6 @@ foreach($demandes as &$demande) {
         `;
     }
     
-    // Fonction globale pour soumettre une note
     window.submitRating = function(serviceId) {
         const selectedStar = document.querySelector(`input[name="rating-${serviceId}"]:checked`);
         if (!selectedStar) {
@@ -1879,7 +2113,6 @@ foreach($demandes as &$demande) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Mettre à jour l'affichage
                 updateStarsStatic(serviceId, data.average);
                 const avgSpan = document.querySelector(`#rating-${serviceId} .rating-average`);
                 const countSpan = document.querySelector(`#rating-${serviceId} .rating-count`);
@@ -1898,7 +2131,6 @@ foreach($demandes as &$demande) {
         });
     };
     
-    // Fonction globale pour supprimer une note
     window.deleteRating = function(serviceId) {
         if (!confirm('Voulez-vous vraiment supprimer votre note ?')) return;
         
@@ -2289,7 +2521,6 @@ foreach($demandes as &$demande) {
 
     initDarkMode();
     
-    // Initialiser les ratings pour tous les services APRÈS le chargement de la page
     document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.service-card').forEach(card => {
             const serviceId = card.dataset.serviceId;

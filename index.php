@@ -7,12 +7,37 @@ require_once "controllers/DocumentController.php";
 require_once "controllers/ServiceController.php";
 require_once "controllers/NotificationController.php";
 require_once "controllers/ChatbotController.php";
-require_once "controllers/RatingController.php";  // AJOUTÉ
+require_once "controllers/RatingController.php";
 
-// Récupérer l'action depuis l'URL
+// === NOUVEAU : Support des appels via controller=Chatbot&action=... ===
+if (isset($_GET['controller']) && $_GET['controller'] === 'Chatbot') {
+    $ctrl = new ChatbotController();
+    $action = $_GET['action'] ?? 'widget';
+    switch ($action) {
+        case 'sendMessage':
+            $ctrl->sendMessage();
+            break;
+        case 'getSuggestions':
+            $ctrl->getSuggestions();
+            break;
+        case 'getHistory':
+            $ctrl->getHistory();
+            break;
+        case 'deleteHistory':
+            $ctrl->deleteHistory();
+            break;
+        case 'widget':
+        default:
+            $ctrl->widget();
+            break;
+    }
+    exit; // Ne pas exécuter le reste du routeur
+}
+
+// Récupérer l'action depuis l'URL (routeur existant)
 $action = isset($_GET['action']) ? $_GET['action'] : 'manage';
 
-// Router
+// Router existant
 switch($action) {
     // ========== DEMANDES ==========
     case 'manage':
@@ -153,7 +178,7 @@ switch($action) {
         $controller->delete();
         break;
         
-    // ========== CHATBOT ==========
+    // ========== CHATBOT (routes existantes) ==========
     case 'chatbot_widget':
         $controller = new ChatbotController();
         $controller->widget();
@@ -179,7 +204,7 @@ switch($action) {
         $controller->deleteHistory();
         break;
         
-    // ========== RATING (AJOUTÉ) ==========
+    // ========== RATING ==========
     case 'add_rating':
         $controller = new RatingController();
         $controller->addOrUpdate();
@@ -214,15 +239,6 @@ switch($action) {
         
     case 'rendez_vous':
         include "views/rendezvous.php";
-        break;
-        
-    case 'switch_language':
-        if(isset($_POST['lang'])) {
-            $_SESSION['lang'] = $_POST['lang'];
-            echo json_encode(['success' => true]);
-        } else {
-            echo json_encode(['success' => false]);
-        }
         break;
         
     // ========== PAGE D'ACCUEIL PAR DÉFAUT ==========
