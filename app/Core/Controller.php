@@ -10,8 +10,18 @@ abstract class Controller
     {
         extract($data, EXTR_SKIP);
         $flash = get_flash();
+
+        $appView = BASE_PATH . '/app/Views/' . $view . '.php';
+        $legacyView = BASE_PATH . '/views/' . $view . '.php';
+
         require BASE_PATH . '/app/Views/layouts/header.php';
-        require BASE_PATH . '/app/Views/' . $view . '.php';
+        if (is_file($appView)) {
+            require $appView;
+        } elseif (is_file($legacyView)) {
+            require $legacyView;
+        } else {
+            throw new \RuntimeException('View not found: ' . $view);
+        }
         require BASE_PATH . '/app/Views/layouts/footer.php';
     }
 }

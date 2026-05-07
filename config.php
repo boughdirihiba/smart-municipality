@@ -1,24 +1,15 @@
 <?php
-class config {
-    private static $pdo = null;
 
-    public static function getConnexion() {
-        if (self::$pdo == null) {
-            try {
-                self::$pdo = new PDO(
-                    'mysql:host=localhost;dbname=smart_municipality;charset=utf8',
-                    'root',
-                    '',
-                    array(
-                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-                    )
-                );
-            } catch (Exception $e) {
-                die('Erreur de connexion : ' . $e->getMessage());
-            }
+declare(strict_types=1);
+
+require_once __DIR__ . '/config/config.php';
+
+if (!class_exists('config')) {
+    class config
+    {
+        public static function getConnexion(): PDO
+        {
+            return pdo_connection();
         }
-        return self::$pdo;
     }
 }
-?>
