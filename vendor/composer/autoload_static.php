@@ -97,6 +97,10 @@ class ComposerStaticInit08d7ec98626f8127562855fb28cf1f46
             'Svg\\' => 4,
             'Sabberworm\\CSS\\' => 15,
         ),
+        'P' =>
+        array (
+            'PHPMailer\\PHPMailer\\' => 20,
+        ),
         'M' =>
         array (
             'Masterminds\\' => 12,
@@ -128,6 +132,10 @@ class ComposerStaticInit08d7ec98626f8127562855fb28cf1f46
         'Sabberworm\\CSS\\' =>
         array (
             0 => __DIR__ . '/..' . '/sabberworm/php-css-parser/src',
+        ),
+        'PHPMailer\\PHPMailer\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/phpmailer/phpmailer/src',
         ),
         'Masterminds\\' =>
         array (

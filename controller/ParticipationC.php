@@ -12,12 +12,68 @@ class ParticipationC {
     /**
      * AJOUTER UNE PARTICIPATION
      */
-    public function ajouterParticipation($participation) {
+
+public function ajouterParticipation($participation) {
+    try {
+        // Vérifier si déjà inscrit
+        $check = $this->db->prepare('SELECT COUNT(*) as total FROM participations WHERE user_id = :user_id AND event_id = :event_id');
+        $check->execute([
+            'user_id' => $participation->getUserId(),
+            'event_id' => $participation->getEventId()
+        ]);
+        $result = $check->fetch(PDO::FETCH_ASSOC);
+        
+        if ($result['total'] > 0) {
+            return ['success' => false, 'message' => 'Vous êtes déjà inscrit'];
+        }
+        
+        // Récupérer les infos utilisateur et événement
+        $userInfo = $this->getUserInfo($participation->getUserId());
+        $eventInfo = $this->getEventInfo($participation->getEventId());
+        
+        // Vérifier les places disponibles
+        $placesPrises = $this->compterParticipationsValidees($participation->getEventId());
+        $queryEvent = $this->db->prepare('SELECT max_participants FROM evenements WHERE id = :id');
+        $queryEvent->execute(['id' => $participation->getEventId()]);
+        $event = $queryEvent->fetch(PDO::FETCH_ASSOC);
+        
+        if ($event && ($placesPrises + $participation->getNombreParticipants() > $event['max_participants'])) {
+            return ['success' => false, 'message' => 'Nombre de places insuffisant'];
+        }
+        
+        // Insérer la participation
+        $query = $this->db->prepare('
+            INSERT INTO participations (user_id, event_id, date_participation, statut, statut_validation, nombre_participants) 
+            VALUES (:user_id, :event_id, NOW(), "inscrit", "en_attente", :nombre_participants)
+        ');
+        $query->execute([
+            'user_id' => $participation->getUserId(),
+            'event_id' => $participation->getEventId(),
+            'nombre_participants' => $participation->getNombreParticipants()
+        ]);
+        
+        // ⚠️ SUPPRIME OU COMMENTE CES 3 LIGNES ⚠️
+        // if ($userInfo && $eventInfo) {
+        //     require_once __DIR__ . '/MailerC.php';
+        //     $mailer = new MailerC();
+        //     $mailer->envoyerConfirmationInscription(...);
+        // }
+        
+        return ['success' => true, 'message' => '✅ Inscription en attente de validation.'];
+        
+    } catch (Exception $e) {
+        return ['success' => false, 'message' => 'Erreur: ' . $e->getMessage()];
+    }
+}
+    /**
+     * AJOUTER UNE PARTICIPATION DIRECTE (pour admin)
+     */
+    public function ajouterParticipationDirecte($userId, $eventId, $nbParticipants = 1) {
         try {
             $check = $this->db->prepare('SELECT COUNT(*) as total FROM participations WHERE user_id = :user_id AND event_id = :event_id');
             $check->execute([
-                'user_id' => $participation->getUserId(),
-                'event_id' => $participation->getEventId()
+                'user_id' => $userId,
+                'event_id' => $eventId
             ]);
             $result = $check->fetch(PDO::FETCH_ASSOC);
             
@@ -25,16 +81,29 @@ class ParticipationC {
                 return ['success' => false, 'message' => 'Vous êtes déjà inscrit'];
             }
             
+            // Vérifier les places disponibles
+            $eventCheck = $this->db->prepare('SELECT max_participants FROM evenements WHERE id = :event_id');
+            $eventCheck->execute(['event_id' => $eventId]);
+            $event = $eventCheck->fetch(PDO::FETCH_ASSOC);
+            
+            if ($event) {
+                $placesPrises = $this->compterParticipationsValidees($eventId);
+                $placesRestantes = $event['max_participants'] - $placesPrises;
+                if ($placesRestantes < $nbParticipants) {
+                    return ['success' => false, 'message' => 'Places insuffisantes'];
+                }
+            }
+            
             $query = $this->db->prepare('
                 INSERT INTO participations (user_id, event_id, date_participation, statut, statut_validation, nombre_participants) 
-                VALUES (:user_id, :event_id, NOW(), "inscrit", "en_attente", :nombre_participants)
+                VALUES (:user_id, :event_id, NOW(), "inscrit", "valide", :nombre_participants)
             ');
             $query->execute([
-                'user_id' => $participation->getUserId(),
-                'event_id' => $participation->getEventId(),
-                'nombre_participants' => $participation->getNombreParticipants()
+                'user_id' => $userId,
+                'event_id' => $eventId,
+                'nombre_participants' => $nbParticipants
             ]);
-            return ['success' => true, 'message' => 'Inscription en attente de validation'];
+            return ['success' => true, 'message' => 'Inscription réussie'];
         } catch (Exception $e) {
             return ['success' => false, 'message' => $e->getMessage()];
         }
@@ -42,6 +111,9 @@ class ParticipationC {
     
     /**
      * VALIDER UNE PARTICIPATION
+     */
+     /**
+     * VALIDER UNE PARTICIPATION AVEC ENVOI D'EMAIL
      */
     public function validerParticipation($participation_id) {
         try {
@@ -66,9 +138,22 @@ class ParticipationC {
             ');
             $update->execute(['id' => $participation_id]);
             
+            // ENVOI DE L'EMAIL DE VALIDATION
+            require_once __DIR__ . '/MailerC.php';
+            $mailer = new MailerC();
+            $mailer->envoyerValidationInscription(
+                $participation['email'],
+                $participation['nom'],
+                $participation['prenom'],
+                $participation['titre'],
+                $participation['date_evenement'],
+                $participation['heure'],
+                $participation['lieu']
+            );
+            
             return [
                 'success' => true, 
-                'message' => 'Participation validée',
+                'message' => '✅ Participation validée. Un email de confirmation a été enregistré dans les logs.',
                 'ticket' => $participation
             ];
             
@@ -137,26 +222,23 @@ class ParticipationC {
     }
     
     /**
-     * RÉCUPÉRER UNE PARTICIPATION PAR ID
+     * RÉCUPÉRER UNE PARTICIPATION PAR ID AVEC DÉTAILS
      */
-/**
- * RÉCUPÉRER UNE PARTICIPATION PAR ID AVEC DÉTAILS
- */
-public function getParticipationById($id) {
-    try {
-        $query = $this->db->prepare('
-            SELECT p.*, u.nom, u.prenom, u.email, e.titre, e.lieu, e.date_evenement, e.heure
-            FROM participations p
-            JOIN users u ON p.user_id = u.id
-            JOIN evenements e ON p.event_id = e.id
-            WHERE p.id = :id
-        ');
-        $query->execute(['id' => $id]);
-        return $query->fetch(PDO::FETCH_ASSOC);
-    } catch (Exception $e) {
-        return null;
+    public function getParticipationById($id) {
+        try {
+            $query = $this->db->prepare('
+                SELECT p.*, u.nom, u.prenom, u.email, e.titre, e.lieu, e.date_evenement, e.heure
+                FROM participations p
+                JOIN users u ON p.user_id = u.id
+                JOIN evenements e ON p.event_id = e.id
+                WHERE p.id = :id
+            ');
+            $query->execute(['id' => $id]);
+            return $query->fetch(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            return null;
+        }
     }
-}
     
     /**
      * COMPTER LE TOTAL DES PARTICIPATIONS
@@ -263,6 +345,31 @@ public function getParticipationById($id) {
             return $query->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
             return [];
+        }
+    }
+        /**
+     * RÉCUPÉRER LES INFOS UTILISATEUR
+     */
+    private function getUserInfo($userId) {
+        try {
+            $query = $this->db->prepare('SELECT email, nom, prenom FROM users WHERE id = :id');
+            $query->execute(['id' => $userId]);
+            return $query->fetch(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+    
+    /**
+     * RÉCUPÉRER LES INFOS ÉVÉNEMENT
+     */
+    private function getEventInfo($eventId) {
+        try {
+            $query = $this->db->prepare('SELECT titre, date_evenement, heure, lieu FROM evenements WHERE id = :id');
+            $query->execute(['id' => $eventId]);
+            return $query->fetch(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            return null;
         }
     }
 }

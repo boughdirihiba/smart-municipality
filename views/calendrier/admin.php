@@ -13,8 +13,31 @@ $evenementC = new EvenementC();
 $participationC = new ParticipationC();
 $categorieC = new CategorieEvenementC();
 
-$evenements = $evenementC->afficherEvenements();
-$categories = $categorieC->afficherCategories();
+$totalEvenements = $evenementC->compterEvenements();
+$totalParticipations = $participationC->compterTotalParticipations();
+$totalCategories = count($categorieC->afficherCategories());
+$evenementsParCategorie = $evenementC->compterEvenementsParCategorie();
+$evenementsRecents = array_slice($evenementC->afficherEvenements(), 0, 5);
+
+$evenementsAVenir = 0;
+$evenementsPasses = 0;
+$aujourdhui = date('Y-m-d');
+$tousEvenements = $evenementC->afficherEvenements();
+foreach ($tousEvenements as $e) {
+    if ($e['date_evenement'] >= $aujourdhui) $evenementsAVenir++;
+    else $evenementsPasses++;
+}
+
+$categoriesNom = array_column($evenementsParCategorie, 'nom');
+$categoriesCount = array_column($evenementsParCategorie, 'total');
+$couleurs = ['#2e7d32', '#388e3c', '#43a047', '#4caf50', '#66bb6a', '#81c784', '#a5d6a7', '#c8e6c9', '#1b5e20', '#0d3b1a'];
+$userName = $_SESSION['prenom'] . ' ' . $_SESSION['nom'];
+$userRole = $_SESSION['role'];
+$displayName = $userName;
+$avatarName = 'sidebar-photo.svg';
+$currentRoute = 'calendrier';
+$isAdmin = true;
+$baseUrl = '../../';
 ?>
 
 <!DOCTYPE html>
@@ -22,182 +45,374 @@ $categories = $categorieC->afficherCategories();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendrier Admin - Smart Municipality</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
+    <title>Dashboard Admin - Smart Municipality</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../public/css/admin-sidebar.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/fr.js'></script>
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
     <style>
-        :root {
-            --primary: #1a5e2a;
-            --gradient: linear-gradient(135deg, #1a5e2a, #4caf50);
-            --shadow: 0 5px 15px rgba(0,0,0,0.05);
-            --radius: 16px;
-        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #e8f5e9 0%, #f0f4f0 100%);
+            background: #e8f5e9;
+            display: flex;
         }
+        
+        /* ========== SIDEBAR MODERNE ========== */
         .sidebar {
-            min-height: 100vh;
-            background: linear-gradient(180deg, #0d3b1a 0%, #1a5e2a 100%);
-            position: fixed;
             width: 280px;
+            background: linear-gradient(180deg, #0d3b1a 0%, #1a5e2a 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            position: sticky;
+            top: 0;
+            transition: all 0.3s;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
         }
-        .sidebar-header { padding: 25px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .sidebar-header img { border-radius: 15px; margin-bottom: 10px; }
-        .sidebar-header h3 { color: white; font-size: 1.2rem; }
-        .sidebar-nav a {
+        .sidebar-logo {
+            padding: 25px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar-logo img {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            margin-bottom: 10px;
+        }
+        .sidebar-logo h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        .sidebar-logo p {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+        
+        .sidebar-user {
             display: flex;
             align-items: center;
-            padding: 12px 25px;
-            color: rgba(255,255,255,0.8);
-            text-decoration: none;
-            transition: 0.3s;
-            margin: 5px 10px;
+            gap: 12px;
+            padding: 20px;
+            background: rgba(255,255,255,0.05);
+            margin: 15px;
             border-radius: 12px;
         }
-        .sidebar-nav a i { width: 28px; margin-right: 12px; }
-        .sidebar-nav a:hover, .sidebar-nav a.active { background: rgba(255,255,255,0.15); color: white; transform: translateX(5px); }
-        .main-content { margin-left: 280px; padding: 25px; }
-        .btn-primary-custom { background: var(--gradient); border: none; padding: 8px 16px; border-radius: 10px; font-weight: 600; color: white; }
-        .calendar-container { background: white; border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
-        .fc-event-custom { background: var(--primary); border: none; cursor: pointer; }
-        hr { border-color: rgba(255,255,255,0.1); margin: 15px; }
-        @media (max-width: 768px) { .sidebar { width: 80px; } .sidebar-header h3, .sidebar-nav a span { display: none; } .sidebar-nav a { justify-content: center; } .sidebar-nav a i { margin-right: 0; } .main-content { margin-left: 80px; } }
+        .sidebar-user img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        .sidebar-user strong {
+            display: block;
+            font-size: 0.85rem;
+        }
+        .sidebar-user span {
+            font-size: 0.7rem;
+            opacity: 0.7;
+        }
+        
+        .notifications-box {
+            margin: 0 15px 15px 15px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 12px;
+            position: relative;
+        }
+        .notifications-trigger {
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            list-style: none;
+        }
+        .notifications-trigger::-webkit-details-marker { display: none; }
+        .notif-icon { font-size: 1.2rem; }
+        .notif-count {
+            background: #ff9800;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-weight: bold;
+        }
+        .notifications-panel {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            color: #333;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            z-index: 100;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .notifications-panel h4 {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 0.85rem;
+        }
+        .notif-list { list-style: none; }
+        .notif-item {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.75rem;
+        }
+        
+        .sidebar-nav {
+            flex: 1;
+            padding: 10px 0;
+        }
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            transition: all 0.3s;
+            margin: 5px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            transform: translateX(5px);
+        }
+        .sidebar-link .label { flex: 1; }
+        .sidebar-link .icon { font-size: 1.1rem; }
+        
+        .sidebar-footer-links {
+            display: flex;
+            justify-content: space-around;
+            padding: 15px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar-footer-links .sidebar-link {
+            padding: 8px;
+            margin: 0;
+        }
+        
+        .sidebar-toggle {
+            position: absolute;
+            top: 20px;
+            right: -12px;
+            background: var(--primary);
+            border: none;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+        }
+        
+        /* MAIN CONTENT */
+        .main-content {
+            flex: 1;
+            padding: 25px;
+            overflow-x: auto;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+            border-left: 4px solid #1a5e2a;
+        }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        .stat-info h3 { font-size: 0.7rem; text-transform: uppercase; color: #666; letter-spacing: 0.5px; margin-bottom: 5px; }
+        .stat-info h2 { font-size: 1.6rem; font-weight: 700; color: #1a5e2a; margin: 0; }
+        .stat-icon { width: 45px; height: 45px; background: #e8f5e9; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #1a5e2a; }
+        
+        .card-pro {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            overflow: hidden;
+            margin-bottom: 25px;
+        }
+        .card-header-pro {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e8f5e9;
+            font-weight: 600;
+            color: #1a5e2a;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #1a5e2a, #4caf50);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+        .action-btn {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            text-decoration: none;
+            transition: all 0.3s;
+            border: 1px solid #e9ecef;
+        }
+        .action-btn:hover {
+            background: linear-gradient(135deg, #1a5e2a, #4caf50);
+            transform: translateY(-3px);
+        }
+        .action-btn i { font-size: 1.4rem; color: #1a5e2a; margin-bottom: 8px; display: block; }
+        .action-btn:hover i, .action-btn:hover span { color: white; }
+        .action-btn span { font-weight: 500; color: #333; font-size: 0.75rem; }
+        
+        .calendar-container { background: white; border-radius: 16px; padding: 20px; }
+        .fc-event { background: linear-gradient(135deg, #1a5e2a, #4caf50); border: none; cursor: pointer; border-radius: 6px; }
+        .fc-col-header-cell-cushion { font-weight: 600; color: #1a5e2a; text-transform: uppercase; font-size: 0.7rem; }
+        .fc-toolbar-title { font-size: 1rem !important; font-weight: 700 !important; color: #1a5e2a !important; }
+        .fc-button { background: #1a5e2a !important; border: none !important; border-radius: 8px !important; padding: 4px 10px !important; font-size: 0.7rem !important; }
+        
+        @media (max-width: 992px) {
+            .sidebar { width: 80px; }
+            .sidebar-logo h2, .sidebar-logo p, .sidebar-user div, .sidebar-link .label, .notifications-box { display: none; }
+            .sidebar-user { justify-content: center; }
+            .sidebar-link { justify-content: center; padding: 12px; }
+            .sidebar-footer-links .sidebar-link { padding: 5px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .quick-actions { grid-template-columns: repeat(2, 1fr); }
+        }
     </style>
 </head>
 <body>
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <img src="../../logo.jpeg" alt="Logo" height="45">
-            <h3>Smart Municipality</h3>
-        </div>
-        <div class="sidebar-nav">
-            <a href="../dashboard/admin.php"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a>
-            <a href="../evenement/liste.php"><i class="fas fa-calendar-alt"></i><span>Événements</span></a>
-            <a href="../dashboard/categorie/liste.php"><i class="fas fa-tags"></i><span>Catégories</span></a>
-            <a href="admin.php" class="active"><i class="fas fa-calendar-week"></i><span>Calendrier</span></a>
-            <hr>
-            <a href="../../index.php"><i class="fas fa-home"></i><span>Accueil</span></a>
-            <a href="../../logout.php"><i class="fas fa-sign-out-alt"></i><span>Déconnexion</span></a>
-        </div>
-    </div>
 
+    <?php require_once __DIR__ . '/../partials/admin_sidebar.php'; ?>
+
+    <!-- MAIN CONTENT -->
     <div class="main-content">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2><i class="fas fa-calendar-week me-2" style="color: var(--primary);"></i>Calendrier Admin</h2>
-            <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#addEventModal">
-                <i class="fas fa-plus me-2"></i>Ajouter un événement
-            </button>
+            <div>
+                <h1 class="h2 mb-1"><i class="fas fa-chart-line me-2" style="color: #1a5e2a;"></i>Tableau de bord</h1>
+                <p class="text-muted">Bienvenue, <?php echo htmlspecialchars($displayName); ?></p>
+            </div>
+            <a href="../evenement/ajouter.php" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Nouvel événement</a>
         </div>
 
-        <div class="calendar-container">
-            <div id="calendar"></div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-info"><h3>Événements</h3><h2><?php echo $totalEvenements; ?></h2><small><?php echo $evenementsAVenir; ?> à venir</small></div>
+                <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-info"><h3>Participations</h3><h2><?php echo $totalParticipations; ?></h2><small>Inscriptions totales</small></div>
+                <div class="stat-icon"><i class="fas fa-users"></i></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-info"><h3>Catégories</h3><h2><?php echo $totalCategories; ?></h2><small>Types d'événements</small></div>
+                <div class="stat-icon"><i class="fas fa-tags"></i></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-info"><h3>Taux remplissage</h3><h2><?php echo round(($totalParticipations / max(1, $totalEvenements * 50)) * 100, 1); ?>%</h2></div>
+                <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+            </div>
         </div>
-    </div>
 
-    <!-- Modal Ajout Événement -->
-    <div class="modal fade" id="addEventModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header" style="background: var(--gradient); color: white;">
-                    <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Ajouter un événement</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="card-pro">
+                    <div class="card-header-pro"><i class="fas fa-chart-pie me-2"></i> Répartition par catégorie</div>
+                    <div class="p-3"><canvas id="pieChart" height="250"></canvas></div>
                 </div>
-                <form method="POST" action="../evenement/ajouter.php" id="addEventForm">
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label">Titre *</label>
-                                <input type="text" name="titre" class="form-control" required>
-                            </div>
-                            <div class="col-12 mb-3">
-                                <label class="form-label">Description *</label>
-                                <textarea name="description" rows="3" class="form-control" required></textarea>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Date *</label>
-                                <input type="date" name="date_evenement" id="eventDate" class="form-control" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Heure *</label>
-                                <input type="time" name="heure" class="form-control" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Lieu *</label>
-                                <input type="text" name="lieu" class="form-control" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Nombre max participants</label>
-                                <input type="number" name="max_participants" class="form-control" value="50" min="1">
-                            </div>
-                            <div class="col-12 mb-3">
-                                <label class="form-label">Catégorie *</label>
-                                <select name="categorie_id" class="form-select" required>
-                                    <option value="">-- Sélectionner --</option>
-                                    <?php foreach($categories as $cat): ?>
-                                    <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['nom']); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                        <button type="submit" class="btn btn-primary-custom">Ajouter</button>
-                    </div>
-                </form>
+            </div>
+            <div class="col-lg-6">
+                <div class="card-pro">
+                    <div class="card-header-pro"><i class="fas fa-calendar-week me-2"></i> Calendrier</div>
+                    <div class="calendar-container"><div id="calendar"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-pro">
+            <div class="card-header-pro"><i class="fas fa-bolt me-2"></i> Actions rapides</div>
+            <div class="p-4">
+                <div class="quick-actions">
+                    <a href="../evenement/ajouter.php" class="action-btn"><i class="fas fa-plus-circle"></i><span>Ajouter</span></a>
+                    <a href="../evenement/liste.php" class="action-btn"><i class="fas fa-list"></i><span>Gérer</span></a>
+                    <a href="categorie/liste.php" class="action-btn"><i class="fas fa-tags"></i><span>Catégories</span></a>
+                    <a href="../../index.php" class="action-btn"><i class="fas fa-home"></i><span>Accueil</span></a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-pro">
+            <div class="card-header-pro"><i class="fas fa-history me-2"></i> Derniers événements</div>
+            <div class="list-group list-group-flush">
+                <?php foreach($evenementsRecents as $e): ?>
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div><strong><?php echo htmlspecialchars($e['titre']); ?></strong><br><small><i class="fas fa-map-marker-alt me-1"></i><?php echo htmlspecialchars($e['lieu']); ?> | <i class="fas fa-calendar me-1"></i><?php echo date('d/m/Y', strtotime($e['date_evenement'])); ?></small></div>
+                    <div><a href="../evenement/modifier.php?id=<?php echo $e['id']; ?>" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a><a href="../evenement/supprimer.php?id=<?php echo $e['id']; ?>" class="btn btn-sm btn-danger ms-1" onclick="return confirm('Supprimer ?')"><i class="fas fa-trash"></i></a></div>
+                </div>
+                <?php endforeach; ?>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/fr.js'></script>
     <script>
-        // Initialiser la date du jour dans le formulaire
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('eventDate').value = today;
-        
-        const events = <?php 
-            $eventsArray = [];
-            foreach($evenements as $e) {
-                $eventsArray[] = [
-                    'id' => $e['id'],
-                    'title' => $e['titre'],
-                    'start' => $e['date_evenement'],
-                    'lieu' => $e['lieu'],
-                    'color' => '#1a5e2a',
-                    'url' => '../evenement/modifier.php?id=' . $e['id']
-                ];
-            }
-            echo json_encode($eventsArray);
-        ?>;
-        
-        const calendarEl = document.getElementById('calendar');
-        const calendar = new FullCalendar.Calendar(calendarEl, {
-            locale: 'fr',
-            initialView: 'dayGridMonth',
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek,listWeek'
-            },
-            buttonText: { today: "Aujourd'hui", month: 'Mois', week: 'Semaine', list: 'Liste' },
-            events: events,
-            eventClick: function(info) {
-                if (info.event.url) {
-                    window.location.href = info.event.url;
-                }
-            },
-            dateClick: function(info) {
-                document.getElementById('eventDate').value = info.dateStr;
-                new bootstrap.Modal(document.getElementById('addEventModal')).show();
-            }
+        new Chart(document.getElementById('pieChart'), {
+            type: 'pie',
+            data: { labels: <?php echo json_encode($categoriesNom); ?>, datasets: [{ data: <?php echo json_encode($categoriesCount); ?>, backgroundColor: <?php echo json_encode(array_slice($couleurs, 0, count($categoriesNom))); ?>, borderWidth: 0 }] },
+            options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }
         });
-        calendar.render();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var events = <?php $a = []; foreach($evenementC->afficherEvenements() as $e) { $a[] = ['title' => $e['titre'], 'start' => $e['date_evenement'], 'color' => '#1a5e2a', 'url' => '../evenement/modifier.php?id=' . $e['id']]; } echo json_encode($a); ?>;
+            new FullCalendar.Calendar(document.getElementById('calendar'), { locale: 'fr', initialView: 'dayGridMonth', headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth' }, buttonText: { today: "Aujourd'hui", month: 'Mois' }, events: events, eventClick: function(info) { if (info.event.url) window.location.href = info.event.url; }, height: 350 }).render();
+        });
+    </script>
+    <script>
+        const sidebar = document.querySelector('.sidebar');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        const toggleIcon = document.getElementById('sidebarToggleIcon');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', function() {
+                sidebar.classList.toggle('collapsed');
+                toggleIcon.textContent = sidebar.classList.contains('collapsed') ? '❯' : '❮';
+            });
+        }
     </script>
 </body>
 </html>

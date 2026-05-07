@@ -7,7 +7,12 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     exit();
 }
 
-$id = $_GET['id'] ?? 0;
+$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+
+if ($id <= 0) {
+    header('Location: liste.php');
+    exit();
+}
 
 // Récupérer la catégorie pour supprimer son image
 $categorieC = new CategorieEvenementC();
@@ -16,7 +21,7 @@ $categorie = $categorieC->afficherCategorieParId($id);
 if ($categorie && $categorie['image_url']) {
     $imagePath = __DIR__ . '/../../../' . $categorie['image_url'];
     if (file_exists($imagePath)) {
-        unlink($imagePath); // Supprimer le fichier image
+        unlink($imagePath);
     }
 }
 
@@ -27,4 +32,5 @@ if ($result['success']) {
 } else {
     header('Location: liste.php?error=' . urlencode($result['message']));
 }
+exit();
 ?>
