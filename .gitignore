@@ -1,19 +1,24 @@
-# Local environment / secrets
-Modules/config.php
-config/config.php
+# Environment variables
+.env
+.env.local
+.env.*.local
 
-# OS / editor
-.DS_Store
-Thumbs.db
+# IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vendor
+vendor/
 
 # Logs
 *.log
 
-# Dependencies (if you add them later)
-/vendor/
-/node_modules/
-
-# Build/cache
-*.cache
+# Cache
+node_modules/
