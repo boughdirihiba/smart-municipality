@@ -1,0 +1,344 @@
+/* ============================================
+   SYSTÈME DE RATING - SMART MUNICIPALITY
+   ============================================ */
+
+/* Conteneur principal du rating */
+.rating-service {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #e2e8f0;
+}
+
+/* Statistiques des notes */
+.rating-stats {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.rating-stats .stars {
+    display: flex;
+    gap: 3px;
+}
+
+.rating-stats .star-filled {
+    color: #fbbf24;
+}
+
+.rating-stats .star-empty {
+    color: #cbd5e1;
+}
+
+.rating-stats .star-half {
+    color: #fbbf24;
+    position: relative;
+}
+
+.rating-stats .rating-average {
+    font-weight: 700;
+    font-size: 15px;
+    color: #052E16;
+}
+
+.rating-stats .rating-count {
+    font-size: 12px;
+    color: #64748b;
+}
+
+/* Étoiles cliquables */
+.rating-stars {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-start;
+    margin: 10px 0;
+    flex-direction: row-reverse;
+}
+
+.rating-star {
+    font-size: 32px;
+    cursor: pointer;
+    color: #cbd5e1;
+    transition: all 0.2s ease;
+}
+
+.rating-star:hover,
+.rating-star:hover ~ .rating-star,
+.rating-star.active,
+.rating-star.active ~ .rating-star {
+    color: #fbbf24;
+    transform: scale(1.1);
+}
+
+/* Champ commentaire */
+.rating-comment {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    resize: vertical;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    transition: all 0.3s;
+    display: none;
+    box-sizing: border-box;
+}
+
+.rating-comment:focus {
+    outline: none;
+    border-color: #052E16;
+    box-shadow: 0 0 0 3px rgba(5, 46, 22, 0.1);
+}
+
+/* Bouton d'envoi */
+.rating-submit {
+    background: linear-gradient(135deg, #052E16, #0a4a22);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 40px;
+    cursor: pointer;
+    width: 100%;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    display: none;
+}
+
+.rating-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(5, 46, 22, 0.3);
+}
+
+.rating-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Message de confirmation déjà noté */
+.already-rated {
+    background: #dcfce7;
+    padding: 12px;
+    border-radius: 12px;
+    text-align: center;
+    color: #166534;
+    font-size: 13px;
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.already-rated .delete-rating {
+    background: #fee2e2;
+    color: #dc2626;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 40px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.already-rated .delete-rating:hover {
+    background: #fecaca;
+    transform: scale(1.02);
+}
+
+/* Liste des avis */
+.reviews-list {
+    margin-top: 20px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.review-item {
+    border-bottom: 1px solid #f1f5f9;
+    padding: 12px 0;
+}
+
+.review-item:last-child {
+    border-bottom: none;
+}
+
+.review-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+}
+
+.review-author {
+    font-weight: 600;
+    font-size: 12px;
+    color: #052E16;
+}
+
+.review-stars {
+    display: inline-flex;
+    gap: 2px;
+}
+
+.review-stars i {
+    font-size: 11px;
+    color: #cbd5e1;
+}
+
+.review-stars i.filled {
+    color: #fbbf24;
+}
+
+.review-comment {
+    font-size: 12px;
+    color: #475569;
+    margin: 5px 0;
+    line-height: 1.5;
+}
+
+.review-date {
+    font-size: 10px;
+    color: #94a3b8;
+    display: block;
+    margin-top: 4px;
+}
+
+.empty-reviews {
+    text-align: center;
+    padding: 20px;
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+.loading-reviews {
+    text-align: center;
+    padding: 20px;
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+/* Messages d'erreur/succès */
+.rating-message {
+    margin-top: 10px;
+    font-size: 13px;
+    text-align: center;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.rating-message.success {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.rating-message.error {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+/* ========== MODE SOMBRE ========== */
+body.dark-mode .rating-service {
+    border-top-color: #334155;
+}
+
+body.dark-mode .rating-stats .rating-average {
+    color: #4ade80;
+}
+
+body.dark-mode .rating-stats .rating-count {
+    color: #94a3b8;
+}
+
+body.dark-mode .rating-comment {
+    background: #1e293b;
+    border-color: #475569;
+    color: #e2e8f0;
+}
+
+body.dark-mode .rating-comment:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+body.dark-mode .rating-submit {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+body.dark-mode .already-rated {
+    background: #064e3b;
+    color: #4ade80;
+}
+
+body.dark-mode .already-rated .delete-rating {
+    background: #7f1a1a;
+    color: #fca5a5;
+}
+
+body.dark-mode .already-rated .delete-rating:hover {
+    background: #991b1b;
+}
+
+body.dark-mode .review-item {
+    border-bottom-color: #334155;
+}
+
+body.dark-mode .review-comment {
+    color: #cbd5e1;
+}
+
+body.dark-mode .review-author {
+    color: #4ade80;
+}
+
+body.dark-mode .rating-message.success {
+    background: #064e3b;
+    color: #4ade80;
+}
+
+body.dark-mode .rating-message.error {
+    background: #7f1a1a;
+    color: #fca5a5;
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+    .rating-star {
+        font-size: 28px;
+    }
+    
+    .rating-stats {
+        gap: 8px;
+    }
+    
+    .already-rated {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .review-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .rating-star {
+        font-size: 24px;
+        gap: 5px;
+    }
+    
+    .rating-stats .rating-average {
+        font-size: 13px;
+    }
+    
+    .rating-stats .rating-count {
+        font-size: 10px;
+    }
+}
