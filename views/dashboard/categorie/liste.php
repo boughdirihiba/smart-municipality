@@ -36,7 +36,7 @@ if (isset($_GET['error'])) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="../../../public/css/admin-sidebar.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/../../../public/css/admin-sidebar.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -117,7 +117,7 @@ if (isset($_GET['error'])) {
     <div class="main-content">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2><i class="fas fa-tags me-2" style="color: #1a5e2a;"></i>Gestion des catégories</h2>
-            <a href="ajouter.php" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Ajouter une catégorie</a>
+            <a href="<?php echo BASE_URL; ?>/ajouter.php" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Ajouter une catégorie</a>
         </div>
 
         <?php if ($message): ?>

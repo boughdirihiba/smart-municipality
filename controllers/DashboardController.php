@@ -12,15 +12,12 @@ if (session_status() === PHP_SESSION_NONE) {
 
 class DashboardController {
     private $db;
-    private static $blogController = null; // Instance unique chargée à la demande
+    private static $blogController = null;
 
     public function __construct() {
         $this->db = Database::getInstance()->getConnection();
     }
 
-    /**
-     * Charge BlogController uniquement si nécessaire (lazy loading)
-     */
     private function getBlogController() {
         if (self::$blogController === null) {
             require_once __DIR__ . '/BlogController.php';
@@ -32,12 +29,12 @@ class DashboardController {
     private function checkAdmin() {
         if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
             $_SESSION['error'] = "Accès réservé aux administrateurs.";
-            header('Location: /projetweb/views/frontoffice.php');
+            header('Location: /smart/smart-municipality/views/frontoffice.php');
             exit();
         }
     }
 
-    // ========== FONCTIONS DE GESTION DES PRÉFÉRENCES ==========
+    // ========== PRÉFÉRENCES ==========
     public function setTheme() {
         if (isset($_GET['theme']) && in_array($_GET['theme'], ['light', 'dark'])) {
             $_SESSION['user_theme'] = $_GET['theme'];
@@ -84,11 +81,11 @@ class DashboardController {
         return $this->getBlogController()->t($key);
     }
 
-    // ========== STATISTIQUES ==========
+    // ========== STATISTIQUES (correction utilisateurs) ==========
     public function getStats() {
         $this->checkAdmin();
         $totalPosts = $this->db->query("SELECT COUNT(*) FROM posts")->fetchColumn();
-        $totalUsers = $this->db->query("SELECT COUNT(*) FROM users")->fetchColumn();
+        $totalUsers = $this->db->query("SELECT COUNT(*) FROM utilisateurs")->fetchColumn();     // ← corrigé
         $totalComments = $this->db->query("SELECT COUNT(*) FROM comments")->fetchColumn();
         $totalReactions = $this->db->query("SELECT COUNT(*) FROM reactions")->fetchColumn();
 
@@ -116,19 +113,36 @@ class DashboardController {
         ];
     }
 
+    // ========== RÉCUPÉRATION DES POSTS (avec jointure corrigée) ==========
     public function getAllPosts() {
         $this->checkAdmin();
-        $stmt = $this->db->query("SELECT p.*, u.name as user_name, (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments_count FROM posts p JOIN users u ON p.user_id = u.id ORDER BY p.created_at DESC");
+        $stmt = $this->db->query("
+            SELECT p.*, 
+                   CONCAT(u.prenom, ' ', u.nom) as user_name,
+                   (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments_count 
+            FROM posts p 
+            JOIN utilisateurs u ON p.user_id = u.id 
+            ORDER BY p.created_at DESC
+        ");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function getAllComments() {
         $this->checkAdmin();
-        $stmt = $this->db->query("SELECT c.*, u.name as user_name, p.content as post_content FROM comments c JOIN users u ON c.user_id = u.id JOIN posts p ON c.post_id = p.id ORDER BY c.created_at DESC LIMIT 50");
+        $stmt = $this->db->query("
+            SELECT c.*, 
+                   CONCAT(u.prenom, ' ', u.nom) as user_name, 
+                   p.content as post_content 
+            FROM comments c 
+            JOIN utilisateurs u ON c.user_id = u.id 
+            JOIN posts p ON c.post_id = p.id 
+            ORDER BY c.created_at DESC 
+            LIMIT 50
+        ");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // ========== CRUD POSTS ==========
+    // ========== CRUD POSTS (inchangé, mais vérifier les chemins) ==========
     public function createPost($data, $files) {
         $this->checkAdmin();
         $content = trim(htmlspecialchars($data['content']));
@@ -283,9 +297,74 @@ class DashboardController {
         $this->redirectBack();
     }
 
+    // ========== GESTION DES UTILISATEURS (optionnelle, ajoutée pour complétude) ==========
+    public function getAllUsers() {
+        $this->checkAdmin();
+        $stmt = $this->db->query("SELECT id, prenom, nom, email, telephone, role, avatar FROM utilisateurs ORDER BY id DESC");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function createUser($data) {
+        $this->checkAdmin();
+        if (empty($data['prenom']) || empty($data['nom']) || empty($data['email']) || empty($data['password'])) {
+            $_SESSION['error'] = "Tous les champs obligatoires doivent être remplis.";
+            $this->redirectBack();
+            return;
+        }
+        if ($data['password'] !== $data['confirm_password']) {
+            $_SESSION['error'] = "Les mots de passe ne correspondent pas.";
+            $this->redirectBack();
+            return;
+        }
+        $stmt = $this->db->prepare("INSERT INTO utilisateurs (prenom, nom, email, mot_de_passe, telephone, role) VALUES (?, ?, ?, ?, ?, 'citoyen')");
+        $result = $stmt->execute([$data['prenom'], $data['nom'], $data['email'], $data['password'], $data['telephone'] ?? '']);
+        $_SESSION[$result ? 'success' : 'error'] = $result ? "Utilisateur créé" : "Erreur création";
+        $this->redirectBack();
+    }
+
+    public function updateUser($id, $data) {
+        $this->checkAdmin();
+        if (empty($data['prenom']) || empty($data['nom']) || empty($data['email'])) {
+            $_SESSION['error'] = "Prénom, nom et email sont obligatoires.";
+            $this->redirectBack();
+            return;
+        }
+        if (!empty($data['password'])) {
+            if ($data['password'] !== $data['confirm_password']) {
+                $_SESSION['error'] = "Les mots de passe ne correspondent pas.";
+                $this->redirectBack();
+                return;
+            }
+            $stmt = $this->db->prepare("UPDATE utilisateurs SET prenom = ?, nom = ?, email = ?, telephone = ?, mot_de_passe = ? WHERE id = ?");
+            $result = $stmt->execute([$data['prenom'], $data['nom'], $data['email'], $data['telephone'] ?? '', $data['password'], $id]);
+        } else {
+            $stmt = $this->db->prepare("UPDATE utilisateurs SET prenom = ?, nom = ?, email = ?, telephone = ? WHERE id = ?");
+            $result = $stmt->execute([$data['prenom'], $data['nom'], $data['email'], $data['telephone'] ?? '', $id]);
+        }
+        $_SESSION[$result ? 'success' : 'error'] = $result ? "Utilisateur modifié" : "Erreur modification";
+        $this->redirectBack();
+    }
+
+    public function deleteUser($id) {
+        $this->checkAdmin();
+        if ($id == $_SESSION['user_id']) {
+            $_SESSION['error'] = "Vous ne pouvez pas supprimer votre propre compte.";
+            $this->redirectBack();
+            return;
+        }
+        $stmt = $this->db->prepare("DELETE FROM utilisateurs WHERE id = ?");
+        $result = $stmt->execute([$id]);
+        $_SESSION[$result ? 'success' : 'error'] = $result ? "Utilisateur supprimé" : "Erreur suppression";
+        $this->redirectBack();
+    }
+
     private function redirectBack() {
-        $url = $_SERVER['HTTP_REFERER'] ?? '/projetweb/views/backoffice.php';
-        header('Location: ' . $url);
+        $referer = $_SERVER['HTTP_REFERER'] ?? '';
+        // Si le referer est vide ou externe, rediriger vers le dashboard
+        if (empty($referer) || strpos($referer, $_SERVER['HTTP_HOST']) === false) {
+            $referer = '/smart/smart-municipality/index.php?route=dashboard';
+        }
+        header('Location: ' . $referer);
         exit();
     }
 }
@@ -313,6 +392,15 @@ switch($action) {
     case 'deleteComment':
         $controller->deleteComment($_POST);
         break;
+    case 'createUser':
+        $controller->createUser($_POST);
+        break;
+    case 'updateUser':
+        $controller->updateUser($_GET['id'] ?? 0, $_POST);
+        break;
+    case 'deleteUser':
+        $controller->deleteUser($_GET['id'] ?? 0);
+        break;
     case 'setTheme':
         $controller->setTheme();
         break;
@@ -324,6 +412,9 @@ switch($action) {
         break;
     case 'getSpeakText':
         $controller->getSpeakText();
+        break;
+    default:
+        // Si aucune action, ne rien faire (la vue sera chargée par le routeur principal)
         break;
 }
 ?>

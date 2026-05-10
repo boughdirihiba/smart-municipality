@@ -60,7 +60,7 @@
                         <button type="submit" class="btn btn-primary btn-lg">
                             ✨ Générer le Rapport
                         </button>
-                        <a href="/index.php?route=rapport/list" class="btn btn-outline-secondary">
+                        <a href="<?php echo BASE_URL; ?>/index.php?route=rapport/list" class="btn btn-outline-secondary">
                             Annuler
                         </a>
                     </div>

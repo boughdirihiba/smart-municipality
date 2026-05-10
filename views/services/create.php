@@ -455,12 +455,12 @@
         <!-- SIDEBAR VERT FONCÉ #052E16 -->
         <div class="sidebar">
             <div class="logo-container">
-                <img src="assets/images/logo.png" alt="Smart Municipality Logo">
+                <img src="<?php echo BASE_URL; ?>/assets/images/logo.png" alt="Smart Municipality Logo">
             </div>
             <h2><i class="fas fa-city"></i> Smart Municipality</h2>
             <ul>
                 <li>
-                    <a href="index.php?action=dashboard">
+                    <a href="<?php echo BASE_URL; ?>/index.php?action=dashboard">
                         <i class="fas fa-tachometer-alt"></i> <span>Dashboard</span>
                     </a>
                 </li>
@@ -485,7 +485,7 @@
                     </a>
                 </li>
                 <li class="active">
-                    <a href="index.php?action=list_services">
+                    <a href="<?php echo BASE_URL; ?>/index.php?action=list_services">
                         <i class="fas fa-concierge-bell"></i> <span>Services en ligne</span>
                     </a>
                 </li>
@@ -508,7 +508,7 @@
                     <button id="darkModeToggle" class="btn-darkmode">
                         <i class="fas fa-moon"></i> <span id="darkModeText">Sombre</span>
                     </button>
-                    <a href="index.php?action=dashboard" class="btn-dashboard">
+                    <a href="<?php echo BASE_URL; ?>/index.php?action=dashboard" class="btn-dashboard">
                         <i class="fas fa-chart-line"></i> Dashboard
                     </a>
                     <div class="admin-info">
@@ -560,7 +560,7 @@
                     </button>
                 </form>
 
-                <a href="index.php?action=list_services" class="btn-back">
+                <a href="<?php echo BASE_URL; ?>/index.php?action=list_services" class="btn-back">
                     <i class="fas fa-arrow-left"></i> Retour à la liste des services
                 </a>
             </div>

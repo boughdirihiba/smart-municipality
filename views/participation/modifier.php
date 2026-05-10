@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <textarea name="commentaire"><?php echo htmlspecialchars($participation['commentaire'] ?? ''); ?></textarea>
                     </div>
                     <div class="form-actions">
-                        <a href="../dashboard/admin.php?tab=participations" class="btn-secondary">Annuler</a>
+                        <a href="<?php echo BASE_URL; ?>/../dashboard/admin.php?tab=participations" class="btn-secondary">Annuler</a>
                         <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Enregistrer</button>
                     </div>
                 </form>

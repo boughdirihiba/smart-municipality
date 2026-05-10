@@ -461,42 +461,42 @@ $active_page = 'services';
         <!-- SIDEBAR VERT FONCÉ #052E16 -->
         <div class="sidebar">
             <div class="logo-container">
-                <img src="assets/images/logo.png" alt="Smart Municipality Logo">
+                <img src="<?php echo BASE_URL; ?>/assets/images/logo.png" alt="Smart Municipality Logo">
             </div>
             <h2><i class="fas fa-city"></i> Smart Municipality</h2>
             <ul>
                 <li>
-                    <a href="index.php?action=dashboard">
+                    <a href="<?php echo BASE_URL; ?>/index.php?action=dashboard">
                         <i class="fas fa-tachometer-alt"></i> <span>Dashboard</span>
                     </a>
                 </li>
                 <li>
-                    <a href="index.php?action=profil">
+                    <a href="<?php echo BASE_URL; ?>/index.php?action=profil">
                         <i class="fas fa-id-card"></i> <span>Profil</span>
                     </a>
                 </li>
                 <li>
-                    <a href="index.php?action=evenements">
+                    <a href="<?php echo BASE_URL; ?>/index.php?action=evenements">
                         <i class="fas fa-calendar-alt"></i> <span>Événements</span>
                     </a>
                 </li>
                 <li>
-                    <a href="index.php?action=carte_intelligente">
+                    <a href="<?php echo BASE_URL; ?>/index.php?action=carte_intelligente">
                         <i class="fas fa-brain"></i> <span>Carte intelligente</span>
                     </a>
                 </li>
                 <li>
-                    <a href="index.php?action=blog">
+                    <a href="<?php echo BASE_URL; ?>/index.php?action=blog">
                         <i class="fas fa-newspaper"></i> <span>Blog</span>
                     </a>
                 </li>
                 <li class="active">
-                    <a href="index.php?action=list_services">
+                    <a href="<?php echo BASE_URL; ?>/index.php?action=list_services">
                         <i class="fas fa-concierge-bell"></i> <span>Services en ligne</span>
                     </a>
                 </li>
                 <li>
-                    <a href="index.php?action=rendez_vous">
+                    <a href="<?php echo BASE_URL; ?>/index.php?action=rendez_vous">
                         <i class="fas fa-calendar-check"></i> <span>Rendez-vous</span>
                     </a>
                 </li>
@@ -513,7 +513,7 @@ $active_page = 'services';
                     <button id="darkModeToggle" class="btn-darkmode">
                         <i class="fas fa-moon"></i> <span id="darkModeText">Sombre</span>
                     </button>
-                    <a href="index.php?action=dashboard" class="btn-dashboard">
+                    <a href="<?php echo BASE_URL; ?>/index.php?action=dashboard" class="btn-dashboard">
                         <i class="fas fa-chart-line"></i> Dashboard
                     </a>
                     <div class="admin-info">
@@ -567,7 +567,7 @@ $active_page = 'services';
                     </button>
                 </form>
 
-                <a href="index.php?action=list_services" class="btn-back">
+                <a href="<?php echo BASE_URL; ?>/index.php?action=list_services" class="btn-back">
                     <i class="fas fa-arrow-left"></i> Retour à la liste des services
                 </a>
             </div>

@@ -101,7 +101,7 @@ $allServices = $serviceController->getServicesFront();
                 <button type="submit" class="btn-save">
                     <i class="fas fa-save"></i> Enregistrer les modifications
                 </button>
-                <a href="index.php?action=manage" class="btn-cancel">
+                <a href="<?php echo BASE_URL; ?>/index.php?action=manage" class="btn-cancel">
                     <i class="fas fa-times"></i> Annuler
                 </a>
             </div>

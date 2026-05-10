@@ -126,6 +126,23 @@ switch ($action) {
         include __DIR__ . '/views/frontoffice.php';
         require BASE_PATH . '/views/App/Views/layouts/footer.php';
         break;
+    case 'getpost':
+        $title = 'Blog';
+        $flash = get_flash();
+        require BASE_PATH . '/views/App/Views/layouts/header.php';
+        include __DIR__ . '/views/blog_single.php';
+        require BASE_PATH . '/views/App/Views/layouts/footer.php';
+        break;
+    case 'login':              $blogC->login($_POST);            break;
+    case 'logout':             $blogC->logout();                 break;
+    case 'createPost':         $blogC->createPost($_POST, $_FILES); break;
+    case 'updatePost':         $blogC->updatePost($_POST, $_FILES); break;
+    case 'deletePost':         $blogC->deletePost($_POST);        break;
+    case 'createComment':      $blogC->createComment($_POST);     break;
+    case 'updateComment':      $blogC->updateComment($_POST);     break;
+    case 'deleteComment':      $blogC->deleteComment($_POST);     break;
+    case 'setLanguage':        $blogC->setLanguage();             break;
+    case 'setFontSize':        $blogC->setFontSize();        break;
     case 'ajaxCreateComment':   $blogC->ajaxCreateComment();   break;
     case 'ajaxDeleteComment':   $blogC->ajaxDeleteComment();   break;
     case 'ajaxUpdateComment':   $blogC->ajaxUpdateComment();   break;

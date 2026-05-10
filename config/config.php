@@ -4,9 +4,38 @@ declare(strict_types=1);
 
 session_start();
 
+function get_base_url(): string
+{
+    if (PHP_SAPI === 'cli' || empty($_SERVER['SCRIPT_NAME'])) {
+        return '';
+    }
+
+    $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME']);
+    $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '';
+    $scriptDir = rtrim(dirname($scriptName), '/');
+
+    if ($scriptDir === '' || $scriptDir === '.') {
+        return '';
+    }
+
+    if ($requestPath !== '' && (strpos($requestPath, $scriptDir . '/') === 0 || $requestPath === $scriptDir)) {
+        return $scriptDir;
+    }
+
+    return $scriptDir;
+}
+
+function asset(string $path): string
+{
+    $baseUrl = get_base_url();
+    $path = '/' . ltrim($path, '/');
+    return ($baseUrl === '' ? '' : $baseUrl) . $path;
+}
+
 define('APP_NAME', 'Smart Municipality');
 define('BASE_PATH', dirname(__DIR__));
-define('BASE_URL', '/merge/smart-municipality1');
+$defaultBaseUrl = '/smart/smart-municipality';
+define('BASE_URL', get_base_url() ?: $defaultBaseUrl);
 define('UPLOAD_PATH', BASE_PATH . '/public/uploads/');
 define('UPLOAD_URL', BASE_URL . '/public/uploads/');
 

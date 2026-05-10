@@ -58,7 +58,7 @@ if (!$ticket || $ticket['user_id'] != $_SESSION['user_id']) {
             <div class="info-row"><span class="info-label"><i class="fas fa-users me-2 text-success"></i>Personnes</span><span class="info-value"><?php echo $ticket['nombre_participants']; ?> personne(s)</span></div>
             <div class="info-row"><span class="info-label"><i class="fas fa-check-circle me-2 text-success"></i>Statut</span><span class="info-value"><span class="badge bg-success"><?php echo $ticket['statut_validation'] == 'valide' ? 'Validé ✅' : 'En attente'; ?></span></span></div>
             <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print me-2"></i>Imprimer / Sauvegarder PDF</button>
-            <a href="../../index.php" class="btn btn-secondary" style="text-decoration: none;"><i class="fas fa-home me-2"></i>Retour à l'accueil</a>
+            <a href="<?php echo BASE_URL; ?>/../../index.php" class="btn btn-secondary" style="text-decoration: none;"><i class="fas fa-home me-2"></i>Retour à l'accueil</a>
         </div>
         <div class="footer-note"><i class="fas fa-info-circle me-1"></i>Ce ticket est nominatif. Présentez-le à l'entrée avec une pièce d'identité.</div>
     </div>

@@ -197,7 +197,7 @@ switch ($page) {
                 </label>
 
                 <button class="btn btn-primary" type="submit">Enregistrer</button>
-                <a class="btn btn-ghost" href="index.php?route=logout" style="justify-content:center;">Déconnexion</a>
+                <a class="btn btn-ghost" href="<?php echo BASE_URL; ?>/index.php?route=logout" style="justify-content:center;">Déconnexion</a>
               </form>
             </div>
           </aside>
@@ -229,7 +229,7 @@ switch ($page) {
         <?php if (Auth::isAdmin()): ?>
           <a
             class="btn btn-primary"
-            href="index.php?route=dashboard"
+            href="<?php echo BASE_URL; ?>/index.php?route=dashboard"
             style="position:fixed; right:22px; bottom:22px; z-index:60; box-shadow: var(--shadow);"
           >Dashboard</a>
         <?php endif; ?>

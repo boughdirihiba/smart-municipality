@@ -74,7 +74,7 @@
 	<div id="mapStatus" class="map-status" aria-live="polite">Initialisation de la carte...</div>
 	<div id="signalementMap"></div>
 </section>
-
+<link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/style.css">
 <link id="maplibre-css" rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css';" />
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js';document.head.appendChild(s);"></script>
 

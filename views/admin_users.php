@@ -85,7 +85,7 @@ $err = static function (string $key) use ($errors): string {
 
       <div style="margin-top:12px; display:flex; gap:10px;">
         <button class="btn btn-primary" type="submit">Créer</button>
-        <a class="btn btn-ghost" href="index.php?route=admin-users">Réinitialiser</a>
+        <a class="btn btn-ghost" href="<?php echo BASE_URL; ?>/index.php?route=admin-users">Réinitialiser</a>
       </div>
     </form>
   </div>
@@ -97,7 +97,7 @@ $err = static function (string $key) use ($errors): string {
           <div style="font-weight:950; font-size:18px;">Modifier le membre #<?= $h((string)($editUser['id'] ?? '')) ?></div>
           <div class="muted" style="font-weight:700;">Modifie les informations, ou réinitialise le mot de passe.</div>
         </div>
-        <a class="btn btn-ghost" href="index.php?route=admin-users">Fermer</a>
+        <a class="btn btn-ghost" href="<?php echo BASE_URL; ?>/index.php?route=admin-users">Fermer</a>
       </div>
 
       <form method="post" action="index.php?route=admin-users-update&id=<?= $h((string)($editUser['id'] ?? 0)) ?>" style="margin-top:12px;">
@@ -130,7 +130,7 @@ $err = static function (string $key) use ($errors): string {
 
         <div style="margin-top:12px; display:flex; gap:10px;">
           <button class="btn btn-primary" type="submit">Enregistrer</button>
-          <a class="btn btn-ghost" href="index.php?route=admin-users">Annuler</a>
+          <a class="btn btn-ghost" href="<?php echo BASE_URL; ?>/index.php?route=admin-users">Annuler</a>
         </div>
       </form>
     </div>

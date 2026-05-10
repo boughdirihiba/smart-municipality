@@ -58,7 +58,7 @@ $baseUrl = '../../';
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/fr.js'></script>
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
-    <link rel="stylesheet" href="../../public/css/admin-sidebar.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/../../public/css/admin-sidebar.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #e8f5e9; }
@@ -241,7 +241,7 @@ $baseUrl = '../../';
                 <h1 class="h2 mb-1"><i class="fas fa-chart-line me-2" style="color: #1a5e2a;"></i>Tableau de bord</h1>
                 <p class="text-muted">Bienvenue, <?php echo htmlspecialchars($_SESSION['prenom'] . ' ' . $_SESSION['nom']); ?></p>
             </div>
-            <a href="../evenement/ajouter.php" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Nouvel événement</a>
+            <a href="<?php echo BASE_URL; ?>/../evenement/ajouter.php" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Nouvel événement</a>
         </div>
 
         <!-- Stats Cards -->
@@ -266,10 +266,10 @@ $baseUrl = '../../';
 
         <!-- Boutons Catégories -->
         <div class="category-actions">
-            <a href="categorie/liste.php" class="btn btn-success"><i class="fas fa-list me-2"></i> Gérer les catégories</a>
-            <a href="categorie/ajouter.php" class="btn btn-outline-success"><i class="fas fa-plus me-2"></i> Ajouter une catégorie</a>
-            <a href="categorie/liste.php" class="btn btn-outline-success"><i class="fas fa-edit me-2"></i> Modifier</a>
-            <a href="categorie/liste.php" class="btn btn-outline-danger"><i class="fas fa-trash me-2"></i> Supprimer</a>
+            <a href="<?php echo BASE_URL; ?>/categorie/liste.php" class="btn btn-success"><i class="fas fa-list me-2"></i> Gérer les catégories</a>
+            <a href="<?php echo BASE_URL; ?>/categorie/ajouter.php" class="btn btn-outline-success"><i class="fas fa-plus me-2"></i> Ajouter une catégorie</a>
+            <a href="<?php echo BASE_URL; ?>/categorie/liste.php" class="btn btn-outline-success"><i class="fas fa-edit me-2"></i> Modifier</a>
+            <a href="<?php echo BASE_URL; ?>/categorie/liste.php" class="btn btn-outline-danger"><i class="fas fa-trash me-2"></i> Supprimer</a>
         </div>
 
         <!-- Pie Chart - PLUS PETIT -->
@@ -296,17 +296,17 @@ $baseUrl = '../../';
             <div class="card-header-pro"><i class="fas fa-bolt me-2"></i> Actions rapides</div>
             <div class="p-4">
                 <div class="quick-actions">
-                    <a href="../evenement/ajouter.php" class="action-btn"><i class="fas fa-plus-circle"></i><span>Ajouter événement</span></a>
-                    <a href="../evenement/liste.php" class="action-btn"><i class="fas fa-list"></i><span>Gérer événements</span></a>
-                    <a href="categorie/liste.php" class="action-btn"><i class="fas fa-tags"></i><span>Gérer catégories</span></a>
-                    <a href="../participation/mes_participations.php" class="action-btn"><i class="fas fa-users"></i><span>Participations</span></a>
+                    <a href="<?php echo BASE_URL; ?>/../evenement/ajouter.php" class="action-btn"><i class="fas fa-plus-circle"></i><span>Ajouter événement</span></a>
+                    <a href="<?php echo BASE_URL; ?>/../evenement/liste.php" class="action-btn"><i class="fas fa-list"></i><span>Gérer événements</span></a>
+                    <a href="<?php echo BASE_URL; ?>/categorie/liste.php" class="action-btn"><i class="fas fa-tags"></i><span>Gérer catégories</span></a>
+                    <a href="<?php echo BASE_URL; ?>/../participation/mes_participations.php" class="action-btn"><i class="fas fa-users"></i><span>Participations</span></a>
                 </div>
             </div>
         </div>
 
         <!-- Derniers événements -->
         <div class="card-pro">
-            <div class="card-header-pro"><i class="fas fa-history me-2"></i> Derniers événements <a href="../evenement/liste.php" class="float-end text-decoration-none" style="color: #1a5e2a;">Voir tout <i class="fas fa-arrow-right ms-1"></i></a></div>
+            <div class="card-header-pro"><i class="fas fa-history me-2"></i> Derniers événements <a href="<?php echo BASE_URL; ?>/../evenement/liste.php" class="float-end text-decoration-none" style="color: #1a5e2a;">Voir tout <i class="fas fa-arrow-right ms-1"></i></a></div>
             <div class="list-group list-group-flush">
                 <?php foreach($evenementsRecents as $e): ?>
                 <div class="list-group-item d-flex justify-content-between align-items-center">

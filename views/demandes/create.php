@@ -130,7 +130,7 @@ $old_input     = $old_input ?? [];
         </form>
 
         <div style="text-align: center; margin-top: 20px;">
-            <a href="index.php?action=manage" class="btn-back">
+            <a href="<?php echo BASE_URL; ?>/index.php?action=manage" class="btn-back">
                 <i class="fas fa-arrow-left"></i> Retour à l'accueil
             </a>
         </div>

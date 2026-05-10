@@ -49,7 +49,7 @@ $baseUrl = '../../';
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../../public/css/admin-sidebar.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/../../public/css/admin-sidebar.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/fr.js'></script>
@@ -329,7 +329,7 @@ $baseUrl = '../../';
                 <h1 class="h2 mb-1"><i class="fas fa-chart-line me-2" style="color: #1a5e2a;"></i>Tableau de bord</h1>
                 <p class="text-muted">Bienvenue, <?php echo htmlspecialchars($displayName); ?></p>
             </div>
-            <a href="../evenement/ajouter.php" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Nouvel événement</a>
+            <a href="<?php echo BASE_URL; ?>/../evenement/ajouter.php" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Nouvel événement</a>
         </div>
 
         <div class="stats-grid">
@@ -370,10 +370,10 @@ $baseUrl = '../../';
             <div class="card-header-pro"><i class="fas fa-bolt me-2"></i> Actions rapides</div>
             <div class="p-4">
                 <div class="quick-actions">
-                    <a href="../evenement/ajouter.php" class="action-btn"><i class="fas fa-plus-circle"></i><span>Ajouter</span></a>
-                    <a href="../evenement/liste.php" class="action-btn"><i class="fas fa-list"></i><span>Gérer</span></a>
-                    <a href="categorie/liste.php" class="action-btn"><i class="fas fa-tags"></i><span>Catégories</span></a>
-                    <a href="../../index.php" class="action-btn"><i class="fas fa-home"></i><span>Accueil</span></a>
+                    <a href="<?php echo BASE_URL; ?>/../evenement/ajouter.php" class="action-btn"><i class="fas fa-plus-circle"></i><span>Ajouter</span></a>
+                    <a href="<?php echo BASE_URL; ?>/../evenement/liste.php" class="action-btn"><i class="fas fa-list"></i><span>Gérer</span></a>
+                    <a href="<?php echo BASE_URL; ?>/categorie/liste.php" class="action-btn"><i class="fas fa-tags"></i><span>Catégories</span></a>
+                    <a href="<?php echo BASE_URL; ?>/../../index.php" class="action-btn"><i class="fas fa-home"></i><span>Accueil</span></a>
                 </div>
             </div>
         </div>

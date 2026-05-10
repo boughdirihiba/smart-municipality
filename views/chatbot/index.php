@@ -524,15 +524,15 @@ $tousEvenements = $evenementC->afficherEvenementsAVenir();
 
     <!-- ========== NAVBAR MODERNE ========== -->
     <nav class="navbar" id="navbar">
-        <a class="nav-brand" href="../../index.php">
-            <img src="../../logo.jpeg" alt="Logo Smart Municipality">
+        <a class="nav-brand" href="<?php echo BASE_URL; ?>/../../index.php">
+            <img src="<?php echo BASE_URL; ?>/../../logo.jpeg" alt="Logo Smart Municipality">
             <span class="nav-brand-text">Smart <span>Municipality</span></span>
         </a>
         <button class="mobile-toggle" type="button" aria-label="Ouvrir le menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
             <span></span><span></span><span></span>
         </button>
         <ul class="nav-links">
-            <li><a href="../../index.php">Événements</a></li>
+            <li><a href="<?php echo BASE_URL; ?>/../../index.php">Événements</a></li>
             <li><a href="#">Assistant IA</a></li>
             <li><a href="#">Carte</a></li>
             <li><a href="#">Blog</a></li>
@@ -550,15 +550,15 @@ $tousEvenements = $evenementC->afficherEvenementsAVenir();
                     </div>
                     <span class="text-muted" style="font-size: 0.75rem;"><?php echo htmlspecialchars($userName); ?></span>
                     <?php if ($isAdmin): ?>
-                    <a href="../dashboard/admin.php" class="btn-dashboard">
+                    <a href="<?php echo BASE_URL; ?>/../dashboard/admin.php" class="btn-dashboard">
                         <i class="fas fa-chart-line"></i> Dashboard
                     </a>
                     <?php endif; ?>
-                    <a href="../../logout.php" class="btn-logout">
+                    <a href="<?php echo BASE_URL; ?>/../../logout.php" class="btn-logout">
                         <i class="fas fa-sign-out-alt"></i> Déconnexion
                     </a>
                 <?php else: ?>
-                    <a href="../auth/login.php" class="btn-login">
+                    <a href="<?php echo BASE_URL; ?>/../auth/login.php" class="btn-login">
                         <i class="fas fa-sign-in-alt"></i> Se connecter
                     </a>
                 <?php endif; ?>
@@ -621,7 +621,7 @@ $tousEvenements = $evenementC->afficherEvenementsAVenir();
                     <span>Mes inscriptions</span>
                 </div>
                 <div style="padding: 0 5px;">
-                    <a href="../participation/mes_participations.php" style="font-size: 0.75rem; color: var(--primary); text-decoration: none;">
+                    <a href="<?php echo BASE_URL; ?>/../participation/mes_participations.php" style="font-size: 0.75rem; color: var(--primary); text-decoration: none;">
                         <i class="fas fa-arrow-right me-1"></i> Voir toutes mes participations
                     </a>
                 </div>
@@ -750,7 +750,7 @@ $tousEvenements = $evenementC->afficherEvenementsAVenir();
             formattedText = formattedText.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
             formattedText = formattedText.replace(/\n/g, '<br>');
             const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-            formattedText = formattedText.replace(linkRegex, '<a href="$2" target="_blank" style="color: #1a5e2a; text-decoration: underline;">$1</a>');
+            formattedText = formattedText.replace(linkRegex, '<a href="<?php echo BASE_URL; ?>/$2" target="_blank" style="color: #1a5e2a; text-decoration: underline;">$1</a>');
             
             content.innerHTML = formattedText;
             

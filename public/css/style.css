@@ -34,6 +34,58 @@ body {
     line-height: 1.5;
 }
 
+body.theme-dark {
+    background: #05080f;
+    color: #e2e8f0;
+}
+
+body.theme-dark .navbar {
+    background: linear-gradient(120deg, #0c1a28 0%, #11354d 100%);
+    border-color: rgba(255,255,255,0.08);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+}
+
+body.theme-dark .nav-links a,
+body.theme-dark .nav-user,
+body.theme-dark .nav-search,
+body.theme-dark .nav-settings-btn {
+    color: #e2e8f0;
+    border-color: rgba(255,255,255,0.16);
+}
+
+body.theme-dark .nav-links a:hover,
+body.theme-dark .nav-links a.active {
+    background: rgba(255,255,255,0.12);
+    color: #ffffff;
+}
+
+body.theme-dark .nav-search {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.12);
+}
+
+body.theme-dark .nav-search input {
+    color: #f8fafc;
+}
+
+body.theme-dark .nav-search input::placeholder {
+    color: rgba(248,255,252,0.6);
+}
+
+body.theme-dark .app-shell,
+body.theme-dark .app-content,
+body.theme-dark .post-card,
+body.theme-dark .create-card,
+body.theme-dark .stat-card,
+body.theme-dark .chart-card,
+body.theme-dark .modal-content,
+body.theme-dark .toast,
+body.theme-dark .alert {
+    background: #0d1624;
+    color: #e2e8f0;
+    border-color: rgba(255,255,255,0.08);
+}
+
 .app-shell { min-height: calc(100vh - 78px); }
 .navbar {
     position: sticky;
@@ -1028,4 +1080,72 @@ input[type="range"] {
     }
     .grid-2, .grid-4, .filter-row { grid-template-columns: 1fr; }
     #map, #signalementMap { height: 430px; }
+}
+
+/* ========== DARK MODE ENHANCEMENTS ========== */
+body.dark-mode,
+body.theme-dark {
+    --accessibility-btn-bg: rgba(255, 255, 255, 0.08);
+    --accessibility-btn-border: rgba(255, 255, 255, 0.16);
+    --accessibility-btn-hover: rgba(255, 255, 255, 0.16);
+}
+
+/* Accessibility panel in dark mode */
+body.dark-mode .accessibility-panel,
+body.theme-dark .accessibility-panel {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    padding: 0.5rem 0.75rem;
+}
+
+body.dark-mode .accessibility-btn,
+body.theme-dark .accessibility-btn {
+    background: var(--accessibility-btn-bg);
+    border-color: var(--accessibility-btn-border);
+    color: #e5e7eb;
+}
+
+body.dark-mode .accessibility-btn:hover,
+body.dark-mode .accessibility-btn.active,
+body.theme-dark .accessibility-btn:hover,
+body.theme-dark .accessibility-btn.active {
+    background: var(--accessibility-btn-hover);
+    color: #ffffff;
+}
+
+body.dark-mode .accessibility-label,
+body.theme-dark .accessibility-label {
+    color: #d1d5db;
+}
+
+/* Additional dark mode enhancements for common UI elements */
+body.dark-mode input,
+body.dark-mode textarea,
+body.dark-mode select,
+body.theme-dark input,
+body.theme-dark textarea,
+body.theme-dark select {
+    background: rgba(255, 255, 255, 0.08);
+    color: #e5e7eb;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+body.dark-mode input::placeholder,
+body.dark-mode textarea::placeholder,
+body.theme-dark input::placeholder,
+body.theme-dark textarea::placeholder {
+    color: rgba(229, 231, 235, 0.6);
+}
+
+body.dark-mode button:not(.accessibility-btn),
+body.theme-dark button:not(.accessibility-btn) {
+    background: linear-gradient(135deg, #2FA084 0%, #1e6f5f 100%);
+    color: #ffffff;
+    border: 0;
+}
+
+body.dark-mode .card,
+body.theme-dark .card {
+    background: #0f1724;
+    border-color: rgba(255, 255, 255, 0.08);
 }

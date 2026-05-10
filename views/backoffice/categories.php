@@ -775,7 +775,7 @@ unset($_SESSION['just_uploaded_icon']);
         <!-- ===== SIDEBAR ===== -->
         <aside class="sidebar">
             <div class="sidebar-logo">
-                <img src="../../assets/icons/logo.png" alt="Logo">
+                <img src="<?php echo BASE_URL; ?>/../../assets/icons/logo.png" alt="Logo">
                 <div>
                     <h2>Smart Ville</h2>
                     <span>Admin</span>
@@ -784,23 +784,23 @@ unset($_SESSION['just_uploaded_icon']);
             <hr>
             <nav class="nav-menu">
                 <ul>
-                    <li><img src="../../assets/icons/profil.svg" alt=""><a href="profil.php">Profile</a></li>
-                    <li><img src="../../assets/icons/alertes.svg" alt=""><a href="evenements.php">Événements</a></li>
-                    <li><img src="../../assets/icons/carte.svg" alt=""><a href="carte.php">Carte intelligente</a></li>
-                    <li><img src="../../assets/icons/blog.svg" alt=""><a href="blog.php">Blog</a></li>
-                    <li><img src="../../assets/icons/services.svg" alt=""><a href="services.php">Services en ligne</a></li>
-                    <li class="active"><img src="../../assets/icons/rdv.svg" alt=""><a href="rendez-vous.php">Rendez-vous</a></li>
+                    <li><img src="<?php echo BASE_URL; ?>/../../assets/icons/profil.svg" alt=""><a href="<?php echo BASE_URL; ?>/profil.php">Profile</a></li>
+                    <li><img src="<?php echo BASE_URL; ?>/../../assets/icons/alertes.svg" alt=""><a href="<?php echo BASE_URL; ?>/evenements.php">Événements</a></li>
+                    <li><img src="<?php echo BASE_URL; ?>/../../assets/icons/carte.svg" alt=""><a href="<?php echo BASE_URL; ?>/carte.php">Carte intelligente</a></li>
+                    <li><img src="<?php echo BASE_URL; ?>/../../assets/icons/blog.svg" alt=""><a href="<?php echo BASE_URL; ?>/blog.php">Blog</a></li>
+                    <li><img src="<?php echo BASE_URL; ?>/../../assets/icons/services.svg" alt=""><a href="<?php echo BASE_URL; ?>/services.php">Services en ligne</a></li>
+                    <li class="active"><img src="<?php echo BASE_URL; ?>/../../assets/icons/rdv.svg" alt=""><a href="<?php echo BASE_URL; ?>/rendez-vous.php">Rendez-vous</a></li>
                 </ul>
                 <ul class="sub-nav">
-                    <li><a href="rendez-vous.php">&rsaquo; Liste RDV</a></li>
-                    <li class="sub-active"><a href="categories.php">&rsaquo; Catégories</a></li>
+                    <li><a href="<?php echo BASE_URL; ?>/rendez-vous.php">&rsaquo; Liste RDV</a></li>
+                    <li class="sub-active"><a href="<?php echo BASE_URL; ?>/categories.php">&rsaquo; Catégories</a></li>
                 </ul>
             </nav>
             <hr>
             <div class="nav-bottom">
                 <ul>
-                    <li><img src="../../assets/icons/parametres.svg" alt=""><a href="parametres.php">Paramètres</a></li>
-                    <li><img src="../../assets/icons/deconnexion.svg" alt=""><a href="../../controllers/logout.php">Déconnexion</a></li>
+                    <li><img src="<?php echo BASE_URL; ?>/../../assets/icons/parametres.svg" alt=""><a href="<?php echo BASE_URL; ?>/parametres.php">Paramètres</a></li>
+                    <li><img src="<?php echo BASE_URL; ?>/../../assets/icons/deconnexion.svg" alt=""><a href="<?php echo BASE_URL; ?>/../../controllers/logout.php">Déconnexion</a></li>
                 </ul>
             </div>
         </aside>
@@ -811,14 +811,14 @@ unset($_SESSION['just_uploaded_icon']);
             <header class="top-bar">
                 <div class="top-bar-left">
                     <h1>Gestion des Catégories</h1>
-                    <div class="breadcrumb"><a href="rendez-vous.php">Rendez-vous</a> &rsaquo; Catégories de service</div>
+                    <div class="breadcrumb"><a href="<?php echo BASE_URL; ?>/rendez-vous.php">Rendez-vous</a> &rsaquo; Catégories de service</div>
                 </div>
                 <div class="admin-info">
                     <div>
                         <span>Admin</span><br>
                         <small>Sarah B.</small>
                     </div>
-                    <img src="../../assets/icons/avatar.svg" alt="">
+                    <img src="<?php echo BASE_URL; ?>/../../assets/icons/avatar.svg" alt="">
                 </div>
             </header>
 
@@ -964,7 +964,7 @@ unset($_SESSION['just_uploaded_icon']);
                                     <div class="icon-option <?php echo $isChosen ? 'chosen' : ''; ?> <?php echo $isJust ? 'just-new' : ''; ?>"
                                          onclick="pickIcon('<?php echo $icon; ?>')"
                                          title="<?php echo $icon; ?>">
-                                        <img src="../../assets/icons/<?php echo $icon; ?>" alt="">
+                                        <img src="<?php echo BASE_URL; ?>/../../assets/icons/<?php echo $icon; ?>" alt="">
                                     </div>
                                 <?php endforeach; ?>
                             </div>
@@ -977,7 +977,7 @@ unset($_SESSION['just_uploaded_icon']);
                         <?php if (!$isCreating): ?>
                             <button class="btn btn-danger" onclick="deleteCategory(<?php echo $selectedCat['id']; ?>, '<?php echo htmlspecialchars(addslashes($selectedCat['nom'])); ?>');">🗑</button>
                         <?php endif; ?>
-                        <a href="categories.php" class="btn btn-ghost">Annuler</a>
+                        <a href="<?php echo BASE_URL; ?>/categories.php" class="btn btn-ghost">Annuler</a>
                         <button class="btn btn-primary" onclick="saveCategory()">
                             &#10004; <?php echo $isCreating ? 'Créer' : 'Enregistrer'; ?>
                         </button>
@@ -1010,7 +1010,7 @@ unset($_SESSION['just_uploaded_icon']);
                         <div class="editor-empty-text">
                             Sélectionnez une catégorie à gauche pour la modifier, ou créez-en une nouvelle.
                         </div>
-                        <a href="categories.php?new=1" class="btn btn-primary">
+                        <a href="<?php echo BASE_URL; ?>/categories.php?new=1" class="btn btn-primary">
                             &#43; Créer une catégorie
                         </a>
                     </div>
@@ -1073,9 +1073,9 @@ unset($_SESSION['just_uploaded_icon']);
 
         function pickIcon(iconName) {
             document.getElementById('iconeInput').value = iconName;
-            document.getElementById('iconPickerImg').src = '../../assets/icons/' + iconName;
+            document.getElementById('iconPickerImg').src='<?php echo BASE_URL; ?>/../../assets/icons/' + iconName;
             document.getElementById('iconPickerName').textContent = iconName;
-            document.getElementById('previewIcon').src = '../../assets/icons/' + iconName;
+            document.getElementById('previewIcon').src='<?php echo BASE_URL; ?>/../../assets/icons/' + iconName;
 
             document.querySelectorAll('.icon-option').forEach(function(el) { el.classList.remove('chosen'); });
             event.currentTarget.classList.add('chosen');
@@ -1135,7 +1135,7 @@ unset($_SESSION['just_uploaded_icon']);
                         timer: 1200,
                         showConfirmButton: false
                     }).then(function() {
-                        window.location.href = "/smart-municipality/controllers/RendezVousController.php?action=delete_category&id=" + id;
+                        window.location.href="<?php echo BASE_URL; ?>/smart-municipality/controllers/RendezVousController.php?action=delete_category&id=" + id;
                     });
                 }
             });

@@ -576,7 +576,7 @@ unset($_SESSION['success'], $_SESSION['error']);
 <div class="dashboard">
     <aside class="sidebar">
         <div class="logo-area">
-            <img class="logo-icon" src="logo.png" alt="Logo" onerror="this.src='https://placehold.co/70x70/10b981/white?text=SM'">
+            <img class="logo-icon" src="<?php echo BASE_URL; ?>/logo.png" alt="Logo" onerror="this.src='https://placehold.co/70x70/10b981/white?text=SM'">
             <div class="logo-text"><div class="smart">Smart</div><div class="municipality">Municipality</div></div>
         </div>
         <div class="nav-menu">
@@ -601,12 +601,12 @@ unset($_SESSION['success'], $_SESSION['error']);
                     <span>A+</span>
                 </div>
                 <div class="control-group lang-selector">
-                    <a href="?lang=fr" class="control-btn <?= $current_lang === 'fr' ? 'active' : '' ?>">FR</a>
-                    <a href="?lang=en" class="control-btn <?= $current_lang === 'en' ? 'active' : '' ?>">EN</a>
-                    <a href="?lang=ar" class="control-btn <?= $current_lang === 'ar' ? 'active' : '' ?>">AR</a>
+                    <a href="<?php echo BASE_URL; ?>/?lang=fr" class="control-btn <?= $current_lang === 'fr' ? 'active' : '' ?>">FR</a>
+                    <a href="<?php echo BASE_URL; ?>/?lang=en" class="control-btn <?= $current_lang === 'en' ? 'active' : '' ?>">EN</a>
+                    <a href="<?php echo BASE_URL; ?>/?lang=ar" class="control-btn <?= $current_lang === 'ar' ? 'active' : '' ?>">AR</a>
                 </div>
                 <a href="?theme=<?= $current_theme === 'light' ? 'dark' : 'light' ?>" class="control-btn"><i class="fas <?= $current_theme === 'light' ? 'fa-moon' : 'fa-sun' ?>"></i></a>
-                <a href="frontoffice.php" class="control-btn" style="background: var(--accent); color: white;"><i class="fas fa-blog"></i> <?= $t('blog') ?></a>
+                <a href="<?php echo BASE_URL; ?>/frontoffice.php" class="control-btn" style="background: var(--accent); color: white;"><i class="fas fa-blog"></i> <?= $t('blog') ?></a>
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                     <img src="<?= htmlspecialchars($adminAvatar) ?>" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--accent);">
                     <span><?= $_SESSION['user_name'] ?></span>
@@ -635,7 +635,7 @@ unset($_SESSION['success'], $_SESSION['error']);
         <!-- Créer un post -->
         <div class="data-section">
             <div class="section-header"><h3><i class="fas fa-plus-circle" style="color: var(--accent);"></i> <?= $t('create_post') ?></h3></div>
-            <form id="createPostForm" method="POST" action="/projetweb/controllers/DashboardController.php" enctype="multipart/form-data">
+            <form id="createPostForm" method="POST" action="<?php echo BASE_URL; ?>/controllers/DashboardController.php" enctype="multipart/form-data">
                 <input type="hidden" name="action" value="createPost">
                 <textarea name="content" rows="3" placeholder="<?= $t('write_comment') ?>" required></textarea>
                 <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
@@ -650,7 +650,7 @@ unset($_SESSION['success'], $_SESSION['error']);
         <!-- Ajouter un commentaire -->
         <div class="data-section">
             <div class="section-header"><h3><i class="fas fa-comment-dots" style="color: var(--accent);"></i> <?= $t('add_comment') ?></h3></div>
-            <form id="createCommentForm" method="POST" action="/projetweb/controllers/DashboardController.php">
+            <form id="createCommentForm" method="POST" action="<?php echo BASE_URL; ?>/controllers/DashboardController.php">
                 <input type="hidden" name="action" value="createComment">
                 <select name="post_id" required>
                     <option value=""><?= $t('choose_post') ?></option>
@@ -691,7 +691,7 @@ unset($_SESSION['success'], $_SESSION['error']);
                     </div>
                     <div class="post-actions">
                         <button class="btn-icon btn-edit-card" onclick="openEditPostModal(<?= $post['id'] ?>, '<?= addslashes($post['content']) ?>', '<?= addslashes($post['image'] ?? '') ?>', '<?= addslashes($post['video'] ?? '') ?>')"><i class="fas fa-edit"></i> <?= $t('edit') ?></button>
-                        <form method="POST" action="/projetweb/controllers/DashboardController.php" onsubmit="return confirm('<?= $t('confirm_delete_post') ?>');">
+                        <form method="POST" action="<?php echo BASE_URL; ?>/controllers/DashboardController.php" onsubmit="return confirm('<?= $t('confirm_delete_post') ?>');">
                             <input type="hidden" name="action" value="deletePost">
                             <input type="hidden" name="post_id" value="<?= $post['id'] ?>">
                             <button type="submit" class="btn-icon btn-delete-card"><i class="fas fa-trash-alt"></i> <?= $t('delete') ?></button>
@@ -718,7 +718,7 @@ unset($_SESSION['success'], $_SESSION['error']);
                             <td><?= date('d/m/Y H:i', strtotime($comment['created_at'])) ?></td>
                             <td class="action-btns">
                                 <button class="btn-icon" style="background: none; color: #3b82f6;" onclick="openEditCommentModalAdmin(<?= $comment['id'] ?>, '<?= addslashes($comment['content']) ?>')"><i class="fas fa-edit"></i></button>
-                                <form method="POST" action="/projetweb/controllers/DashboardController.php" style="display:inline;" onsubmit="return confirm('<?= $t('confirm_delete_comment') ?>');">
+                                <form method="POST" action="<?php echo BASE_URL; ?>/controllers/DashboardController.php" style="display:inline;" onsubmit="return confirm('<?= $t('confirm_delete_comment') ?>');">
                                     <input type="hidden" name="action" value="deleteComment"><input type="hidden" name="comment_id" value="<?= $comment['id'] ?>">
                                     <button type="submit" class="btn-icon" style="background: none; color: var(--danger);"><i class="fas fa-trash"></i></button>
                                 </form>
@@ -736,7 +736,7 @@ unset($_SESSION['success'], $_SESSION['error']);
 <div id="editPostModal" class="modal">
     <div class="modal-content">
         <h3><i class="fas fa-edit" style="color: var(--accent);"></i> <?= $t('edit_post_title') ?></h3>
-        <form id="editPostForm" method="POST" action="/projetweb/controllers/DashboardController.php" enctype="multipart/form-data">
+        <form id="editPostForm" method="POST" action="<?php echo BASE_URL; ?>/controllers/DashboardController.php" enctype="multipart/form-data">
             <input type="hidden" name="action" value="updatePost">
             <input type="hidden" name="post_id" id="edit_post_id">
             <textarea id="edit_post_content" name="content" rows="4" required></textarea>
@@ -755,7 +755,7 @@ unset($_SESSION['success'], $_SESSION['error']);
 <div id="editCommentModalAdmin" class="modal">
     <div class="modal-content">
         <h3><i class="fas fa-comment-edit" style="color: var(--accent);"></i> <?= $t('edit_comment_title') ?></h3>
-        <form id="editCommentForm" method="POST" action="/projetweb/controllers/DashboardController.php">
+        <form id="editCommentForm" method="POST" action="<?php echo BASE_URL; ?>/controllers/DashboardController.php">
             <input type="hidden" name="action" value="updateComment">
             <input type="hidden" name="comment_id" id="edit_comment_id_admin">
             <textarea id="edit_comment_content_admin" name="content" rows="3" required></textarea>
@@ -796,7 +796,7 @@ unset($_SESSION['success'], $_SESSION['error']);
         if (currentElement === element && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) { stopSpeaking(); return; }
         stopSpeaking();
         try {
-            const res = await fetch(`/projetweb/controllers/DashboardController.php?action=getSpeakText&post_id=${postId}`);
+            const res = await fetch(`<?php echo BASE_URL; ?>/controllers/DashboardController.php?action=getSpeakText&post_id=${postId}`);
             const data = await res.json();
             if (data.error || !data.text) { alert(data.error || "Texte non disponible"); return; }
             const utterance = new SpeechSynthesisUtterance(data.text);
@@ -838,8 +838,8 @@ unset($_SESSION['success'], $_SESSION['error']);
     function openEditPostModal(id, content, img, vid) {
         document.getElementById('edit_post_id').value = id;
         document.getElementById('edit_post_content').value = content;
-        document.getElementById('currentImagePreview').innerHTML = (img && img.startsWith('data:image')) ? `<img src="${img}" style="max-height:100px;"><br><small><i class="fas fa-image"></i> ${<?= json_encode($t('current_image')) ?>}</small>` : '<em><i class="fas fa-ban"></i> <?= addslashes($t('no_image')) ?></em>';
-        document.getElementById('currentVideoPreview').innerHTML = (vid && vid.startsWith('data:video')) ? `<video controls src="${vid}" style="max-height:100px;"></video><br><small><i class="fas fa-video"></i> ${<?= json_encode($t('current_video')) ?>}</small>` : '<em><i class="fas fa-ban"></i> <?= addslashes($t('no_video')) ?></em>';
+        document.getElementById('currentImagePreview').innerHTML = (img && img.startsWith('data:image')) ? `<img src="<?php echo BASE_URL; ?>/${img}" style="max-height:100px;"><br><small><i class="fas fa-image"></i> ${<?= json_encode($t('current_image')) ?>}</small>` : '<em><i class="fas fa-ban"></i> <?= addslashes($t('no_image')) ?></em>';
+        document.getElementById('currentVideoPreview').innerHTML = (vid && vid.startsWith('data:video')) ? `<video controls src="<?php echo BASE_URL; ?>/${vid}" style="max-height:100px;"></video><br><small><i class="fas fa-video"></i> ${<?= json_encode($t('current_video')) ?>}</small>` : '<em><i class="fas fa-ban"></i> <?= addslashes($t('no_video')) ?></em>';
         document.getElementById('editPostModal').classList.add('show');
     }
     function closeEditPostModal() { document.getElementById('editPostModal').classList.remove('show'); }

@@ -126,7 +126,7 @@ $baseUrl = '../../../';
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../../../public/css/admin-sidebar.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/../../../public/css/admin-sidebar.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -318,7 +318,7 @@ $baseUrl = '../../../';
                     </div>
                     
                     <div class="d-flex gap-3 mt-4">
-                        <a href="liste.php" class="btn btn-secondary flex-grow-1"><i class="fas fa-arrow-left me-2"></i>Annuler</a>
+                        <a href="<?php echo BASE_URL; ?>/liste.php" class="btn btn-secondary flex-grow-1"><i class="fas fa-arrow-left me-2"></i>Annuler</a>
                         <button type="submit" class="btn btn-primary flex-grow-1"><i class="fas fa-save me-2"></i>Modifier</button>
                     </div>
                 </form>

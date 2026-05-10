@@ -711,7 +711,7 @@ if(!empty($raw_search)) {
                     <button id="darkModeToggle" class="btn-darkmode">
                         <i class="fas fa-moon"></i> <span id="darkModeText">Sombre</span>
                     </button>
-                    <a href="index.php?action=create_service" class="btn-add">
+                    <a href="<?php echo BASE_URL; ?>/index.php?action=create_service" class="btn-add">
                         <i class="fas fa-plus"></i> Nouveau service
                     </a>
                     <div class="admin-info">
@@ -763,7 +763,7 @@ if(!empty($raw_search)) {
                         <i class="fas fa-search"></i> Rechercher
                     </button>
                     <?php if(!empty($current_search)): ?>
-                        <a href="index.php?action=list_services" class="btn-reset">
+                        <a href="<?php echo BASE_URL; ?>/index.php?action=list_services" class="btn-reset">
                             <i class="fas fa-times"></i> Réinitialiser
                         </a>
                     <?php endif; ?>
@@ -879,13 +879,13 @@ if(!empty($raw_search)) {
                                                     - Recherche insensible aux accents
                                                 </p>
                                             <?php endif; ?>
-                                            <a href="index.php?action=list_services" class="btn-add" style="margin-top: 20px;">
+                                            <a href="<?php echo BASE_URL; ?>/index.php?action=list_services" class="btn-add" style="margin-top: 20px;">
                                                 <i class="fas fa-arrow-left"></i> Voir tous les services
                                             </a>
                                         <?php else: ?>
                                             <i class="fas fa-inbox"></i>
                                             <p>Aucun service n'a été trouvé.</p>
-                                            <a href="index.php?action=create_service" class="btn-add">
+                                            <a href="<?php echo BASE_URL; ?>/index.php?action=create_service" class="btn-add">
                                                 <i class="fas fa-plus"></i> Ajouter votre premier service
                                             </a>
                                         <?php endif; ?>

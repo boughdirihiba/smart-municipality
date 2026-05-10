@@ -29,7 +29,7 @@
         <div class="chatbot-messages" id="chatbotMessages">
             <div class="message bot">
                 <div class="message-avatar">
-                    <img src="assets/images/logo.png" alt="Smart" onerror="this.src='https://via.placeholder.com/32'">
+                    <img src="<?php echo BASE_URL; ?>/assets/images/logo.png" alt="Smart" onerror="this.src='https://via.placeholder.com/32'">
                 </div>
                 <div class="message-bubble">
                     <div class="message-content">

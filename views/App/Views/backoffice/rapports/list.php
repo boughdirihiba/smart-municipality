@@ -4,7 +4,7 @@
             <h1>📊 Rapports</h1>
             <p class="text-muted">Rapports mensuels, trimestriels et annuels</p>
         </div>
-        <a href="/index.php?route=rapport/create" class="btn btn-primary btn-lg">
+        <a href="<?php echo BASE_URL; ?>/index.php?route=rapport/create" class="btn btn-primary btn-lg">
             ➕ Nouveau Rapport
         </a>
     </div>
@@ -12,22 +12,22 @@
     <?php if ($type): ?>
         <div class="alert alert-info">
             Filtre: <strong><?= htmlspecialchars($type) ?></strong>
-            <a href="/index.php?route=rapport/list" class="ms-2">Réinitialiser</a>
+            <a href="<?php echo BASE_URL; ?>/index.php?route=rapport/list" class="ms-2">Réinitialiser</a>
         </div>
     <?php endif; ?>
 
     <div class="mb-3">
         <div class="btn-group" role="group">
-            <a href="/index.php?route=rapport/list&type=mensuel" class="btn btn-outline-secondary <?= $type === 'mensuel' ? 'active' : '' ?>">Mensuel</a>
-            <a href="/index.php?route=rapport/list&type=trimestriel" class="btn btn-outline-secondary <?= $type === 'trimestriel' ? 'active' : '' ?>">Trimestriel</a>
-            <a href="/index.php?route=rapport/list&type=annuel" class="btn btn-outline-secondary <?= $type === 'annuel' ? 'active' : '' ?>">Annuel</a>
-            <a href="/index.php?route=rapport/list" class="btn btn-outline-secondary <?= empty($type) ? 'active' : '' ?>">Tous</a>
+            <a href="<?php echo BASE_URL; ?>/index.php?route=rapport/list&type=mensuel" class="btn btn-outline-secondary <?= $type === 'mensuel' ? 'active' : '' ?>">Mensuel</a>
+            <a href="<?php echo BASE_URL; ?>/index.php?route=rapport/list&type=trimestriel" class="btn btn-outline-secondary <?= $type === 'trimestriel' ? 'active' : '' ?>">Trimestriel</a>
+            <a href="<?php echo BASE_URL; ?>/index.php?route=rapport/list&type=annuel" class="btn btn-outline-secondary <?= $type === 'annuel' ? 'active' : '' ?>">Annuel</a>
+            <a href="<?php echo BASE_URL; ?>/index.php?route=rapport/list" class="btn btn-outline-secondary <?= empty($type) ? 'active' : '' ?>">Tous</a>
         </div>
     </div>
 
     <?php if (empty($rapports)): ?>
         <div class="alert alert-info">
-            Aucun rapport trouvé. <a href="/index.php?route=rapport/create">Créer un rapport</a>
+            Aucun rapport trouvé. <a href="<?php echo BASE_URL; ?>/index.php?route=rapport/create">Créer un rapport</a>
         </div>
     <?php else: ?>
         <div class="row">

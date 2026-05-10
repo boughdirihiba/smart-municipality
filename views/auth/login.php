@@ -324,7 +324,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="login-container">
         <div class="login-card">
             <div class="login-header">
-                <img src="../../logo.jpeg" alt="Smart Municipality" height="60">
+                <img src="<?php echo BASE_URL; ?>/../../logo.jpeg" alt="Smart Municipality" height="60">
                 <h2><i class="fas fa-city me-2"></i>Smart Municipality</h2>
                 <p>Plateforme citoyenne intelligente</p>
             </div>
@@ -363,7 +363,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </span>
                         </div>
                         <div class="forgot-password">
-                            <a href="forgot_password.php"><i class="fas fa-question-circle me-1"></i>Mot de passe oublié ?</a>
+                            <a href="<?php echo BASE_URL; ?>/forgot_password.php"><i class="fas fa-question-circle me-1"></i>Mot de passe oublié ?</a>
                         </div>
                     </div>
 
@@ -373,7 +373,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </form>
 
                 <div class="register-link">
-                    <p><i class="fas fa-user-plus me-1"></i> Pas encore de compte ? <a href="register.php">Créer un compte</a></p>
+                    <p><i class="fas fa-user-plus me-1"></i> Pas encore de compte ? <a href="<?php echo BASE_URL; ?>/register.php">Créer un compte</a></p>
                 </div>
             </div>
         </div>

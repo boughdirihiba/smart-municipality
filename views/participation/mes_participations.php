@@ -86,8 +86,8 @@ if (isset($_GET['error'])) {
 
     <nav class="navbar">
         <div class="container">
-            <a class="navbar-brand" href="../../index.php">
-                <img src="../../logo.jpeg" alt="Logo" height="35">
+            <a class="navbar-brand" href="<?php echo BASE_URL; ?>/../../index.php">
+                <img src="<?php echo BASE_URL; ?>/../../logo.jpeg" alt="Logo" height="35">
                 Smart Municipality
                 <?php if ($isAdmin): ?>
                     <span class="admin-badge">Admin</span>
@@ -97,7 +97,7 @@ if (isset($_GET['error'])) {
                 <span class="text-muted me-3" style="font-size: 0.8rem;">
                     <i class="fas fa-user me-1"></i><?php echo htmlspecialchars($userName); ?>
                 </span>
-                <a href="../../index.php" class="btn btn-primary btn-sm">
+                <a href="<?php echo BASE_URL; ?>/../../index.php" class="btn btn-primary btn-sm">
                     <i class="fas fa-arrow-left me-1"></i>Accueil
                 </a>
             </div>
@@ -142,7 +142,7 @@ if (isset($_GET['error'])) {
                     <i class="fas fa-calendar-times"></i>
                     <h3>Aucune participation</h3>
                     <p class="text-muted">Vous n'êtes inscrit à aucun événement pour le moment.</p>
-                    <a href="../../index.php" class="btn btn-primary mt-3">
+                    <a href="<?php echo BASE_URL; ?>/../../index.php" class="btn btn-primary mt-3">
                         <i class="fas fa-calendar-alt me-1"></i>Découvrir les événements
                     </a>
                 </div>

@@ -16,7 +16,7 @@
                     📥 Télécharger PDF
                 </a>
             <?php endif; ?>
-            <a href="/index.php?route=rapport/list" class="btn btn-outline-secondary ms-2">
+            <a href="<?php echo BASE_URL; ?>/index.php?route=rapport/list" class="btn btn-outline-secondary ms-2">
                 ← Retour
             </a>
         </div>

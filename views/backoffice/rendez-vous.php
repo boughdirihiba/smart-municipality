@@ -483,7 +483,7 @@ $totalAnnule = count(array_filter($allRdv, function($r) { return $r['statut'] ==
         <aside class="sidebar">
 
             <div class="sidebar-logo">
-                <img src="../../assets/icons/logo.png" alt="Logo">
+                <img src="<?php echo BASE_URL; ?>/../../assets/icons/logo.png" alt="Logo">
                 <div>
                     <h2>Smart Ville</h2>
                     <span>Admin</span>
@@ -495,33 +495,33 @@ $totalAnnule = count(array_filter($allRdv, function($r) { return $r['statut'] ==
             <nav class="nav-menu">
                 <ul>
                     <li>
-                        <img src="../../assets/icons/profil.svg" alt="">
-                        <a href="profil.php">Profile</a>
+                        <img src="<?php echo BASE_URL; ?>/../../assets/icons/profil.svg" alt="">
+                        <a href="<?php echo BASE_URL; ?>/profil.php">Profile</a>
                     </li>
                     <li>
-                        <img src="../../assets/icons/alertes.svg" alt="">
-                        <a href="evenements.php">Événements</a>
+                        <img src="<?php echo BASE_URL; ?>/../../assets/icons/alertes.svg" alt="">
+                        <a href="<?php echo BASE_URL; ?>/evenements.php">Événements</a>
                     </li>
                     <li>
-                        <img src="../../assets/icons/carte.svg" alt="">
-                        <a href="carte.php">Carte intelligente</a>
+                        <img src="<?php echo BASE_URL; ?>/../../assets/icons/carte.svg" alt="">
+                        <a href="<?php echo BASE_URL; ?>/carte.php">Carte intelligente</a>
                     </li>
                     <li>
-                        <img src="../../assets/icons/blog.svg" alt="">
-                        <a href="blog.php">Blog</a>
+                        <img src="<?php echo BASE_URL; ?>/../../assets/icons/blog.svg" alt="">
+                        <a href="<?php echo BASE_URL; ?>/blog.php">Blog</a>
                     </li>
                     <li>
-                        <img src="../../assets/icons/services.svg" alt="">
-                        <a href="services.php">Services en ligne</a>
+                        <img src="<?php echo BASE_URL; ?>/../../assets/icons/services.svg" alt="">
+                        <a href="<?php echo BASE_URL; ?>/services.php">Services en ligne</a>
                     </li>
                     <li class="active">
-                        <img src="../../assets/icons/rdv.svg" alt="">
-                        <a href="rendez-vous.php">Rendez-vous</a>
+                        <img src="<?php echo BASE_URL; ?>/../../assets/icons/rdv.svg" alt="">
+                        <a href="<?php echo BASE_URL; ?>/rendez-vous.php">Rendez-vous</a>
                     </li>
                 </ul>
                 <ul class="sub-nav">
-                    <li class="sub-active"><a href="rendez-vous.php">&rsaquo; Liste RDV</a></li>
-                    <li><a href="categories.php">&rsaquo; Catégories</a></li>
+                    <li class="sub-active"><a href="<?php echo BASE_URL; ?>/rendez-vous.php">&rsaquo; Liste RDV</a></li>
+                    <li><a href="<?php echo BASE_URL; ?>/categories.php">&rsaquo; Catégories</a></li>
                 </ul>
             </nav>
 
@@ -530,12 +530,12 @@ $totalAnnule = count(array_filter($allRdv, function($r) { return $r['statut'] ==
             <div class="nav-bottom">
                 <ul>
                     <li>
-                        <img src="../../assets/icons/parametres.svg" alt="">
-                        <a href="parametres.php">Paramètres</a>
+                        <img src="<?php echo BASE_URL; ?>/../../assets/icons/parametres.svg" alt="">
+                        <a href="<?php echo BASE_URL; ?>/parametres.php">Paramètres</a>
                     </li>
                     <li>
-                        <img src="../../assets/icons/deconnexion.svg" alt="">
-                        <a href="../../controllers/logout.php">Déconnexion</a>
+                        <img src="<?php echo BASE_URL; ?>/../../assets/icons/deconnexion.svg" alt="">
+                        <a href="<?php echo BASE_URL; ?>/../../controllers/logout.php">Déconnexion</a>
                     </li>
                 </ul>
             </div>
@@ -547,7 +547,7 @@ $totalAnnule = count(array_filter($allRdv, function($r) { return $r['statut'] ==
             <header class="top-bar">
                 <div class="top-bar-left">
                     <h1>Dashboard - Rendez-vous</h1>
-                    <a href="categories.php" class="btn-manage-cat">
+                    <a href="<?php echo BASE_URL; ?>/categories.php" class="btn-manage-cat">
                         <span class="btn-manage-cat-icon">&#9881;</span>
                         <span>Gérer les catégories</span>
                         <span class="btn-manage-cat-arrow">&rarr;</span>
@@ -558,7 +558,7 @@ $totalAnnule = count(array_filter($allRdv, function($r) { return $r['statut'] ==
                         <span>Admin</span><br>
                         <small>Sarah B.</small>
                     </div>
-                    <img src="../../assets/icons/avatar.svg" alt="">
+                    <img src="<?php echo BASE_URL; ?>/../../assets/icons/avatar.svg" alt="">
                 </div>
             </header>
 
@@ -615,7 +615,7 @@ $totalAnnule = count(array_filter($allRdv, function($r) { return $r['statut'] ==
                     <option value="annule" <?php echo $filterStatut == 'annule' ? 'selected' : ''; ?>>Annulé</option>
                 </select>
                 <button type="submit">Filtrer</button>
-                <a href="rendez-vous.php">Réinitialiser</a>
+                <a href="<?php echo BASE_URL; ?>/rendez-vous.php">Réinitialiser</a>
             </form>
 
             <div class="rdv-table-wrapper">
@@ -689,7 +689,7 @@ $totalAnnule = count(array_filter($allRdv, function($r) { return $r['statut'] ==
                         icon: "success",
                         draggable: true
                     }).then(() => {
-                        window.location.href = "/smart-municipality/controllers/RendezVousController.php?action=confirm&id=" + id;
+                        window.location.href="<?php echo BASE_URL; ?>/smart-municipality/controllers/RendezVousController.php?action=confirm&id=" + id;
                     });
                 }
             });
@@ -712,7 +712,7 @@ $totalAnnule = count(array_filter($allRdv, function($r) { return $r['statut'] ==
                         icon: "success",
                         draggable: true
                     }).then(() => {
-                        window.location.href = "/smart-municipality/controllers/RendezVousController.php?action=cancel&id=" + id;
+                        window.location.href="<?php echo BASE_URL; ?>/smart-municipality/controllers/RendezVousController.php?action=cancel&id=" + id;
                     });
                 }
             });
@@ -735,7 +735,7 @@ $totalAnnule = count(array_filter($allRdv, function($r) { return $r['statut'] ==
                         icon: "success",
                         draggable: true
                     }).then(() => {
-                        window.location.href = "/smart-municipality/controllers/RendezVousController.php?action=delete&id=" + id;
+                        window.location.href="<?php echo BASE_URL; ?>/smart-municipality/controllers/RendezVousController.php?action=delete&id=" + id;
                     });
                 }
             });

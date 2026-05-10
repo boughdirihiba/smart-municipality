@@ -4,7 +4,7 @@
             <h1>👥 Gestion des Équipes</h1>
             <p class="text-muted">Gestion centralisée des équipes d'intervention</p>
         </div>
-        <a href="/index.php?route=tracking/createTeam" class="btn btn-primary btn-lg">
+        <a href="<?php echo BASE_URL; ?>/index.php?route=tracking/createTeam" class="btn btn-primary btn-lg">
             ➕ Nouvelle Équipe
         </a>
     </div>
@@ -21,7 +21,7 @@
         <?php if (empty($teams)): ?>
             <div class="col-12">
                 <div class="alert alert-info">
-                    Aucune équipe créée. <a href="/index.php?route=tracking/createTeam">Créer une équipe</a>
+                    Aucune équipe créée. <a href="<?php echo BASE_URL; ?>/index.php?route=tracking/createTeam">Créer une équipe</a>
                 </div>
             </div>
         <?php else: ?>

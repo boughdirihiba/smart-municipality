@@ -1,0 +1,18 @@
+# Apache rewrite rules for Smart Municipality
+# Place this file in the project root: /smart/smart-municipality/
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /smart/smart-municipality/
+
+    # Exclude existing files and directories (css, js, images, assets, uploads, etc.)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Redirect all other requests to index.php, preserving query string
+    RewriteRule ^ index.php [L,QSA]
+</IfModule>
+
+# Optional: prevent directory listing
+Options -Indexes

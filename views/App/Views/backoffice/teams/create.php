@@ -43,7 +43,7 @@
                         <button type="submit" class="btn btn-primary btn-lg">
                             ✅ Créer l'Équipe
                         </button>
-                        <a href="/index.php?route=tracking/teams" class="btn btn-outline-secondary">
+                        <a href="<?php echo BASE_URL; ?>/index.php?route=tracking/teams" class="btn btn-outline-secondary">
                             Annuler
                         </a>
                     </div>

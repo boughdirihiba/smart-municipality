@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS posts (
     content TEXT NOT NULL,
     image VARCHAR(255) NULL,
     video VARCHAR(255) NULL,
+    statut ENUM('publie', 'brouillon', 'supprime') DEFAULT 'publie',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_posts_user FOREIGN KEY (user_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
 );

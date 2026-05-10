@@ -89,7 +89,7 @@
             </button>
         </form>
 
-        <a href="index.php?action=manage" class="btn-back">
+        <a href="<?php echo BASE_URL; ?>/index.php?action=manage" class="btn-back">
             <i class="fas fa-arrow-left"></i> Retour
         </a>
     </div>

@@ -533,7 +533,7 @@ foreach($last_demandes as &$demande) {
                 <button class="btn-premium" onclick="openNotifyModal()">
                     <i class="fas fa-bell"></i> Envoyer notification
                 </button>
-                <a href="index.php?action=create_service" class="btn-premium">
+                <a href="<?php echo BASE_URL; ?>/index.php?action=create_service" class="btn-premium">
                     <i class="fas fa-plus"></i> Nouveau service
                 </a>
             </div>
@@ -628,7 +628,7 @@ foreach($last_demandes as &$demande) {
         </div>
 
         <div style="text-align: center; margin-top: 32px;">
-            <a href="index.php?action=manage">
+            <a href="<?php echo BASE_URL; ?>/index.php?action=manage">
                 <button class="btn-premium"><i class="fas fa-arrow-left"></i> Retour au site</button>
             </a>
         </div>
