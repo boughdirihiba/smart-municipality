@@ -6,7 +6,7 @@ session_start();
 
 define('APP_NAME', 'Smart Municipality');
 define('BASE_PATH', dirname(__DIR__));
-define('BASE_URL', '/merge/smart-municipality1');
+define('BASE_URL', '/smart-municipality');
 define('UPLOAD_PATH', BASE_PATH . '/public/uploads/');
 define('UPLOAD_URL', BASE_URL . '/public/uploads/');
 
@@ -82,7 +82,7 @@ function bootstrap_user_session_from_database(): void
 }
 
 // Disable automatic session bootstrap - use proper login instead
-// bootstrap_user_session_from_database();
+bootstrap_user_session_from_database();
 
 function e(string $value): string
 {
