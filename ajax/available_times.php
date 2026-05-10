@@ -1,8 +1,8 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 
-require_once '../config/database.php';
-require_once '../controllers/RendezVousController.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../controllers/RendezVousController.php';
 
 $catIds = array_map('intval', (array)($_GET['cats'] ?? []));
 $date   = trim($_GET['date'] ?? '');
@@ -18,4 +18,3 @@ $rdv  = new RendezVous($conn);
 
 $times = RendezVousController::getAvailableTimes($rdv, $catIds, $date);
 echo json_encode($times);
-?>

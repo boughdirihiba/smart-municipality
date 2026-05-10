@@ -74,7 +74,7 @@
     </button>
     <ul class="nav-links">
         <li><a href="<?php echo BASE_URL; ?>/index.php?route=profile" class="<?php echo $currentRoute === 'profile' ? 'active' : ''; ?>">Profil</a></li>
-        <li><a href="<?php echo BASE_URL; ?>/index.php?action=evenements" class="<?php echo ($_GET['action'] ?? '') === 'evenements' ? 'active' : ''; ?>">Événements</a></li>
+        <li><a href="<?php echo BASE_URL; ?>/index.php?action=evenements" class="<?php echo in_array($_GET['action'] ?? '', ['evenements', 'evenements_categorie']) ? 'active' : ''; ?>">Événements</a></li>
         <li><a href="<?php echo BASE_URL; ?>/index.php?route=home/index" class="<?php echo $currentRoute === 'home/index' && empty($_GET['action']) ? 'active' : ''; ?>">Carte</a></li>
         <li><a href="<?php echo BASE_URL; ?>/index.php?action=blog" class="<?php echo ($_GET['action'] ?? '') === 'blog' ? 'active' : ''; ?>">Blog</a></li>
         <?php if ($userRole === 'admin'): ?>

@@ -1,8 +1,8 @@
 <?php
-require_once "models/Document.php";
-require_once "config/database.php";
-require_once "controllers/ServiceController.php";
-require_once "controllers/RatingController.php";
+require_once __DIR__ . "/../../models/Document.php";
+require_once __DIR__ . "/../../config/database.php";
+require_once __DIR__ . "/../../controllers/ServiceController.php";
+require_once __DIR__ . "/../../controllers/RatingController.php";
 
 // Démarrer la session si ce n'est pas déjà fait
 if (session_status() === PHP_SESSION_NONE) {
@@ -122,6 +122,11 @@ foreach($demandes as &$demande) {
 }
 ?>
 
+<?php
+// ── Layout header (navbar) ───────────────────────────────────────────────────
+$title = 'Mes Demandes';
+require BASE_PATH . '/views/App/Views/layouts/header.php';
+?>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -1432,7 +1437,7 @@ foreach($demandes as &$demande) {
         #qrCodeContainer img { width: 180px !important; height: 180px !important; }
     }
 </style>
-<link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/chatbot.css">
+<link rel="stylesheet" href="assets/css/chatbot.css">
 
 <section class="hero">
     <h1>Bienvenue sur Smart Municipality</h1>
@@ -1485,26 +1490,26 @@ foreach($demandes as &$demande) {
                 <span class="sort-label"><i class="fas fa-sort-amount-down"></i> TRIER PAR</span>
                 <div class="sort-buttons">
                     <div class="sort-group">
-                        <a href="<?php echo BASE_URL; ?>/?sort=nom&order=ASC" class="sort-btn <?php echo ($sort == 'nom' && $order == 'ASC') ? 'active' : ''; ?>">
+                        <a href="?sort=nom&order=ASC" class="sort-btn <?php echo ($sort == 'nom' && $order == 'ASC') ? 'active' : ''; ?>">
                             <i class="fas fa-sort-alpha-down"></i> A→Z
                         </a>
-                        <a href="<?php echo BASE_URL; ?>/?sort=nom&order=DESC" class="sort-btn <?php echo ($sort == 'nom' && $order == 'DESC') ? 'active' : ''; ?>">
+                        <a href="?sort=nom&order=DESC" class="sort-btn <?php echo ($sort == 'nom' && $order == 'DESC') ? 'active' : ''; ?>">
                             <i class="fas fa-sort-alpha-up"></i> Z→A
                         </a>
                     </div>
                     <div class="sort-group">
-                        <a href="<?php echo BASE_URL; ?>/?sort=popularite&order=DESC" class="sort-btn <?php echo ($sort == 'popularite' && $order == 'DESC') ? 'active' : ''; ?>">
+                        <a href="?sort=popularite&order=DESC" class="sort-btn <?php echo ($sort == 'popularite' && $order == 'DESC') ? 'active' : ''; ?>">
                             <i class="fas fa-chart-line"></i> Plus populaire
                         </a>
-                        <a href="<?php echo BASE_URL; ?>/?sort=popularite&order=ASC" class="sort-btn <?php echo ($sort == 'popularite' && $order == 'ASC') ? 'active' : ''; ?>">
+                        <a href="?sort=popularite&order=ASC" class="sort-btn <?php echo ($sort == 'popularite' && $order == 'ASC') ? 'active' : ''; ?>">
                             <i class="fas fa-chart-line"></i> Moins populaire
                         </a>
                     </div>
                     <div class="sort-group">
-                        <a href="<?php echo BASE_URL; ?>/?sort=date&order=DESC" class="sort-btn <?php echo ($sort == 'date' && $order == 'DESC') ? 'active' : ''; ?>">
+                        <a href="?sort=date&order=DESC" class="sort-btn <?php echo ($sort == 'date' && $order == 'DESC') ? 'active' : ''; ?>">
                             <i class="fas fa-calendar-alt"></i> Plus récent
                         </a>
-                        <a href="<?php echo BASE_URL; ?>/?sort=date&order=ASC" class="sort-btn <?php echo ($sort == 'date' && $order == 'ASC') ? 'active' : ''; ?>">
+                        <a href="?sort=date&order=ASC" class="sort-btn <?php echo ($sort == 'date' && $order == 'ASC') ? 'active' : ''; ?>">
                             <i class="fas fa-calendar-alt"></i> Plus ancien
                         </a>
                     </div>
@@ -1707,30 +1712,7 @@ foreach($demandes as &$demande) {
     </div>
 </main>
 
-<footer class="footer">
-    <div class="footer-content">
-        <div class="footer-section">
-            <h4><i class="fas fa-city"></i> Smart Municipality</h4>
-            <p>Simplifiez vos démarches administratives avec notre plateforme digitale moderne et intuitive.</p>
-        </div>
-        <div class="footer-section">
-            <h4>Liens rapides</h4>
-            <a href="<?php echo BASE_URL; ?>/index.php?action=manage"><i class="fas fa-home"></i> Accueil</a>
-            <a href="#"><i class="fas fa-concierge-bell"></i> Services en ligne</a>
-            <a href="#"><i class="fas fa-envelope"></i> Contact</a>
-            <a href="#"><i class="fas fa-question-circle"></i> FAQ</a>
-        </div>
-        <div class="footer-section">
-            <h4>Contact</h4>
-            <a href="mailto:contact@smartmunicipality.com"><i class="fas fa-envelope"></i> contact@smartmunicipality.com</a>
-            <a href="<?php echo BASE_URL; ?>/tel:+33123456789"><i class="fas fa-phone"></i> +33 1 23 45 67 89</a>
-            <p><i class="fas fa-clock"></i> Lun-Ven: 9h-17h</p>
-        </div>
-    </div>
-    <div class="footer-bottom">
-        &copy; 2026 Smart Municipality - Tous droits réservés | Conçu avec <i class="fas fa-heart" style="color:#4ade80;"></i> pour les citoyens
-    </div>
-</footer>
+<?php require BASE_PATH . '/views/App/Views/layouts/footer.php'; ?>
 
 <script>
     // ========== QR CODE MODAL ==========
@@ -2213,8 +2195,8 @@ foreach($demandes as &$demande) {
                         <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:white; border-radius:14px; margin-bottom:10px; border:1px solid #eef2ff;">
                             <span><i class="fas fa-file" style="color: var(--primary);"></i> ${file.nom_fichier.substring(0, 35)}... <small style="color:#64748b;">(${(file.taille/1024).toFixed(1)} KB)</small></span>
                             <div>
-                                <a href="<?php echo BASE_URL; ?>/index.php?action=download_document&id=${file.id}" style="color: var(--primary); margin:0 5px;"><i class="fas fa-download"></i></a>
-                                <a href="<?php echo BASE_URL; ?>/index.php?action=delete_document&id=${file.id}" style="color:#dc2626;" onclick="return confirm('Supprimer ce document ?')"><i class="fas fa-trash"></i></a>
+                                <a href="index.php?action=download_document&id=${file.id}" style="color: var(--primary); margin:0 5px;"><i class="fas fa-download"></i></a>
+                                <a href="index.php?action=delete_document&id=${file.id}" style="color:#dc2626;" onclick="return confirm('Supprimer ce document ?')"><i class="fas fa-trash"></i></a>
                             </div>
                         </div>
                     `).join('');
@@ -2356,9 +2338,9 @@ foreach($demandes as &$demande) {
 </script>
 
 <?php 
-require_once "controllers/ChatbotController.php";
+require_once __DIR__ . "/../../controllers/ChatbotController.php";
 $chatbotController = new ChatbotController();
 $chatbotController->widget(); 
 ?>
 
-<script src="<?php echo BASE_URL; ?>/assets/js/chatbot.js"></script>
+<script src="assets/js/chatbot.js"></script>

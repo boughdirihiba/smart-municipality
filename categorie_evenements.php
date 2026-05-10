@@ -1,5 +1,5 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 require_once __DIR__ . '/controllers/EvenementC.php';
 require_once __DIR__ . '/controllers/ParticipationC.php';
 require_once __DIR__ . '/controllers/CategorieEvenementC.php';
@@ -107,19 +107,11 @@ foreach ($evenementsArray as $e) {
 }
 ?>
 
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($categorie['nom']); ?> - Smart Municipality</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/fr.js'></script>
-    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
-    <style>
+<?php
+$title = 'Événements';
+require BASE_PATH . '/views/App/Views/layouts/header.php';
+?>
+<style>
         :root {
             --primary: #1a5e2a;
             --primary-dark: #0d3b1a;
@@ -137,58 +129,6 @@ foreach ($evenementsArray as $e) {
             min-height: 100vh;
         }
         
-        /* ========== NAVBAR ========== */
-        .navbar {
-            background: white;
-            box-shadow: var(--shadow-sm);
-            padding: 0.75rem 2rem;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .nav-brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            text-decoration: none;
-        }
-        .nav-brand img { height: 35px; border-radius: 10px; }
-        .nav-brand-text { font-weight: 700; font-size: 1.25rem; color: var(--primary); }
-        .nav-brand-text span { color: #4caf50; }
-        .mobile-toggle {
-            display: none;
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 10px;
-        }
-        .mobile-toggle span {
-            display: block;
-            width: 25px;
-            height: 2px;
-            background: var(--primary);
-            margin: 5px 0;
-        }
-        .nav-links {
-            display: flex;
-            list-style: none;
-            gap: 1.5rem;
-            margin: 0;
-            padding: 0;
-        }
-        .nav-links li a {
-            text-decoration: none;
-            color: #4a5568;
-            font-weight: 500;
-            transition: all 0.2s;
-            padding: 0.5rem 0;
-        }
-        .nav-links li a:hover { color: var(--primary); }
-        .nav-links li a.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
         .nav-right { display: flex; align-items: center; gap: 1rem; }
         .nav-search {
             display: flex;
@@ -543,26 +483,12 @@ foreach ($evenementsArray as $e) {
         }
         
         @media (max-width: 768px) {
-            .navbar { padding: 0.75rem 1rem; }
-            .mobile-toggle { display: block; }
-            .nav-links {
-                display: none;
-                width: 100%;
-                flex-direction: column;
-                gap: 0;
-                margin-top: 1rem;
-            }
-            .nav-links.open { display: flex; }
-            .nav-links li a { display: block; padding: 10px 0; }
-            .nav-right { margin-top: 1rem; width: 100%; justify-content: space-between; }
             .hero-categorie h1 { font-size: 1.3rem; }
             .hero-stats { flex-direction: column; align-items: center; gap: 8px; }
             .calendar-container { padding: 10px; }
             .fc-toolbar { flex-direction: column; gap: 10px; }
         }
     </style>
-</head>
-<body class="role-<?php echo $userRole; ?>">
 
     <!-- Toast Notification -->
     <?php if ($message): ?>
@@ -605,47 +531,13 @@ foreach ($evenementsArray as $e) {
         </div>
     </div>
 
-    <!-- Navigation -->
-    <nav class="navbar" id="navbar">
-        <a class="nav-brand" href="index.php">
-            <img src="logo.jpeg" alt="Logo Smart Municipality">
-            <span class="nav-brand-text">Smart <span>Municipality</span></span>
-        </a>
-        <button class="mobile-toggle" type="button" aria-label="Ouvrir le menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
-            <span></span><span></span><span></span>
-        </button>
-        <ul class="nav-links">
-            <li><a href="#">Profil</a></li>
-            <li><a href="index.php">Événements</a></li>
-            <li><a href="#">Carte</a></li>
-            <li><a href="#">Blog</a></li>
-            <li><a href="#">Services</a></li>
-            <li><a href="#">Rendez-vous</a></li>
-        </ul>
-        <div class="nav-right">
-            <div class="nav-search">
-                <span class="nav-search-icon">⌕</span>
-                <input type="text" id="searchInput" placeholder="Rechercher...">
-            </div>
-            <div class="user-info">
-                <?php if ($isLoggedIn): ?>
-                    <div class="user-avatar"><?php echo strtoupper(substr($_SESSION['prenom'] ?? 'U', 0, 1)); ?></div>
-                    <span class="text-muted" style="font-size: 0.75rem;"><?php echo htmlspecialchars($userName); ?></span>
-                    <?php if ($isAdmin): ?>
-                    <a href="views/dashboard/admin.php" class="btn-dashboard"><i class="fas fa-chart-line"></i> Dashboard</a>
-                    <?php endif; ?>
-                    <a href="logout.php" class="btn-logout"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
-                <?php else: ?>
-                    <a href="views/auth/login.php" class="btn-login"><i class="fas fa-sign-in-alt"></i> Se connecter</a>
-                <?php endif; ?>
-            </div>
-        </div>
-    </nav>
+
+
 
     <!-- Hero -->
     <section class="hero-categorie">
         <div class="container">
-            <a href="index.php" class="back-link"><i class="fas fa-arrow-left"></i> Retour aux catégories</a>
+            <a href="<?php echo BASE_URL; ?>/index.php?action=evenements" class="back-link"><i class="fas fa-arrow-left"></i> Retour aux catégories</a>
             <h1><i class="fas <?php 
                 if($categorie['nom'] == 'Culture') echo 'fa-music';
                 elseif($categorie['nom'] == 'Sport') echo 'fa-futbol';
@@ -690,7 +582,7 @@ foreach ($evenementsArray as $e) {
         <!-- Admin Add Button -->
         <?php if ($isAdmin): ?>
         <div class="text-end mb-3">
-            <a href="views/evenement/ajouter.php?categorie=<?php echo $categorie_id; ?>" class="btn-add-event">
+            <a href="<?php echo BASE_URL; ?>/views/evenement/ajouter.php?categorie=<?php echo $categorie_id; ?>" class="btn-add-event">
                 <i class="fas fa-plus-circle"></i> Ajouter un événement
             </a>
         </div>
@@ -702,7 +594,7 @@ foreach ($evenementsArray as $e) {
             <i class="fas fa-calendar-times"></i>
             <h5>Aucun événement trouvé</h5>
             <p class="text-muted">Aucun événement dans la catégorie "<?php echo htmlspecialchars($categorie['nom']); ?>"</p>
-            <a href="categorie_evenements.php?id=<?php echo $categorie_id; ?>" class="btn btn-primary-custom btn-sm mt-2">Réinitialiser</a>
+            <a href="<?php echo BASE_URL; ?>/index.php?action=evenements_categorie&id=<?php echo $categorie_id; ?>" class="btn btn-primary-custom btn-sm mt-2">Réinitialiser</a>
         </div>
         <?php else: ?>
             <?php foreach($evenementsArray as $event): 
@@ -766,9 +658,9 @@ foreach ($evenementsArray as $e) {
                         
                         <?php if ($isAdmin): ?>
                         <div class="admin-buttons">
-                            <a href="views/evenement/modifier.php?id=<?php echo $event['id']; ?>" class="btn-admin btn-edit"><i class="fas fa-edit"></i></a>
-                            <a href="views/evenement/participants.php?id=<?php echo $event['id']; ?>" class="btn-admin btn-users"><i class="fas fa-users"></i></a>
-                            <a href="views/evenement/supprimer.php?id=<?php echo $event['id']; ?>" class="btn-admin btn-delete" onclick="return confirm('Supprimer ?')"><i class="fas fa-trash"></i></a>
+                            <a href="<?php echo BASE_URL; ?>/views/evenement/modifier.php?id=<?php echo $event['id']; ?>" class="btn-admin btn-edit"><i class="fas fa-edit"></i></a>
+                            <a href="<?php echo BASE_URL; ?>/views/evenement/participants.php?id=<?php echo $event['id']; ?>" class="btn-admin btn-users"><i class="fas fa-users"></i></a>
+                            <a href="<?php echo BASE_URL; ?>/views/evenement/supprimer.php?id=<?php echo $event['id']; ?>" class="btn-admin btn-delete" onclick="return confirm('Supprimer ?')"><i class="fas fa-trash"></i></a>
                         </div>
                         <?php endif; ?>
                     </div>
@@ -948,7 +840,7 @@ foreach ($evenementsArray as $e) {
 // Fonction pour partager sur Facebook - Version simple et fiable
 function partagerFacebook(eventId, titre, lieu, date) {
     // URL de l'événement
-    var url = window.location.origin + '/smart_municipality/categorie_evenements.php?id=' + eventId;
+    var url = '<?php echo BASE_URL; ?>/index.php?action=evenements_categorie&id=' + eventId;
     
     // URL de partage Facebook uniquement avec le lien
     var shareUrl = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url);
@@ -966,5 +858,4 @@ function partagerFacebook(eventId, titre, lieu, date) {
             }
         }, 5000);
     </script>
-</body>
-</html>
+<?php require BASE_PATH . '/views/App/Views/layouts/footer.php'; ?>
