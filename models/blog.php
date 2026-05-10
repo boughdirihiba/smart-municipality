@@ -1,22 +1,17 @@
 <?php
 class Blog {
+    private $db;
     private $id;
     private $user_id;
     private $content;
     private $image;
     private $video;
     private $created_at;
-    private $db;
-    private $current_lang; // ajout
-    private $translations; // ajout
-    
+
     public function __construct($db = null) {
         $this->db = $db;
-        $this->current_lang = 'fr';
-        $this->translations = [];
     }
-    
-    // Getters
+
     public function getId() { return $this->id; }
     public function getUserId() { return $this->user_id; }
     public function getContent() { return $this->content; }
@@ -24,31 +19,11 @@ class Blog {
     public function getVideo() { return $this->video; }
     public function getCreatedAt() { return $this->created_at; }
     public function getDb() { return $this->db; }
-    public function getCurrentLang() { return $this->current_lang; } // ajout
-    public function isRtl() { return $this->current_lang === 'ar'; } // ajout
-    public function t($key) { return $this->translations[$this->current_lang][$key] ?? $key; } // ajout
-    
-    // Setters
+
     public function setId($id) { $this->id = $id; }
     public function setUserId($user_id) { $this->user_id = $user_id; }
     public function setContent($content) { $this->content = $content; }
     public function setImage($image) { $this->image = $image; }
     public function setVideo($video) { $this->video = $video; }
     public function setCreatedAt($created_at) { $this->created_at = $created_at; }
-    public function setDb($db) { $this->db = $db; }
-    public function setCurrentLang($lang) { $this->current_lang = $lang; } // ajout
-    public function setTranslations($translations) { $this->translations = $translations; } // ajout
-    
-    // Méthodes existantes
-    public function createPost() { return null; }
-    public function getPosts() { return []; }
-    public function updatePost() { return false; }
-    public function deletePost() { return false; }
-    public function createComment() { return false; }
-    public function getCommentsByPost() { return []; }
-    public function updateComment() { return false; }
-    public function deleteComment() { return false; }
-    public function reactToPostAjax() { return false; }
-    public function searchPostsInPhp() { return []; }
 }
-?>

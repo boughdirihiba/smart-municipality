@@ -9,9 +9,16 @@ spl_autoload_register(function (string $class): void {
     }
 
     $relativeClass = substr($class, strlen($prefix));
-    $file = BASE_PATH . '/app/' . str_replace('\\', '/', $relativeClass) . '.php';
+    $paths = [
+        BASE_PATH . '/controllers/App/' . str_replace('\\', '/', $relativeClass) . '.php',
+        BASE_PATH . '/models/App/' . str_replace('\\', '/', $relativeClass) . '.php',
+        BASE_PATH . '/app/' . str_replace('\\', '/', $relativeClass) . '.php',
+    ];
 
-    if (file_exists($file)) {
-        require $file;
+    foreach ($paths as $file) {
+        if (file_exists($file)) {
+            require $file;
+            return;
+        }
     }
 });

@@ -20,26 +20,14 @@
         <span></span><span></span><span></span>
     </button>
     <ul class="nav-links">
-        <li><a href="<?php echo BASE_URL; ?>/index.php?route=home/index" class="<?php echo strpos($currentRoute, 'home') !== false ? 'active' : ''; ?>">Accueil</a></li>
-        <li><a href="<?php echo BASE_URL; ?>/index.php?route=signalements/list" class="<?php echo strpos($currentRoute, 'signalement') !== false ? 'active' : ''; ?>">Signalements</a></li>
-        <li><a href="<?php echo BASE_URL; ?>/index.php?route=event/index" class="<?php echo strpos($currentRoute, 'event') !== false ? 'active' : ''; ?>">Événements</a></li>
-        <li><a href="<?php echo BASE_URL; ?>/index.php?route=blog/index" class="<?php echo strpos($currentRoute, 'blog') !== false ? 'active' : ''; ?>">Blog</a></li>
-        <li><a href="<?php echo BASE_URL; ?>/index.php?route=rendez_vous/myAppointments" class="<?php echo strpos($currentRoute, 'rendez_vous') !== false ? 'active' : ''; ?>">Rendez-vous</a></li>
-        <?php if (isset($_SESSION['user'])): ?>
-            <li class="nav-divider"></li>
-            <li><a href="<?php echo BASE_URL; ?>/index.php?route=login/logout">Déconnexion</a></li>
-        <?php else: ?>
-            <li class="nav-divider"></li>
-            <li><a href="<?php echo BASE_URL; ?>/index.php?route=login/index" class="nav-btn-login">Connexion</a></li>
-        <?php endif; ?>
+        <li><a href="<?php echo BASE_URL; ?>/index.php?route=profile" class="<?php echo $currentRoute === 'profile' ? 'active' : ''; ?>">Profil</a></li>
+        <li><a href="<?php echo BASE_URL; ?>/index.php?action=evenements" class="<?php echo ($_GET['action'] ?? '') === 'evenements' ? 'active' : ''; ?>">Événements</a></li>
+        <li><a href="<?php echo BASE_URL; ?>/index.php?route=home/index" class="<?php echo $currentRoute === 'home/index' && empty($_GET['action']) ? 'active' : ''; ?>">Carte</a></li>
+        <li><a href="<?php echo BASE_URL; ?>/index.php?action=blog" class="<?php echo ($_GET['action'] ?? '') === 'blog' ? 'active' : ''; ?>">Blog</a></li>
+        <li><a href="<?php echo BASE_URL; ?>/index.php?action=manage" class="<?php echo ($_GET['action'] ?? '') === 'manage' ? 'active' : ''; ?>">Demandes</a></li>
+        <li><a href="<?php echo BASE_URL; ?>/index.php?action=rendez_vous" class="<?php echo ($_GET['action'] ?? '') === 'rendez_vous' ? 'active' : ''; ?>">Rendez-vous</a></li>
     </ul>
     <div class="nav-right">
-        <?php if (isset($_SESSION['user'])): ?>
-            <div class="nav-user">
-                <span class="nav-user-name"><?php echo htmlspecialchars($_SESSION['user']['prenom'] ?? 'User'); ?></span>
-                <img src="<?php echo BASE_URL; ?>/public/uploads/<?php echo htmlspecialchars($_SESSION['user']['avatar'] ?? 'sidebar-photo.svg'); ?>" alt="Avatar" class="nav-user-avatar">
-            </div>
-        <?php endif; ?>
         <div class="nav-search">
             <span class="nav-search-icon">⌕</span>
             <input type="text" placeholder="Rechercher...">
@@ -49,7 +37,7 @@
 <?php endif; ?>
 <div class="app-shell">
     <?php if ($userRole !== 'citoyen'): ?>
-        <?php require BASE_PATH . '/app/Views/layouts/sidebar.php'; ?>
+        <?php require BASE_PATH . '/views/App/Views/layouts/sidebar.php'; ?>
     <?php endif; ?>
     <main class="app-content">
     <script>
@@ -85,3 +73,4 @@
             <?php echo e($flash['message']); ?>
         </div>
     <?php endif; ?>
+

@@ -122,12 +122,6 @@ foreach($demandes as &$demande) {
 }
 ?>
 
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Municipality - Plateforme moderne</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -151,19 +145,6 @@ foreach($demandes as &$demande) {
         color: #e2e8f0;
     }
 
-    body.dark-mode .navbar {
-        background: #1e293b;
-        border-bottom-color: #334155;
-    }
-
-    body.dark-mode .nav-links a {
-        color: #94a3b8;
-    }
-
-    body.dark-mode .nav-links a:hover {
-        color: #10b981;
-        background: rgba(16, 185, 129, 0.1);
-    }
 
     body.dark-mode .hero {
         background: linear-gradient(135deg, #0f172a, #1e293b);
@@ -329,116 +310,6 @@ foreach($demandes as &$demande) {
         --card-hover-shadow: 0 20px 35px rgba(5, 46, 22, 0.12);
     }
 
-    .navbar {
-        background: rgba(255, 255, 255, 0.97);
-        backdrop-filter: blur(10px);
-        padding: 0 40px;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-        border-bottom: 1px solid rgba(5, 46, 22, 0.1);
-        transition: all 0.3s ease;
-    }
-
-    .nav-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        max-width: 1400px;
-        margin: 0 auto;
-        padding: 12px 0;
-        gap: 20px;
-        flex-wrap: wrap;
-    }
-
-    .logo {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        text-decoration: none;
-        flex-shrink: 0;
-    }
-
-    .logo-img {
-        width: 55px;
-        height: 55px;
-        object-fit: contain;
-        border-radius: 14px;
-        transition: transform 0.3s ease;
-    }
-
-    .logo-img:hover {
-        transform: scale(1.05);
-    }
-
-    .logo-text .smart {
-        font-size: 22px;
-        font-weight: 800;
-        background: var(--primary-gradient);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        letter-spacing: -0.5px;
-    }
-
-    .logo-text .municipality {
-        font-size: 11px;
-        font-weight: 500;
-        color: #64748b;
-        letter-spacing: 0.3px;
-    }
-
-    .nav-links {
-        display: flex;
-        gap: 6px;
-        align-items: center;
-        flex-wrap: wrap;
-        flex: 1;
-        justify-content: center;
-    }
-
-    .nav-links a {
-        text-decoration: none;
-        color: #475569;
-        font-weight: 500;
-        font-size: 14px;
-        transition: all 0.3s;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 16px;
-        border-radius: 40px;
-    }
-
-    .nav-links a i {
-        font-size: 15px;
-        color: #94a3b8;
-        transition: color 0.3s;
-    }
-
-    .nav-links a:hover {
-        background: rgba(5, 46, 22, 0.06);
-        color: var(--primary);
-    }
-
-    .nav-links a:hover i {
-        color: var(--primary);
-    }
-
-    .nav-links a.active {
-        background: rgba(5, 46, 22, 0.1);
-        color: var(--primary);
-    }
-
-    .nav-links a.active i {
-        color: var(--primary);
-    }
-
-    .nav-right {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-    }
 
     .notification-bell {
         position: relative;
@@ -1562,53 +1433,6 @@ foreach($demandes as &$demande) {
     }
 </style>
 <link rel="stylesheet" href="assets/css/chatbot.css">
-</head>
-<body>
-
-<nav class="navbar">
-    <div class="nav-container">
-        <a href="index.php?action=manage" class="logo">
-            <img src="assets/images/logo.png" alt="Smart Municipality" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <div class="logo-icon" style="display: none;">
-                <i class="fas fa-city"></i>
-            </div>
-            <div class="logo-text">
-                <div class="smart">Smart Municipality</div>
-                <div class="municipality">Services en ligne</div>
-            </div>
-        </a>
-        <div class="nav-links">
-            <a href="index.php?action=profil"><i class="fas fa-user-circle"></i> Profil</a>
-            <a href="index.php?action=evenements"><i class="fas fa-calendar-alt"></i> Événements</a>
-            <a href="index.php?action=carte_intelligente"><i class="fas fa-map-marked-alt"></i> Carte</a>
-            <a href="index.php?action=blog"><i class="fas fa-newspaper"></i> Blog</a>
-            <a href="index.php?action=list_services" class="active"><i class="fas fa-concierge-bell"></i> Services</a>
-            <a href="index.php?action=rendez_vous"><i class="fas fa-calendar-check"></i> Rendez-vous</a>
-        </div>
-        <div class="nav-right">
-            <button id="darkModeToggle" class="btn-darkmode">
-                <i class="fas fa-moon"></i> <span id="darkModeText">Sombre</span>
-            </button>
-            <div class="notification-bell" id="notificationBell">
-                <i class="fas fa-bell"></i>
-                <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
-                <div class="notification-dropdown" id="notificationDropdown">
-                    <div class="notification-header">
-                        <h4><i class="fas fa-bell"></i> Notifications</h4>
-                        <span class="mark-all-read" id="markAllRead">Tout marquer comme lu</span>
-                    </div>
-                    <div class="notification-list" id="notificationList">
-                        <div class="empty-notifications">
-                            <i class="fas fa-bell-slash"></i>
-                            <p>Chargement...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <a href="index.php?action=dashboard" class="btn-backoffice"><i class="fas fa-chart-line"></i> Administration</a>
-        </div>
-    </div>
-</nav>
 
 <section class="hero">
     <h1>Bienvenue sur Smart Municipality</h1>
@@ -2538,6 +2362,3 @@ $chatbotController->widget();
 ?>
 
 <script src="assets/js/chatbot.js"></script>
-
-</body>
-</html>

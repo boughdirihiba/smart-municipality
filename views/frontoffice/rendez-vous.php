@@ -1,15 +1,16 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-require_once '../../config/database.php';
-require_once '../../controllers/RendezVousController.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../controllers/RendezVousController.php';
 
 $db = new Database();
 $conn = $db->getConnection();
 $rdv  = new RendezVous($conn);
 
 $categories = RendezVousController::getAllCategories($rdv);
-$mesRdv     = RendezVousController::readByUser($rdv, 1);
+$userId_rdv = $_SESSION['user']['id'] ?? 0;
+$mesRdv     = RendezVousController::readByUser($rdv, $userId_rdv);
 
 // Multi-service selected categories
 $selectedCatIds = [];
@@ -76,14 +77,9 @@ function catsQuery($catIds, $extra = '') {
 $joursSemaine = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 $moisNoms     = ['', 'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
 $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+$rdvBase      = BASE_URL . '/index.php?action=rendez_vous';
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Municipality - Rendez-vous</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -132,58 +128,9 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
             pointer-events: none; z-index: 0;
         }
 
-        /* ===== NAVBAR ===== */
-        .navbar {
-            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-            background: rgba(255,255,255,0.82);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border-bottom: 1px solid rgba(11,79,48,0.07);
-            padding: 0 32px; height: 60px;
-            display: flex; align-items: center; justify-content: space-between;
-            transition: box-shadow 0.3s ease;
-        }
-        .navbar.scrolled { box-shadow: var(--shadow-md); }
-        .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-        .nav-brand img { width: 34px; height: 34px; filter: drop-shadow(0 2px 4px rgba(11,79,48,0.15)); }
-        .nav-brand-text { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 16px; color: var(--forest); letter-spacing: -0.3px; }
-        .nav-brand-text span { color: var(--emerald); }
-        .nav-links { display: flex; align-items: center; gap: 2px; list-style: none; }
-        .nav-links li a {
-            display: flex; align-items: center; gap: 6px; padding: 7px 14px;
-            border-radius: 9px; text-decoration: none; color: var(--stone);
-            font-size: 12.5px; font-weight: 500; transition: all 0.25s ease;
-        }
-        .nav-links li a:hover { color: var(--forest); background: var(--sage); }
-        .nav-links li a.active {
-            color: var(--white);
-            background: linear-gradient(135deg, var(--forest) 0%, var(--emerald) 100%);
-            box-shadow: 0 2px 10px rgba(11,79,48,0.25);
-        }
-        .nav-links li a img { width: 16px; height: 16px; opacity: 0.7; transition: opacity 0.2s; }
-        .nav-links li a:hover img { opacity: 0.9; }
-        .nav-links li a.active img { opacity: 1; filter: brightness(0) invert(1); }
-        .nav-right { display: flex; align-items: center; gap: 12px; }
-        .nav-search {
-            display: flex; align-items: center; background: var(--pearl);
-            border: 1.5px solid transparent; border-radius: 10px;
-            padding: 7px 12px; width: 190px; transition: all 0.3s ease;
-        }
-        .nav-search:focus-within { background: var(--white); border-color: var(--mint); box-shadow: 0 0 0 3px rgba(61,220,132,0.12); width: 230px; }
-        .nav-search img { width: 14px; height: 14px; margin-right: 7px; opacity: 0.5; }
-        .nav-search input { border: none; outline: none; background: transparent; font-size: 12px; font-family: 'DM Sans', sans-serif; color: var(--slate); width: 100%; }
-        .nav-user { display: flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; border-radius: 50px; background: var(--pearl); cursor: pointer; transition: background 0.2s; }
-        .nav-user:hover { background: var(--sage); }
-        .nav-user img { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--mint-soft); }
-        .nav-user span { font-size: 12px; font-weight: 600; color: var(--slate); }
-        .nav-settings-btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: var(--pearl); cursor: pointer; transition: all 0.2s; text-decoration: none; }
-        .nav-settings-btn:hover { background: var(--sage); transform: rotate(45deg); }
-        .nav-settings-btn img { width: 16px; height: 16px; opacity: 0.6; }
-        .mobile-toggle { display: none; background: none; border: none; cursor: pointer; width: 32px; height: 32px; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
-        .mobile-toggle span { display: block; width: 20px; height: 2px; background: var(--forest); border-radius: 3px; }
 
         /* ===== MAIN LAYOUT ===== */
-        .main-content { padding-top: 60px; height: 100vh; display: flex; position: relative; z-index: 1; }
+        .main-content { padding-top: 0; height: calc(100vh - 64px); display: flex; position: relative; z-index: 1; }
         .layout-split { display: flex; gap: 16px; width: 100%; padding: 16px 20px; height: calc(100vh - 60px); overflow: hidden; box-sizing: border-box; }
 
         /* ===== LEFT: WIZARD ===== */
@@ -964,38 +911,16 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
         }
         .suggest-hint::before { content: '💡'; font-size: 13px; }
     </style>
-<body>
-
-    <!-- ====== NAVBAR ====== -->
-    <nav class="navbar" id="navbar">
-        <a class="nav-brand" href="#">
-            <img src="../../assets/icons/logo.png" alt="Logo">
-            <span class="nav-brand-text">Smart <span>Municipality</span></span>
-        </a>
-        <button class="mobile-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
-            <span></span><span></span><span></span>
-        </button>
-        <ul class="nav-links">
-            <li><a href="profil.php"><img src="../../assets/icons/profil.svg" alt=""> <span>Profil</span></a></li>
-            <li><a href="evenements.php"><img src="../../assets/icons/alertes.svg" alt=""> <span>Événements</span></a></li>
-            <li><a href="carte.php"><img src="../../assets/icons/carte.svg" alt=""> <span>Carte</span></a></li>
-            <li><a href="blog.php"><img src="../../assets/icons/blog.svg" alt=""> <span>Blog</span></a></li>
-            <li><a href="services.php"><img src="../../assets/icons/services.svg" alt=""> <span>Services</span></a></li>
-            <li><a href="rendez-vous.php" class="active"><img src="../../assets/icons/rdv.svg" alt=""> <span>Rendez-vous</span></a></li>
-        </ul>
-        <div class="nav-right">
-            <div class="nav-search"><img src="../../assets/icons/search.svg" alt=""><input type="text" placeholder="Rechercher..."></div>
-            <a href="parametres.php" class="nav-settings-btn"><img src="../../assets/icons/parametres.svg" alt=""></a>
-            <div class="nav-user"><img src="../../assets/icons/avatar.svg" alt=""><span>Eliza Thorne</span></div>
-        </div>
-    </nav>
 
     <!-- ====== MAIN ====== -->
     <div class="main-content">
-        <?php if (isset($_SESSION['success']) || isset($_SESSION['error'])): ?>
+        <?php if (!empty($flash)): ?>
         <div class="flash-messages">
-            <?php if (isset($_SESSION['success'])): ?><div class="message-success"><?php echo $_SESSION['success']; unset($_SESSION['success']); ?></div><?php endif; ?>
-            <?php if (isset($_SESSION['error'])): ?><div class="message-error"><?php echo $_SESSION['error']; unset($_SESSION['error']); ?></div><?php endif; ?>
+            <?php if ($flash['type'] === 'success'): ?>
+                <div class="message-success"><?php echo htmlspecialchars($flash['message']); ?></div>
+            <?php else: ?>
+                <div class="message-error"><?php echo htmlspecialchars($flash['message']); ?></div>
+            <?php endif; ?>
         </div>
         <?php endif; ?>
 
@@ -1079,13 +1004,13 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
                             <div class="wizard-step-label">Étape 2</div>
                             <div class="wizard-step-title">Comment voulez-vous réserver ?</div>
                             <div class="mode-picker">
-                                <a href="rendez-vous.php?<?php echo catsQuery($selectedCatIds, 'mode=A'); ?>"
+                                <a href="<?php echo $rdvBase; ?>&<?php echo catsQuery($selectedCatIds, 'mode=A'); ?>"
                                    class="mode-card">
                                     <div class="mode-card-icon">🕐</div>
                                     <div class="mode-card-title">Je choisis l'heure</div>
                                     <div class="mode-card-desc">Le calendrier vous montre uniquement les dates disponibles pour votre visite</div>
                                 </a>
-                                <a href="rendez-vous.php?<?php echo catsQuery($selectedCatIds, 'mode=B'); ?>"
+                                <a href="<?php echo $rdvBase; ?>&<?php echo catsQuery($selectedCatIds, 'mode=B'); ?>"
                                    class="mode-card">
                                     <div class="mode-card-icon">📅</div>
                                     <div class="mode-card-title">Je choisis la date</div>
@@ -1139,9 +1064,9 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
                             if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
                             ?>
                             <div class="cal-nav" style="margin-top:14px;">
-                                <a href="rendez-vous.php?<?php echo $catQS; ?>&month=<?php echo $prevMonth; ?>&year=<?php echo $prevYear; ?>" class="cal-nav-btn">&larr;</a>
+                                <a href="<?php echo $rdvBase; ?>&<?php echo $catQS; ?>&month=<?php echo $prevMonth; ?>&year=<?php echo $prevYear; ?>" class="cal-nav-btn">&larr;</a>
                                 <span class="cal-month-label"><?php echo $moisComplet[$month] . ' ' . $year; ?></span>
-                                <a href="rendez-vous.php?<?php echo $catQS; ?>&month=<?php echo $nextMonth; ?>&year=<?php echo $nextYear; ?>" class="cal-nav-btn">&rarr;</a>
+                                <a href="<?php echo $rdvBase; ?>&<?php echo $catQS; ?>&month=<?php echo $nextMonth; ?>&year=<?php echo $nextYear; ?>" class="cal-nav-btn">&rarr;</a>
                             </div>
                             <div class="avail-legend">
                                 <span><span class="legend-dot" style="background:rgba(61,220,132,0.5);"></span> Disponible</span>
@@ -1155,7 +1080,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
                                 for ($i = 1; $i < $firstDay; $i++) { echo "<td></td>"; $dayCount++; }
                                 for ($day = 1; $day <= $daysInMonth; $day++) {
                                     $dateStr = sprintf('%04d-%02d-%02d', $year, $month, $day);
-                                    echo '<td><a href="#" class="cal-day loading-av" data-date="' . $dateStr . '" data-href="rendez-vous.php?' . $catQS . '&date=' . $dateStr . '&month=' . $month . '&year=' . $year . '&heure=HEURE">' . $day . '</a></td>';
+                                    echo '<td><a href="#" class="cal-day loading-av" data-date="' . $dateStr . '" data-href="' . $rdvBase . '&' . $catQS . '&date=' . $dateStr . '&month=' . $month . '&year=' . $year . '&heure=HEURE">' . $day . '</a></td>';
                                     $dayCount++;
                                     if ($dayCount % 7 == 0 && $day != $daysInMonth) echo "</tr><tr>";
                                 }
@@ -1187,9 +1112,9 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
                             if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
                             ?>
                             <div class="cal-nav">
-                                <a href="rendez-vous.php?<?php echo $catQS; ?>&month=<?php echo $prevMonth; ?>&year=<?php echo $prevYear; ?>" class="cal-nav-btn">&larr;</a>
+                                <a href="<?php echo $rdvBase; ?>&<?php echo $catQS; ?>&month=<?php echo $prevMonth; ?>&year=<?php echo $prevYear; ?>" class="cal-nav-btn">&larr;</a>
                                 <span class="cal-month-label"><?php echo $moisComplet[$month] . ' ' . $year; ?></span>
-                                <a href="rendez-vous.php?<?php echo $catQS; ?>&month=<?php echo $nextMonth; ?>&year=<?php echo $nextYear; ?>" class="cal-nav-btn">&rarr;</a>
+                                <a href="<?php echo $rdvBase; ?>&<?php echo $catQS; ?>&month=<?php echo $nextMonth; ?>&year=<?php echo $nextYear; ?>" class="cal-nav-btn">&rarr;</a>
                             </div>
                             <table class="cal-grid">
                                 <thead><tr><th>Lu</th><th>Ma</th><th>Me</th><th>Je</th><th>Ve</th><th>Sa</th><th>Di</th></tr></thead>
@@ -1200,7 +1125,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
                                 for ($day = 1; $day <= $daysInMonth; $day++) {
                                     $dateStr = sprintf('%04d-%02d-%02d', $year, $month, $day);
                                     $isSel = ($selectedDate == $dateStr) ? 'selected-day' : '';
-                                    echo '<td><a href="rendez-vous.php?' . $catQS . '&date=' . $dateStr . '&month=' . $month . '&year=' . $year . '" class="cal-day ' . $isSel . '">' . $day . '</a></td>';
+                                    echo '<td><a href="' . $rdvBase . '&' . $catQS . '&date=' . $dateStr . '&month=' . $month . '&year=' . $year . '" class="cal-day ' . $isSel . '">' . $day . '</a></td>';
                                     $dayCount++;
                                     if ($dayCount % 7 == 0 && $day != $daysInMonth) echo "</tr><tr>";
                                 }
@@ -1214,7 +1139,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
                             <?php if (!empty($availableTimes)): ?>
                             <div class="avail-times-grid" id="availTimesGrid">
                                 <?php foreach ($availableTimes as $t): ?>
-                                    <a href="rendez-vous.php?<?php echo $catQS; ?>&date=<?php echo $selectedDate; ?>&heure=<?php echo urlencode($t . ':00'); ?>&month=<?php echo $month; ?>&year=<?php echo $year; ?>"
+                                    <a href="<?php echo $rdvBase; ?>&<?php echo $catQS; ?>&date=<?php echo $selectedDate; ?>&heure=<?php echo urlencode($t . ':00'); ?>&month=<?php echo $month; ?>&year=<?php echo $year; ?>"
                                        class="avail-time-chip <?php echo (substr($selectedHeure, 0, 5) == $t) ? 'selected' : ''; ?>">
                                         <?php echo $t; ?>
                                     </a>
@@ -1286,16 +1211,16 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
                         <?php if ($step == 1): ?>
                             <div class="wiz-spacer"></div>
                         <?php elseif ($step == 'mode'): ?>
-                            <a href="rendez-vous.php" class="wiz-btn wiz-btn-back">&larr; Services</a>
+                            <a href="<?php echo $rdvBase; ?>" class="wiz-btn wiz-btn-back">&larr; Services</a>
                         <?php elseif ($step == 2): ?>
-                            <a href="rendez-vous.php?<?php echo $catQS; ?>" class="wiz-btn wiz-btn-back">&larr; Mode</a>
+                            <a href="<?php echo $rdvBase; ?>&<?php echo $catQS; ?>" class="wiz-btn wiz-btn-back">&larr; Mode</a>
                         <?php else: ?>
-                            <a href="rendez-vous.php?<?php echo catsQuery($selectedCatIds, 'mode=' . $mode . '&month=' . $month . '&year=' . $year . ($mode == 'B' && !empty($selectedDate) ? '&date=' . $selectedDate : '')); ?>" class="wiz-btn wiz-btn-back">&larr; Modifier</a>
+                            <a href="<?php echo $rdvBase; ?>&<?php echo catsQuery($selectedCatIds, 'mode=' . $mode . '&month=' . $month . '&year=' . $year . ($mode == 'B' && !empty($selectedDate) ? '&date=' . $selectedDate : '')); ?>" class="wiz-btn wiz-btn-back">&larr; Modifier</a>
                         <?php endif; ?>
 
                         <?php if ($step == 3): ?>
-                            <form id="rdvForm" action="/smart-municipality/controllers/RendezVousController.php" method="POST" style="flex:1;display:flex;">
-                                <input type="hidden" name="action"   value="create_multi">
+                            <form id="rdvForm" action="<?php echo BASE_URL; ?>/index.php" method="POST" style="flex:1;display:flex;">
+                                <input type="hidden" name="action"   value="rdv_create_multi">
                                 <input type="hidden" name="date_rdv" value="<?php echo htmlspecialchars($selectedDate); ?>">
                                 <?php foreach ($chainedSlots as $slot): ?>
                                     <input type="hidden" name="slots[]" value="<?php echo $slot['cat_id'] . '|' . $slot['heure']; ?>">
@@ -1380,7 +1305,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
                                     </div>
                                     <div class="rdv-card-actions">
                                         <?php if ($item['statut'] == 'en_attente'): ?>
-                                            <a href="rendez-vous.php?categorie_id=<?php echo $item['categorie_id']; ?>&date=<?php echo $item['date_rdv']; ?>&heure=<?php echo substr($item['heure'], 0, 5); ?>&month=<?php echo date('n', $ts); ?>&year=<?php echo date('Y', $ts); ?>" class="rdv-action-modify">&#9998; Modifier</a>
+                                            <a href="<?php echo BASE_URL; ?>/index.php?action=rdv_edit&id=<?php echo $item['id']; ?>" class="rdv-action-modify">&#9998; Modifier</a>
                                         <?php else: ?>
                                             <a href="#" class="rdv-action-modify" style="color:#ccc;cursor:default;">&#9998; Modifier</a>
                                         <?php endif; ?>
@@ -1493,13 +1418,13 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
                 }).then(function(result) {
                     if (result.isConfirmed) {
                         Swal.fire({ title: "Rendez-vous supprimé !", icon: "success", draggable: true }).then(function() {
-                            window.location.href = "/smart-municipality/controllers/RendezVousController.php?action=delete&id=" + id + "&from=front";
+                            window.location.href = "<?php echo BASE_URL; ?>/index.php?action=rdv_delete&id=" + id;
                         });
                     }
                 });
             } else {
                 if (confirm("Supprimer ce rendez-vous ?")) {
-                    window.location.href = "/smart-municipality/controllers/RendezVousController.php?action=delete&id=" + id + "&from=front";
+                    window.location.href = "<?php echo BASE_URL; ?>/index.php?action=rdv_delete&id=" + id;
                 }
             }
         }
@@ -1551,7 +1476,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
             calTimer = setTimeout(function() {
                 var timeStr = pad(h) + ':' + pad(m) + ':00';
                 var catPart = catIds.map(function(id){ return 'cats[]=' + id; }).join('&');
-                var url = '../../ajax/available_dates.php?' + catPart + '&heure=' + encodeURIComponent(timeStr);
+                var url = '<?php echo BASE_URL; ?>/ajax/available_dates.php?' + catPart + '&heure=' + encodeURIComponent(timeStr);
 
                 // Gray out all days while loading
                 document.querySelectorAll('.cal-day').forEach(function(el) {
@@ -1596,7 +1521,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
             }
             var timeStr = pad(h) + ':' + pad(m) + ':00';
             var catPart = catIds.map(function(id){ return 'cats[]=' + id; }).join('&');
-            var url = 'rendez-vous.php?' + catPart
+            var url = '<?php echo BASE_URL; ?>/index.php?action=rendez_vous&' + catPart
                     + '&mode=' + mode
                     + '&heure=' + encodeURIComponent(timeStr)
                     + '&month=' + month
@@ -1648,7 +1573,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
 
         window.goToStep2 = function() {
             if (selected.length === 0) return;
-            var url = 'rendez-vous.php?' + selected.map(function(id){ return 'cats[]=' + id; }).join('&');
+            var url = '<?php echo BASE_URL; ?>/index.php?action=rendez_vous&' + selected.map(function(id){ return 'cats[]=' + id; }).join('&');
             window.location.href = url;
         };
     })();
@@ -1665,7 +1590,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
         if (!input) return;
 
         let debounceTimer;
-        const BASE = '../../ajax/suggest_category.php';
+        const BASE = '<?php echo BASE_URL; ?>/ajax/suggest_category.php';
 
         input.addEventListener('input', function() {
             clearTimeout(debounceTimer);
@@ -1703,7 +1628,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
             data.forEach(function(item) {
                 const a = document.createElement('a');
                 a.className     = 'suggest-item';
-                a.href = 'rendez-vous.php?cats[]=' + item.id;
+                a.href = '<?php echo BASE_URL; ?>/index.php?action=rendez_vous&cats[]=' + item.id;
                 a.setAttribute('tabindex', '0');
 
                 const conf = Math.min(item.confidence, 99);
@@ -1713,7 +1638,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
 
                 a.innerHTML = `
                     <div class="suggest-item-icon">
-                        <img src="../../assets/icons/${item.icone}" alt="" onerror="this.style.display='none'">
+                        <img src="<?php echo BASE_URL; ?>/assets/icons/${item.icone}" alt="" onerror="this.style.display='none'">
                     </div>
                     <div style="min-width:0;flex:1;">
                         <div class="suggest-item-name">${item.nom}</div>
@@ -1821,7 +1746,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
                                 '<div style="font-family:Inter,sans-serif;min-width:160px;">' +
                                 '<strong style="font-size:13px;color:#0F3B2C;">' + name + '</strong><br>' +
                                 '<span style="font-size:11px;color:#666;">Mairie municipale</span><br><br>' +
-                                '<a href="rendez-vous.php" style="display:inline-block;padding:6px 14px;background:linear-gradient(135deg,#135D36,#2FA084);color:white;border-radius:20px;text-decoration:none;font-size:11.5px;font-weight:600;">&#128197; Prendre un RDV</a>' +
+                                '<a href="<?php echo BASE_URL; ?>/index.php?action=rendez_vous" style="display:inline-block;padding:6px 14px;background:linear-gradient(135deg,#135D36,#2FA084);color:white;border-radius:20px;text-decoration:none;font-size:11.5px;font-weight:600;">&#128197; Prendre un RDV</a>' +
                                 '</div>',
                                 { maxWidth: 200 }
                             );
@@ -1875,6 +1800,3 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
         }
     })();
     </script>
-
-</body>
-</html>

@@ -201,9 +201,61 @@ CREATE TABLE IF NOT EXISTS couts_intervention (
 );
 
 -- RAPPORTS AUTOMATISÉS
--- rapports and rapports_metriques tables removed (not used)
+CREATE TABLE IF NOT EXISTS rapports (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    titre VARCHAR(255) NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    periode_debut DATE NOT NULL,
+    periode_fin DATE NOT NULL,
+    contenu LONGTEXT NULL,
+    fichier_pdf VARCHAR(500) NULL,
+    metriques JSON NULL,
+    status ENUM('en_generation', 'termine', 'erreur') DEFAULT 'en_generation',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 
--- historique_positions table removed (not used)
+-- HISTORIQUE DES POSITIONS DES SIGNALEMENTS
+CREATE TABLE IF NOT EXISTS historique_positions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    signalement_id INT NOT NULL,
+    latitude DECIMAL(10,8) NOT NULL,
+    longitude DECIMAL(11,8) NOT NULL,
+    source VARCHAR(50) DEFAULT 'citoyen',
+    commentaire TEXT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_hist_signalement FOREIGN KEY (signalement_id) REFERENCES signalements(id) ON DELETE CASCADE
+);
+
+-- GPS TRACKING DES ÉQUIPES EN TEMPS RÉEL
+CREATE TABLE IF NOT EXISTS gps_tracking (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    equipe_id INT NOT NULL,
+    intervention_id INT NULL,
+    latitude DECIMAL(10,8) NOT NULL,
+    longitude DECIMAL(11,8) NOT NULL,
+    `precision` DECIMAL(8,2) NULL,
+    vitesse DECIMAL(8,2) NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_gps_equipe FOREIGN KEY (equipe_id) REFERENCES equipes(id) ON DELETE CASCADE,
+    CONSTRAINT fk_gps_intervention FOREIGN KEY (intervention_id) REFERENCES interventions(id) ON DELETE SET NULL
+);
+
+-- SUIVI DU TEMPS DES INTERVENTIONS
+CREATE TABLE IF NOT EXISTS time_tracking (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    intervention_id INT NULL,
+    equipe_id INT NULL,
+    heure_debut DATETIME NOT NULL,
+    heure_fin DATETIME NULL,
+    duree_minutes INT NULL,
+    statut VARCHAR(20) DEFAULT 'en_cours',
+    notes TEXT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_time_intervention FOREIGN KEY (intervention_id) REFERENCES interventions(id) ON DELETE SET NULL,
+    CONSTRAINT fk_time_equipe FOREIGN KEY (equipe_id) REFERENCES equipes(id) ON DELETE SET NULL
+);
 
 CREATE TABLE IF NOT EXISTS alertes (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -400,3 +452,62 @@ CREATE TABLE IF NOT EXISTS budget_transactions (
     CONSTRAINT fk_transaction_budget FOREIGN KEY (budget_id) REFERENCES budgets(id) ON DELETE CASCADE,
     CONSTRAINT fk_transaction_intervention FOREIGN KEY (intervention_id) REFERENCES interventions(id) ON DELETE SET NULL
 );
+
+-- ========================================
+-- MIGRATION PATCH: Legacy compatibility
+-- Run this after the main schema if the
+-- legacy demandes/services controllers are used.
+-- ========================================
+
+-- Add columns required by legacy DemandeController
+ALTER TABLE demandes
+    ADD COLUMN IF NOT EXISTS nom          VARCHAR(100)  NULL,
+    ADD COLUMN IF NOT EXISTS type_service VARCHAR(100)  NULL,
+    ADD COLUMN IF NOT EXISTS documents    VARCHAR(255)  NULL,
+    ADD COLUMN IF NOT EXISTS date_creation DATETIME     NULL DEFAULT CURRENT_TIMESTAMP;
+
+-- Create `services` table used by ServiceController / DemandeController
+CREATE TABLE IF NOT EXISTS services (
+    id             INT AUTO_INCREMENT PRIMARY KEY,
+    nom            VARCHAR(150)  NOT NULL,
+    description    TEXT          NULL,
+    icone          VARCHAR(255)  NULL,
+    date_creation  DATETIME      DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create `notifications` table used by NotificationController / Notification model
+CREATE TABLE IF NOT EXISTS notifications (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    user_id    INT           NOT NULL,
+    demande_id INT           NULL,
+    document_id INT          NULL,
+    message    TEXT          NOT NULL,
+    lu         TINYINT(1)    DEFAULT 0,
+    created_at DATETIME      DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_notif_user FOREIGN KEY (user_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
+);
+
+-- Create `ratings` table used by RatingController / Rating model
+CREATE TABLE IF NOT EXISTS ratings (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    user_id    INT           NOT NULL,
+    service_id INT           NOT NULL,
+    note       TINYINT       NOT NULL CHECK (note BETWEEN 1 AND 5),
+    commentaire TEXT         NULL,
+    created_at DATETIME      DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_user_service (user_id, service_id)
+);
+
+-- Create `categorie_evenement` table used by CategorieEvenementC
+CREATE TABLE IF NOT EXISTS categorie_evenement (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    nom        VARCHAR(100)  NOT NULL,
+    image_url  VARCHAR(500)  NULL,
+    created_at DATETIME      DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add categorie_id to evenements if not present (used by CategorieEvenementC)
+ALTER TABLE evenements
+    ADD COLUMN IF NOT EXISTS categorie_id INT NULL,
+    ADD CONSTRAINT IF NOT EXISTS fk_ev_categorie
+        FOREIGN KEY (categorie_id) REFERENCES categorie_evenement(id) ON DELETE SET NULL;

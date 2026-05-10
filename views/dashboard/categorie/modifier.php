@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once __DIR__ . '/../../../controller/CategorieEvenementC.php';
+require_once __DIR__ . '/../../../controllers/CategorieEvenementC.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     header('Location: ../../../index.php');
@@ -95,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     if (empty($errors)) {
-        require_once __DIR__ . '/../../../model/CategorieEvenement.php';
+        require_once __DIR__ . '/../../../models/CategorieEvenement.php';
         $categorieObj = new CategorieEvenement();
         $categorieObj->setNom($old['nom']);
         $categorieObj->setDescription($old['description']);

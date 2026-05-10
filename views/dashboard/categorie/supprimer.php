@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once __DIR__ . '/../../../controller/CategorieEvenementC.php';
+require_once __DIR__ . '/../../../controllers/CategorieEvenementC.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     header('Location: ../../../index.php');

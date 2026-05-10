@@ -30,7 +30,7 @@ class RendezVousController {
     public static function readAll(RendezVous $rdv) {
         $query = "SELECT r.*, c.nom AS service_nom, u.nom AS user_nom, u.prenom AS user_prenom, u.email AS user_email 
                   FROM " . $rdv->getTable() . " r 
-                  JOIN categorie c ON r.categorie_id = c.id 
+                  JOIN categories c ON r.categorie_id = c.id 
                   JOIN users u ON r.user_id = u.id 
                   ORDER BY r.date_rdv DESC, r.heure ASC";
 
@@ -42,7 +42,7 @@ class RendezVousController {
     public static function readByUser(RendezVous $rdv, $user_id) {
         $query = "SELECT r.*, c.nom AS service_nom 
                   FROM " . $rdv->getTable() . " r 
-                  JOIN categorie c ON r.categorie_id = c.id 
+                  JOIN categories c ON r.categorie_id = c.id 
                   WHERE r.user_id = :user_id 
                   ORDER BY r.date_rdv DESC, r.heure ASC";
 
@@ -55,7 +55,7 @@ class RendezVousController {
     public static function readOne(RendezVous $rdv, $id) {
         $query = "SELECT r.*, c.nom AS service_nom 
                   FROM " . $rdv->getTable() . " r 
-                  JOIN categorie c ON r.categorie_id = c.id 
+                  JOIN categories c ON r.categorie_id = c.id 
                   WHERE r.id = :id";
 
         $stmt = $rdv->getConn()->prepare($query);
@@ -132,14 +132,14 @@ class RendezVousController {
     }
 
     public static function getAllCategories(RendezVous $rdv) {
-        $query = "SELECT * FROM categorie ORDER BY id";
+        $query = "SELECT * FROM categories ORDER BY id";
         $stmt = $rdv->getConn()->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public static function getCategoryById(RendezVous $rdv, $id) {
-        $query = "SELECT * FROM categorie WHERE id = :id";
+        $query = "SELECT * FROM categories WHERE id = :id";
         $stmt = $rdv->getConn()->prepare($query);
         $stmt->bindParam(':id', $id);
         $stmt->execute();
@@ -147,7 +147,7 @@ class RendezVousController {
     }
 
     public static function createCategory(RendezVous $rdv, $nom, $description, $icone) {
-        $query = "INSERT INTO categorie (nom, description, icone) VALUES (:nom, :description, :icone)";
+        $query = "INSERT INTO categories (nom, description, icone) VALUES (:nom, :description, :icone)";
         $stmt = $rdv->getConn()->prepare($query);
         $stmt->bindParam(':nom', $nom);
         $stmt->bindParam(':description', $description);
@@ -159,7 +159,7 @@ class RendezVousController {
     }
 
     public static function updateCategory(RendezVous $rdv, $id, $nom, $description, $icone) {
-        $query = "UPDATE categorie SET nom = :nom, description = :description, icone = :icone WHERE id = :id";
+        $query = "UPDATE categories SET nom = :nom, description = :description, icone = :icone WHERE id = :id";
         $stmt = $rdv->getConn()->prepare($query);
         $stmt->bindParam(':nom', $nom);
         $stmt->bindParam(':description', $description);
@@ -169,7 +169,7 @@ class RendezVousController {
     }
 
     public static function deleteCategory(RendezVous $rdv, $id) {
-        $query = "DELETE FROM categorie WHERE id = :id";
+        $query = "DELETE FROM categories WHERE id = :id";
         $stmt = $rdv->getConn()->prepare($query);
         $stmt->bindParam(':id', $id);
         return $stmt->execute();
@@ -562,7 +562,7 @@ if (realpath($_SERVER['SCRIPT_FILENAME']) === realpath(__FILE__)) {
             if (RendezVousController::create($rdv)) {
                 $created++;
                 // Get service name for email
-                $stmtCat = $conn->prepare("SELECT nom FROM categorie WHERE id = :id");
+                $stmtCat = $conn->prepare("SELECT nom FROM categories WHERE id = :id");
                 $stmtCat->execute([':id' => $cat_id]);
                 $catRow = $stmtCat->fetch(PDO::FETCH_ASSOC);
                 $createdSlots[] = [
