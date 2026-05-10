@@ -1,9 +1,4 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Upload document - Smart Municipality</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -67,8 +62,6 @@
         }
         .btn-back:hover { color: #10b981; }
     </style>
-</head>
-<body>
     <div class="upload-container">
         <div class="upload-header">
             <i class="fas fa-cloud-upload-alt"></i>
@@ -132,5 +125,3 @@
             fileInfo.style.display = 'block';
         }
     </script>
-</body>
-</html>

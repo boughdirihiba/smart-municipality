@@ -20,12 +20,12 @@
         <span></span><span></span><span></span>
     </button>
     <ul class="nav-links">
-        <li><a href="<?php echo BASE_URL; ?>/index.php?route=home/index#profil">Profil</a></li>
-        <li><a href="<?php echo BASE_URL; ?>/index.php?route=home/index#evenements">Événements</a></li>
-        <li><a href="<?php echo BASE_URL; ?>/index.php?route=home/index" class="<?php echo $currentRoute === 'home/index' ? 'active' : ''; ?>">Carte</a></li>
-        <li><a href="<?php echo BASE_URL; ?>/index.php?route=home/index#blog">Blog</a></li>
-        <li><a href="<?php echo BASE_URL; ?>/index.php?route=home/index#services">Services</a></li>
-        <li><a href="<?php echo BASE_URL; ?>/index.php?route=home/index#rendez-vous">Rendez-vous</a></li>
+        <li><a href="<?php echo BASE_URL; ?>/index.php?route=profile" class="<?php echo $currentRoute === 'profile' ? 'active' : ''; ?>">Profil</a></li>
+        <li><a href="<?php echo BASE_URL; ?>/index.php?action=evenements" class="<?php echo ($_GET['action'] ?? '') === 'evenements' ? 'active' : ''; ?>">Événements</a></li>
+        <li><a href="<?php echo BASE_URL; ?>/index.php?route=home/index" class="<?php echo $currentRoute === 'home/index' && empty($_GET['action']) ? 'active' : ''; ?>">Carte</a></li>
+        <li><a href="<?php echo BASE_URL; ?>/index.php?action=blog" class="<?php echo ($_GET['action'] ?? '') === 'blog' ? 'active' : ''; ?>">Blog</a></li>
+        <li><a href="<?php echo BASE_URL; ?>/index.php?action=manage" class="<?php echo ($_GET['action'] ?? '') === 'manage' ? 'active' : ''; ?>">Demandes</a></li>
+        <li><a href="<?php echo BASE_URL; ?>/index.php?action=rendez_vous" class="<?php echo ($_GET['action'] ?? '') === 'rendez_vous' ? 'active' : ''; ?>">Rendez-vous</a></li>
     </ul>
     <div class="nav-right">
         <div class="nav-search">
@@ -37,7 +37,7 @@
 <?php endif; ?>
 <div class="app-shell">
     <?php if ($userRole !== 'citoyen'): ?>
-        <?php require BASE_PATH . '/app/Views/layouts/sidebar.php'; ?>
+        <?php require BASE_PATH . '/views/App/Views/layouts/sidebar.php'; ?>
     <?php endif; ?>
     <main class="app-content">
     <script>
@@ -73,3 +73,4 @@
             <?php echo e($flash['message']); ?>
         </div>
     <?php endif; ?>
+

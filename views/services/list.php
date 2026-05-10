@@ -77,12 +77,7 @@ if(!empty($raw_search)) {
     $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Gestion des services - Smart Municipality</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * {
@@ -705,53 +700,6 @@ if(!empty($raw_search)) {
             border-radius: 10px;
         }
     </style>
-</head>
-<body>
-    <div class="app-container">
-        <!-- SIDEBAR VERT FONCÉ #052E16 -->
-        <div class="sidebar">
-            <div class="logo-container">
-                <img src="assets/images/logo.png" alt="Smart Municipality Logo">
-            </div>
-            <h2><i class="fas fa-city"></i> Smart Municipality</h2>
-            <ul>
-                <li>
-                    <a href="index.php?action=dashboard">
-                        <i class="fas fa-tachometer-alt"></i> <span>Dashboard</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="index.php?action=profil">
-                        <i class="fas fa-id-card"></i> <span>Profil</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="index.php?action=evenements">
-                        <i class="fas fa-calendar-alt"></i> <span>Événements</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="index.php?action=carte_intelligente">
-                        <i class="fas fa-brain"></i> <span>Carte intelligente</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="index.php?action=blog">
-                        <i class="fas fa-newspaper"></i> <span>Blog</span>
-                    </a>
-                </li>
-                <li class="active">
-                    <a href="index.php?action=list_services">
-                        <i class="fas fa-concierge-bell"></i> <span>Services en ligne</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="index.php?action=rendez_vous">
-                        <i class="fas fa-calendar-check"></i> <span>Rendez-vous</span>
-                    </a>
-                </li>
-            </ul>
-        </div>
 
         <div class="main-content">
             <div class="header">
@@ -1046,5 +994,3 @@ if(!empty($raw_search)) {
         // Initialiser le mode sombre
         initDarkMode();
     </script>
-</body>
-</html>

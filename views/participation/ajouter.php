@@ -1,7 +1,7 @@
 <?php
 session_start();
-require_once __DIR__ . '/../../controller/ParticipationC.php';
-require_once __DIR__ . '/../../model/Participation.php';
+require_once __DIR__ . '/../../controllers/ParticipationC.php';
+require_once __DIR__ . '/../../models/Participation.php';
 
 // Vérifier si l'utilisateur est connecté
 if (!isset($_SESSION['user_id'])) {

@@ -1,8 +1,8 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-require_once '../../config/database.php';
-require_once '../../controllers/RendezVousController.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../controllers/RendezVousController.php';
 
 $db = new Database();
 $conn = $db->getConnection();
@@ -77,13 +77,7 @@ $joursSemaine = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 
 $moisNoms     = ['', 'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
 $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Municipality - Rendez-vous</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -132,58 +126,9 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
             pointer-events: none; z-index: 0;
         }
 
-        /* ===== NAVBAR ===== */
-        .navbar {
-            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-            background: rgba(255,255,255,0.82);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border-bottom: 1px solid rgba(11,79,48,0.07);
-            padding: 0 32px; height: 60px;
-            display: flex; align-items: center; justify-content: space-between;
-            transition: box-shadow 0.3s ease;
-        }
-        .navbar.scrolled { box-shadow: var(--shadow-md); }
-        .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-        .nav-brand img { width: 34px; height: 34px; filter: drop-shadow(0 2px 4px rgba(11,79,48,0.15)); }
-        .nav-brand-text { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 16px; color: var(--forest); letter-spacing: -0.3px; }
-        .nav-brand-text span { color: var(--emerald); }
-        .nav-links { display: flex; align-items: center; gap: 2px; list-style: none; }
-        .nav-links li a {
-            display: flex; align-items: center; gap: 6px; padding: 7px 14px;
-            border-radius: 9px; text-decoration: none; color: var(--stone);
-            font-size: 12.5px; font-weight: 500; transition: all 0.25s ease;
-        }
-        .nav-links li a:hover { color: var(--forest); background: var(--sage); }
-        .nav-links li a.active {
-            color: var(--white);
-            background: linear-gradient(135deg, var(--forest) 0%, var(--emerald) 100%);
-            box-shadow: 0 2px 10px rgba(11,79,48,0.25);
-        }
-        .nav-links li a img { width: 16px; height: 16px; opacity: 0.7; transition: opacity 0.2s; }
-        .nav-links li a:hover img { opacity: 0.9; }
-        .nav-links li a.active img { opacity: 1; filter: brightness(0) invert(1); }
-        .nav-right { display: flex; align-items: center; gap: 12px; }
-        .nav-search {
-            display: flex; align-items: center; background: var(--pearl);
-            border: 1.5px solid transparent; border-radius: 10px;
-            padding: 7px 12px; width: 190px; transition: all 0.3s ease;
-        }
-        .nav-search:focus-within { background: var(--white); border-color: var(--mint); box-shadow: 0 0 0 3px rgba(61,220,132,0.12); width: 230px; }
-        .nav-search img { width: 14px; height: 14px; margin-right: 7px; opacity: 0.5; }
-        .nav-search input { border: none; outline: none; background: transparent; font-size: 12px; font-family: 'DM Sans', sans-serif; color: var(--slate); width: 100%; }
-        .nav-user { display: flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; border-radius: 50px; background: var(--pearl); cursor: pointer; transition: background 0.2s; }
-        .nav-user:hover { background: var(--sage); }
-        .nav-user img { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--mint-soft); }
-        .nav-user span { font-size: 12px; font-weight: 600; color: var(--slate); }
-        .nav-settings-btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: var(--pearl); cursor: pointer; transition: all 0.2s; text-decoration: none; }
-        .nav-settings-btn:hover { background: var(--sage); transform: rotate(45deg); }
-        .nav-settings-btn img { width: 16px; height: 16px; opacity: 0.6; }
-        .mobile-toggle { display: none; background: none; border: none; cursor: pointer; width: 32px; height: 32px; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
-        .mobile-toggle span { display: block; width: 20px; height: 2px; background: var(--forest); border-radius: 3px; }
 
         /* ===== MAIN LAYOUT ===== */
-        .main-content { padding-top: 60px; height: 100vh; display: flex; position: relative; z-index: 1; }
+        .main-content { padding-top: 0; height: calc(100vh - 64px); display: flex; position: relative; z-index: 1; }
         .layout-split { display: flex; gap: 16px; width: 100%; padding: 16px 20px; height: calc(100vh - 60px); overflow: hidden; box-sizing: border-box; }
 
         /* ===== LEFT: WIZARD ===== */
@@ -964,31 +909,6 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
         }
         .suggest-hint::before { content: '💡'; font-size: 13px; }
     </style>
-<body>
-
-    <!-- ====== NAVBAR ====== -->
-    <nav class="navbar" id="navbar">
-        <a class="nav-brand" href="#">
-            <img src="../../assets/icons/logo.png" alt="Logo">
-            <span class="nav-brand-text">Smart <span>Municipality</span></span>
-        </a>
-        <button class="mobile-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
-            <span></span><span></span><span></span>
-        </button>
-        <ul class="nav-links">
-            <li><a href="profil.php"><img src="../../assets/icons/profil.svg" alt=""> <span>Profil</span></a></li>
-            <li><a href="evenements.php"><img src="../../assets/icons/alertes.svg" alt=""> <span>Événements</span></a></li>
-            <li><a href="carte.php"><img src="../../assets/icons/carte.svg" alt=""> <span>Carte</span></a></li>
-            <li><a href="blog.php"><img src="../../assets/icons/blog.svg" alt=""> <span>Blog</span></a></li>
-            <li><a href="services.php"><img src="../../assets/icons/services.svg" alt=""> <span>Services</span></a></li>
-            <li><a href="rendez-vous.php" class="active"><img src="../../assets/icons/rdv.svg" alt=""> <span>Rendez-vous</span></a></li>
-        </ul>
-        <div class="nav-right">
-            <div class="nav-search"><img src="../../assets/icons/search.svg" alt=""><input type="text" placeholder="Rechercher..."></div>
-            <a href="parametres.php" class="nav-settings-btn"><img src="../../assets/icons/parametres.svg" alt=""></a>
-            <div class="nav-user"><img src="../../assets/icons/avatar.svg" alt=""><span>Eliza Thorne</span></div>
-        </div>
-    </nav>
 
     <!-- ====== MAIN ====== -->
     <div class="main-content">
@@ -1875,6 +1795,3 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
         }
     })();
     </script>
-
-</body>
-</html>

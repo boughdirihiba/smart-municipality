@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once __DIR__ . '/../../controller/ParticipationC.php';
+require_once __DIR__ . '/../../controllers/ParticipationC.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../../index.php');

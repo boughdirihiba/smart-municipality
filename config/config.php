@@ -6,7 +6,7 @@ session_start();
 
 define('APP_NAME', 'Smart Municipality');
 define('BASE_PATH', dirname(__DIR__));
-define('BASE_URL', '/smart-municipality');
+define('BASE_URL', '/merge/smart-municipality1');
 define('UPLOAD_PATH', BASE_PATH . '/public/uploads/');
 define('UPLOAD_URL', BASE_URL . '/public/uploads/');
 
@@ -15,6 +15,12 @@ define('DB_PORT', '3306');
 define('DB_NAME', 'smart_municipality');
 define('DB_USER', 'root');
 define('DB_PASS', '');
+
+// ─── Chatbot / AI API ────────────────────────────────────────────────────────
+// Set your Groq API key here (https://console.groq.com) or leave empty to
+// disable the AI chatbot feature.
+define('GROK_API_KEY', getenv('GROK_API_KEY') ?: '');
+define('GROQ_MODEL',   getenv('GROQ_MODEL')   ?: 'llama-3.1-8b-instant');
 
 function pdo_connection(): \PDO
 {

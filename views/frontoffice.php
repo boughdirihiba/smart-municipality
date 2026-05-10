@@ -1,7 +1,7 @@
 <?php
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
-session_start();
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 require_once __DIR__ . '/../controllers/BlogController.php';
 
@@ -19,13 +19,7 @@ $t = function($key) use ($controller) { return $controller->t($key); };
 $current_theme = $_SESSION['user_theme'] ?? 'light';
 $current_font_size = $_SESSION['font_size'] ?? 100;
 ?>
-<!DOCTYPE html>
-<html lang="<?= $current_lang ?>" dir="<?= $is_rtl ? 'rtl' : 'ltr' ?>">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Municipality | <?= $t('blog') ?></title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <?php if ($is_rtl): ?>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <?php else: ?>
@@ -80,58 +74,6 @@ $current_font_size = $_SESSION['font_size'] ?? 100;
         <?php endif; ?>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        /* ========== NAVBAR (inchangée) ========== */
-        .top-navbar {
-            background: var(--bg-card);
-            border-bottom: 1px solid var(--border-light);
-            padding: 0.6rem 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 1rem;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            box-shadow: var(--shadow-sm);
-        }
-        .logo-area { display: flex; align-items: center; gap: 0.75rem; }
-        .logo-icon { width: 42px; height: 42px; border-radius: 12px; object-fit: cover; }
-        .logo-text .smart { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.3px; color: var(--accent); }
-        .logo-text .municipality { font-size: 0.65rem; color: var(--text-secondary); }
-        .nav-links {
-            display: flex;
-            gap: 0.3rem;
-            flex-wrap: wrap;
-            background: var(--hover-bg);
-            padding: 0.2rem;
-            border-radius: 3rem;
-        }
-        .nav-link {
-            color: var(--text-secondary);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            border-radius: 2rem;
-            transition: all 0.2s ease;
-            font-weight: 500;
-            font-size: 0.9rem;
-        }
-        .nav-link i { font-size: 1rem; }
-        .nav-link:hover, .nav-link.active {
-            background: var(--accent);
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-sm);
-        }
-        .navbar-right {
-            display: flex;
-            gap: 0.75rem;
-            align-items: center;
-            flex-wrap: wrap;
-        }
         .control-group {
             display: flex;
             gap: 0.3rem;
@@ -438,35 +380,14 @@ $current_font_size = $_SESSION['font_size'] ?? 100;
         .reaction-user-name { flex: 1; font-weight: 500; }
         .reaction-emoji-big { font-size: 1.6rem; }
     </style>
-</head>
-<body class="<?= $is_rtl ? 'rtl' : '' ?> theme-<?= $current_theme ?>" style="font-size: <?= $current_font_size ?>%;">
-<nav class="top-navbar">
-    <div class="logo-area"><img class="logo-icon" src="logo.png" alt="Logo" onerror="this.src='https://placehold.co/45x45/2FA084/white?text=SM'"><div class="logo-text"><div class="smart">Smart Municipality</div><div class="municipality"><?= $t('blog') ?></div></div></div>
-    <div class="nav-links">
-        <a href="#" class="nav-link"><i class="fas fa-user"></i> <?= $t('profile') ?></a>
-        <a href="#" class="nav-link"><i class="fas fa-calendar-alt"></i> <?= $t('events') ?></a>
-        <a href="#" class="nav-link"><i class="fas fa-map"></i> <?= $t('map') ?></a>
-        <a href="frontoffice.php" class="nav-link active"><i class="fas fa-blog"></i> <?= $t('blog') ?></a>
-        <a href="#" class="nav-link"><i class="fas fa-globe"></i> <?= $t('services') ?></a>
-        <a href="#" class="nav-link"><i class="fas fa-calendar-check"></i> <?= $t('appointments') ?></a>
-        <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
-            <a href="backoffice.php" class="nav-link"><i class="fas fa-chart-line"></i> <?= $t('dashboard') ?></a>
-        <?php endif; ?>
-    </div>
-    <div class="navbar-right">
-        <form method="GET" action="/projetweb/controllers/BlogController.php" style="display: flex; align-items: center; gap: 0.5rem;">
-            <input type="hidden" name="action" value="setFontSize">
-            <div class="font-size-control"><span>A-</span><input type="range" name="size" min="80" max="130" value="<?= $current_font_size ?>" step="1" onchange="this.form.submit()"><span>A+</span></div>
-        </form>
-        <div class="control-group lang-selector">
-            <a href="?lang=fr" class="control-btn <?= $current_lang === 'fr' ? 'active' : '' ?>">FR</a>
-            <a href="?lang=en" class="control-btn <?= $current_lang === 'en' ? 'active' : '' ?>">EN</a>
-            <a href="?lang=ar" class="control-btn <?= $current_lang === 'ar' ? 'active' : '' ?>">AR</a>
-        </div>
-        <a href="/projetweb/controllers/BlogController.php?action=setTheme&theme=<?= $current_theme === 'light' ? 'dark' : 'light' ?>" class="control-btn" style="font-size: 1.2rem;"><i class="fas <?= $current_theme === 'light' ? 'fa-moon' : 'fa-sun' ?>"></i></a>
-        <div class="user-info" id="profileBtn"><div class="avatar-sm"><img src="<?= htmlspecialchars($sessionAvatar ?? 'https://randomuser.me/api/portraits/lego/1.jpg') ?>"></div><span><?= isset($_SESSION['user_name']) ? $_SESSION['user_name'] : $t('login_title') ?></span></div>
-    </div>
-</nav>
+<script>
+(function(){
+    var b = document.body;
+    <?php if($is_rtl): ?>b.classList.add('rtl');<?php endif; ?>
+    b.classList.add('theme-<?= $current_theme ?>');
+    b.style.fontSize = '<?= $current_font_size ?>%';
+})();
+</script>
 
 <div class="main-container">
     <div class="content-left">
@@ -777,5 +698,3 @@ window.onclick = function(e) {
     if (e.target === document.getElementById('reactionsModal')) closeReactionsModal();
 };
 </script>
-</body>
-</html>

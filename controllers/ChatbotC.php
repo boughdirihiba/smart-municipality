@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../model/Chatbot.php';
+require_once __DIR__ . '/../models/Chatbot.php';
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/ParticipationC.php';
 require_once __DIR__ . '/EvenementC.php';

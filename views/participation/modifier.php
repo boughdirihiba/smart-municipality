@@ -1,7 +1,7 @@
 <?php
 session_start();
-include_once '../../controller/ParticipationC.php';
-include_once '../../model/Participation.php';
+include_once '../../controllers/ParticipationC.php';
+include_once '../../models/Participation.php';
 
 $participationC = new ParticipationC();
 $id = $_GET['id'] ?? null;

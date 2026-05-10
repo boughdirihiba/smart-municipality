@@ -77,13 +77,7 @@ foreach($last_demandes as &$demande) {
 }
 ?>
 
-<!DOCTYPE html>
-<html lang="fr" dir="ltr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Municipality | Tableau de bord</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -516,8 +510,6 @@ foreach($last_demandes as &$demande) {
             }
         }
     </style>
-</head>
-<body>
 
     <!-- NOTIFICATIONS FLOTTANTES -->
     <?php if($success_message): ?>
@@ -527,24 +519,6 @@ foreach($last_demandes as &$demande) {
     <script>setTimeout(() => document.querySelector('.notification')?.remove(), 4000);</script>
     <?php endif; ?>
 
-    <!-- SIDEBAR AVEC LOGO (TEXTE FIXE) -->
-    <div class="sidebar">
-        <div class="logo-container">
-            <img src="assets/images/logo.png" alt="Smart Municipality Logo" onerror="this.src='https://via.placeholder.com/180x60?text=Smart+Municipality'">
-        </div>
-        <nav>
-            <a href="#" class="nav-item"><i class="fas fa-chart-line"></i> Tableau de bord</a>
-            <a href="#" class="nav-item"><i class="fas fa-users"></i> Citoyens</a>
-            <a href="#" class="nav-item"><i class="fas fa-calendar-alt"></i> Événements</a>
-            <a href="#" class="nav-item"><i class="fas fa-brain"></i> Carte intelligente</a>
-            <a href="#" class="nav-item"><i class="fas fa-newspaper"></i> Blog</a>
-            <a href="index.php?action=list_services" class="nav-item"><i class="fas fa-concierge-bell"></i> Services</a>
-            <a href="#" class="nav-item"><i class="fas fa-calendar-check"></i> Rendez-vous</a>
-            <a href="#" class="nav-item"><i class="fas fa-chart-pie"></i> Statistiques</a>
-        </nav>
-    </div>
-
-    <!-- MAIN CONTENT -->
     <div class="main">
         <div class="header">
             <div>
@@ -895,5 +869,3 @@ foreach($last_demandes as &$demande) {
             });
         });
     </script>
-</body>
-</html>

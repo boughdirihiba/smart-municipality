@@ -1,9 +1,10 @@
 <?php
 class Chatbot {
     private $id;
-    private $user_id;
     private $message;
-    private $response;
+    private $reponse;
+    private $intention;
+    private $parametres;
     private $created_at;
     private $db;
     
@@ -11,35 +12,57 @@ class Chatbot {
         $this->db = $db;
     }
     
-    // Getters
+    // ========== GETTERS ==========
     public function getId() { return $this->id; }
-    public function getUserId() { return $this->user_id; }
     public function getMessage() { return $this->message; }
-    public function getResponse() { return $this->response; }
+    public function getReponse() { return $this->reponse; }
+    public function getIntention() { return $this->intention; }
+    public function getParametres() { return $this->parametres; }
     public function getCreatedAt() { return $this->created_at; }
     public function getDb() { return $this->db; }
     
-    // Setters
+    // ========== SETTERS ==========
     public function setId($id) { $this->id = $id; }
-    public function setUserId($user_id) { $this->user_id = $user_id; }
     public function setMessage($message) { $this->message = $message; }
-    public function setResponse($response) { $this->response = $response; }
+    public function setReponse($reponse) { $this->reponse = $reponse; }
+    public function setIntention($intention) { $this->intention = $intention; }
+    public function setParametres($parametres) { $this->parametres = $parametres; }
     public function setCreatedAt($created_at) { $this->created_at = $created_at; }
     public function setDb($db) { $this->db = $db; }
     
-    // CRUD vide (compatible avec les autres modèles)
-    public function create() { return false; }
-    public function read() { return []; }
-    public function getById($id) { return null; }
-    public function update() { return false; }
-    public function delete() { return false; }
+    // ========== FONCTIONS UTILISÉES DANS LE CONTRÔLEUR ==========
     
-    // Suggestions (peut rester ici ou être déplacé)
-    public function getSuggestions() {
+    public function getAllUpcomingEvents() { return []; }
+    public function getAllCategories() { return []; }
+    public function searchEventsByKeyword($keyword) { return []; }
+    public function searchEventsByCategory($category) { return []; }
+    public function searchEventsByDate($dateType) { return []; }
+    public function searchEventsBySpecificDate($date) { return []; }
+    public function searchEvents($criteria) { return []; }
+    public function getEventById($id) { return null; }
+    public function getUserParticipations($userId) { return []; }
+    public function isUserRegistered($userId, $eventId) { return false; }
+    public function createParticipation($userId, $eventId, $nombreParticipants = 1) { return false; }
+    public function countAllEvents() { return 0; }
+    public function countEventsByCategory() { return []; }
+    public function callGemini($userMessage) { return null; }
+    public function saveConversation($message, $reponse, $intention) { return false; }
+    public function getConversationHistory($limit = 50) { return []; }
+
+    // ========== MÉTHODE MANQUANTE (cause du Fatal Error) ==========
+
+    /**
+     * Retourne les suggestions rapides affichées dans le widget chatbot.
+     * Appelée par ChatbotController::widget()
+     */
+    public function getSuggestions(): array {
         return [
-            "Acte de mariage", "Carte d'identité", "Passeport",
-            "Extrait de naissance", "Permis de conduire", "Horaires",
-            "Contact", "Événements ce weekend"
+            "📋 Quels services sont disponibles ?",
+            "🕐 Quels sont les horaires de la mairie ?",
+            "📞 Comment contacter la mairie ?",
+            "🎉 Quels événements sont à venir ?",
+            "📄 Comment obtenir un acte de naissance ?",
+            "🪪 Comment faire une carte d'identité ?",
         ];
     }
 }

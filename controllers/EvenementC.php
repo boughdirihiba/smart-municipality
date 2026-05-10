@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../model/Evenement.php';
+require_once __DIR__ . '/../models/Evenement.php';
 require_once __DIR__ . '/../config.php';
 
 class EvenementC {
