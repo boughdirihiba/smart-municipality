@@ -9,7 +9,8 @@ $conn = $db->getConnection();
 $rdv  = new RendezVous($conn);
 
 $categories = RendezVousController::getAllCategories($rdv);
-$mesRdv     = RendezVousController::readByUser($rdv, 1);
+$userId_rdv = $_SESSION['user']['id'] ?? 0;
+$mesRdv     = RendezVousController::readByUser($rdv, $userId_rdv);
 
 // Multi-service selected categories
 $selectedCatIds = [];
@@ -76,6 +77,7 @@ function catsQuery($catIds, $extra = '') {
 $joursSemaine = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 $moisNoms     = ['', 'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
 $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+$rdvBase      = BASE_URL . '/index.php?action=rendez_vous';
 ?>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -912,10 +914,13 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
 
     <!-- ====== MAIN ====== -->
     <div class="main-content">
-        <?php if (isset($_SESSION['success']) || isset($_SESSION['error'])): ?>
+        <?php if (!empty($flash)): ?>
         <div class="flash-messages">
-            <?php if (isset($_SESSION['success'])): ?><div class="message-success"><?php echo $_SESSION['success']; unset($_SESSION['success']); ?></div><?php endif; ?>
-            <?php if (isset($_SESSION['error'])): ?><div class="message-error"><?php echo $_SESSION['error']; unset($_SESSION['error']); ?></div><?php endif; ?>
+            <?php if ($flash['type'] === 'success'): ?>
+                <div class="message-success"><?php echo htmlspecialchars($flash['message']); ?></div>
+            <?php else: ?>
+                <div class="message-error"><?php echo htmlspecialchars($flash['message']); ?></div>
+            <?php endif; ?>
         </div>
         <?php endif; ?>
 
@@ -999,13 +1004,13 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
                             <div class="wizard-step-label">Étape 2</div>
                             <div class="wizard-step-title">Comment voulez-vous réserver ?</div>
                             <div class="mode-picker">
-                                <a href="rendez-vous.php?<?php echo catsQuery($selectedCatIds, 'mode=A'); ?>"
+                                <a href="<?php echo $rdvBase; ?>&<?php echo catsQuery($selectedCatIds, 'mode=A'); ?>"
                                    class="mode-card">
                                     <div class="mode-card-icon">🕐</div>
                                     <div class="mode-card-title">Je choisis l'heure</div>
                                     <div class="mode-card-desc">Le calendrier vous montre uniquement les dates disponibles pour votre visite</div>
                                 </a>
-                                <a href="rendez-vous.php?<?php echo catsQuery($selectedCatIds, 'mode=B'); ?>"
+                                <a href="<?php echo $rdvBase; ?>&<?php echo catsQuery($selectedCatIds, 'mode=B'); ?>"
                                    class="mode-card">
                                     <div class="mode-card-icon">📅</div>
                                     <div class="mode-card-title">Je choisis la date</div>
@@ -1059,9 +1064,9 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
                             if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
                             ?>
                             <div class="cal-nav" style="margin-top:14px;">
-                                <a href="rendez-vous.php?<?php echo $catQS; ?>&month=<?php echo $prevMonth; ?>&year=<?php echo $prevYear; ?>" class="cal-nav-btn">&larr;</a>
+                                <a href="<?php echo $rdvBase; ?>&<?php echo $catQS; ?>&month=<?php echo $prevMonth; ?>&year=<?php echo $prevYear; ?>" class="cal-nav-btn">&larr;</a>
                                 <span class="cal-month-label"><?php echo $moisComplet[$month] . ' ' . $year; ?></span>
-                                <a href="rendez-vous.php?<?php echo $catQS; ?>&month=<?php echo $nextMonth; ?>&year=<?php echo $nextYear; ?>" class="cal-nav-btn">&rarr;</a>
+                                <a href="<?php echo $rdvBase; ?>&<?php echo $catQS; ?>&month=<?php echo $nextMonth; ?>&year=<?php echo $nextYear; ?>" class="cal-nav-btn">&rarr;</a>
                             </div>
                             <div class="avail-legend">
                                 <span><span class="legend-dot" style="background:rgba(61,220,132,0.5);"></span> Disponible</span>
@@ -1075,7 +1080,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
                                 for ($i = 1; $i < $firstDay; $i++) { echo "<td></td>"; $dayCount++; }
                                 for ($day = 1; $day <= $daysInMonth; $day++) {
                                     $dateStr = sprintf('%04d-%02d-%02d', $year, $month, $day);
-                                    echo '<td><a href="#" class="cal-day loading-av" data-date="' . $dateStr . '" data-href="rendez-vous.php?' . $catQS . '&date=' . $dateStr . '&month=' . $month . '&year=' . $year . '&heure=HEURE">' . $day . '</a></td>';
+                                    echo '<td><a href="#" class="cal-day loading-av" data-date="' . $dateStr . '" data-href="' . $rdvBase . '&' . $catQS . '&date=' . $dateStr . '&month=' . $month . '&year=' . $year . '&heure=HEURE">' . $day . '</a></td>';
                                     $dayCount++;
                                     if ($dayCount % 7 == 0 && $day != $daysInMonth) echo "</tr><tr>";
                                 }
@@ -1107,9 +1112,9 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
                             if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
                             ?>
                             <div class="cal-nav">
-                                <a href="rendez-vous.php?<?php echo $catQS; ?>&month=<?php echo $prevMonth; ?>&year=<?php echo $prevYear; ?>" class="cal-nav-btn">&larr;</a>
+                                <a href="<?php echo $rdvBase; ?>&<?php echo $catQS; ?>&month=<?php echo $prevMonth; ?>&year=<?php echo $prevYear; ?>" class="cal-nav-btn">&larr;</a>
                                 <span class="cal-month-label"><?php echo $moisComplet[$month] . ' ' . $year; ?></span>
-                                <a href="rendez-vous.php?<?php echo $catQS; ?>&month=<?php echo $nextMonth; ?>&year=<?php echo $nextYear; ?>" class="cal-nav-btn">&rarr;</a>
+                                <a href="<?php echo $rdvBase; ?>&<?php echo $catQS; ?>&month=<?php echo $nextMonth; ?>&year=<?php echo $nextYear; ?>" class="cal-nav-btn">&rarr;</a>
                             </div>
                             <table class="cal-grid">
                                 <thead><tr><th>Lu</th><th>Ma</th><th>Me</th><th>Je</th><th>Ve</th><th>Sa</th><th>Di</th></tr></thead>
@@ -1120,7 +1125,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
                                 for ($day = 1; $day <= $daysInMonth; $day++) {
                                     $dateStr = sprintf('%04d-%02d-%02d', $year, $month, $day);
                                     $isSel = ($selectedDate == $dateStr) ? 'selected-day' : '';
-                                    echo '<td><a href="rendez-vous.php?' . $catQS . '&date=' . $dateStr . '&month=' . $month . '&year=' . $year . '" class="cal-day ' . $isSel . '">' . $day . '</a></td>';
+                                    echo '<td><a href="' . $rdvBase . '&' . $catQS . '&date=' . $dateStr . '&month=' . $month . '&year=' . $year . '" class="cal-day ' . $isSel . '">' . $day . '</a></td>';
                                     $dayCount++;
                                     if ($dayCount % 7 == 0 && $day != $daysInMonth) echo "</tr><tr>";
                                 }
@@ -1134,7 +1139,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
                             <?php if (!empty($availableTimes)): ?>
                             <div class="avail-times-grid" id="availTimesGrid">
                                 <?php foreach ($availableTimes as $t): ?>
-                                    <a href="rendez-vous.php?<?php echo $catQS; ?>&date=<?php echo $selectedDate; ?>&heure=<?php echo urlencode($t . ':00'); ?>&month=<?php echo $month; ?>&year=<?php echo $year; ?>"
+                                    <a href="<?php echo $rdvBase; ?>&<?php echo $catQS; ?>&date=<?php echo $selectedDate; ?>&heure=<?php echo urlencode($t . ':00'); ?>&month=<?php echo $month; ?>&year=<?php echo $year; ?>"
                                        class="avail-time-chip <?php echo (substr($selectedHeure, 0, 5) == $t) ? 'selected' : ''; ?>">
                                         <?php echo $t; ?>
                                     </a>
@@ -1206,16 +1211,16 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
                         <?php if ($step == 1): ?>
                             <div class="wiz-spacer"></div>
                         <?php elseif ($step == 'mode'): ?>
-                            <a href="rendez-vous.php" class="wiz-btn wiz-btn-back">&larr; Services</a>
+                            <a href="<?php echo $rdvBase; ?>" class="wiz-btn wiz-btn-back">&larr; Services</a>
                         <?php elseif ($step == 2): ?>
-                            <a href="rendez-vous.php?<?php echo $catQS; ?>" class="wiz-btn wiz-btn-back">&larr; Mode</a>
+                            <a href="<?php echo $rdvBase; ?>&<?php echo $catQS; ?>" class="wiz-btn wiz-btn-back">&larr; Mode</a>
                         <?php else: ?>
-                            <a href="rendez-vous.php?<?php echo catsQuery($selectedCatIds, 'mode=' . $mode . '&month=' . $month . '&year=' . $year . ($mode == 'B' && !empty($selectedDate) ? '&date=' . $selectedDate : '')); ?>" class="wiz-btn wiz-btn-back">&larr; Modifier</a>
+                            <a href="<?php echo $rdvBase; ?>&<?php echo catsQuery($selectedCatIds, 'mode=' . $mode . '&month=' . $month . '&year=' . $year . ($mode == 'B' && !empty($selectedDate) ? '&date=' . $selectedDate : '')); ?>" class="wiz-btn wiz-btn-back">&larr; Modifier</a>
                         <?php endif; ?>
 
                         <?php if ($step == 3): ?>
-                            <form id="rdvForm" action="/smart-municipality/controllers/RendezVousController.php" method="POST" style="flex:1;display:flex;">
-                                <input type="hidden" name="action"   value="create_multi">
+                            <form id="rdvForm" action="<?php echo BASE_URL; ?>/index.php" method="POST" style="flex:1;display:flex;">
+                                <input type="hidden" name="action"   value="rdv_create_multi">
                                 <input type="hidden" name="date_rdv" value="<?php echo htmlspecialchars($selectedDate); ?>">
                                 <?php foreach ($chainedSlots as $slot): ?>
                                     <input type="hidden" name="slots[]" value="<?php echo $slot['cat_id'] . '|' . $slot['heure']; ?>">
@@ -1300,7 +1305,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
                                     </div>
                                     <div class="rdv-card-actions">
                                         <?php if ($item['statut'] == 'en_attente'): ?>
-                                            <a href="rendez-vous.php?categorie_id=<?php echo $item['categorie_id']; ?>&date=<?php echo $item['date_rdv']; ?>&heure=<?php echo substr($item['heure'], 0, 5); ?>&month=<?php echo date('n', $ts); ?>&year=<?php echo date('Y', $ts); ?>" class="rdv-action-modify">&#9998; Modifier</a>
+                                            <a href="<?php echo BASE_URL; ?>/index.php?action=rdv_edit&id=<?php echo $item['id']; ?>" class="rdv-action-modify">&#9998; Modifier</a>
                                         <?php else: ?>
                                             <a href="#" class="rdv-action-modify" style="color:#ccc;cursor:default;">&#9998; Modifier</a>
                                         <?php endif; ?>
@@ -1413,13 +1418,13 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
                 }).then(function(result) {
                     if (result.isConfirmed) {
                         Swal.fire({ title: "Rendez-vous supprimé !", icon: "success", draggable: true }).then(function() {
-                            window.location.href = "/smart-municipality/controllers/RendezVousController.php?action=delete&id=" + id + "&from=front";
+                            window.location.href = "<?php echo BASE_URL; ?>/index.php?action=rdv_delete&id=" + id;
                         });
                     }
                 });
             } else {
                 if (confirm("Supprimer ce rendez-vous ?")) {
-                    window.location.href = "/smart-municipality/controllers/RendezVousController.php?action=delete&id=" + id + "&from=front";
+                    window.location.href = "<?php echo BASE_URL; ?>/index.php?action=rdv_delete&id=" + id;
                 }
             }
         }
@@ -1471,7 +1476,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
             calTimer = setTimeout(function() {
                 var timeStr = pad(h) + ':' + pad(m) + ':00';
                 var catPart = catIds.map(function(id){ return 'cats[]=' + id; }).join('&');
-                var url = '../../ajax/available_dates.php?' + catPart + '&heure=' + encodeURIComponent(timeStr);
+                var url = '<?php echo BASE_URL; ?>/ajax/available_dates.php?' + catPart + '&heure=' + encodeURIComponent(timeStr);
 
                 // Gray out all days while loading
                 document.querySelectorAll('.cal-day').forEach(function(el) {
@@ -1516,7 +1521,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
             }
             var timeStr = pad(h) + ':' + pad(m) + ':00';
             var catPart = catIds.map(function(id){ return 'cats[]=' + id; }).join('&');
-            var url = 'rendez-vous.php?' + catPart
+            var url = '<?php echo BASE_URL; ?>/index.php?action=rendez_vous&' + catPart
                     + '&mode=' + mode
                     + '&heure=' + encodeURIComponent(timeStr)
                     + '&month=' + month
@@ -1568,7 +1573,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
 
         window.goToStep2 = function() {
             if (selected.length === 0) return;
-            var url = 'rendez-vous.php?' + selected.map(function(id){ return 'cats[]=' + id; }).join('&');
+            var url = '<?php echo BASE_URL; ?>/index.php?action=rendez_vous&' + selected.map(function(id){ return 'cats[]=' + id; }).join('&');
             window.location.href = url;
         };
     })();
@@ -1585,7 +1590,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
         if (!input) return;
 
         let debounceTimer;
-        const BASE = '../../ajax/suggest_category.php';
+        const BASE = '<?php echo BASE_URL; ?>/ajax/suggest_category.php';
 
         input.addEventListener('input', function() {
             clearTimeout(debounceTimer);
@@ -1623,7 +1628,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
             data.forEach(function(item) {
                 const a = document.createElement('a');
                 a.className     = 'suggest-item';
-                a.href = 'rendez-vous.php?cats[]=' + item.id;
+                a.href = '<?php echo BASE_URL; ?>/index.php?action=rendez_vous&cats[]=' + item.id;
                 a.setAttribute('tabindex', '0');
 
                 const conf = Math.min(item.confidence, 99);
@@ -1633,7 +1638,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
 
                 a.innerHTML = `
                     <div class="suggest-item-icon">
-                        <img src="../../assets/icons/${item.icone}" alt="" onerror="this.style.display='none'">
+                        <img src="<?php echo BASE_URL; ?>/assets/icons/${item.icone}" alt="" onerror="this.style.display='none'">
                     </div>
                     <div style="min-width:0;flex:1;">
                         <div class="suggest-item-name">${item.nom}</div>
@@ -1741,7 +1746,7 @@ $moisComplet  = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Jui
                                 '<div style="font-family:Inter,sans-serif;min-width:160px;">' +
                                 '<strong style="font-size:13px;color:#0F3B2C;">' + name + '</strong><br>' +
                                 '<span style="font-size:11px;color:#666;">Mairie municipale</span><br><br>' +
-                                '<a href="rendez-vous.php" style="display:inline-block;padding:6px 14px;background:linear-gradient(135deg,#135D36,#2FA084);color:white;border-radius:20px;text-decoration:none;font-size:11.5px;font-weight:600;">&#128197; Prendre un RDV</a>' +
+                                '<a href="<?php echo BASE_URL; ?>/index.php?action=rendez_vous" style="display:inline-block;padding:6px 14px;background:linear-gradient(135deg,#135D36,#2FA084);color:white;border-radius:20px;text-decoration:none;font-size:11.5px;font-weight:600;">&#128197; Prendre un RDV</a>' +
                                 '</div>',
                                 { maxWidth: 200 }
                             );

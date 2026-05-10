@@ -432,6 +432,81 @@ switch ($action) {
         include __DIR__ . '/views/frontoffice/rendez-vous.php';
         require BASE_PATH . '/views/App/Views/layouts/footer.php';
         break;
+
+    case 'rdv_create_multi':
+        require_once __DIR__ . '/config/database.php';
+        require_once __DIR__ . '/controllers/RendezVousController.php';
+        $userId_rdv = $_SESSION['user']['id'] ?? 0;
+        if (!$userId_rdv) {
+            set_flash('error', 'Vous devez être connecté pour prendre un rendez-vous.');
+            header('Location: ' . BASE_URL . '/index.php?action=rendez_vous'); exit();
+        }
+        $db_rdv  = new Database(); $conn_rdv = $db_rdv->getConnection(); $rdv_o = new RendezVous($conn_rdv);
+        $date_rdv_c = trim($_POST['date_rdv'] ?? '');
+        $slots_c    = $_POST['slots'] ?? [];
+        if (empty($date_rdv_c) || empty($slots_c)) {
+            set_flash('error', 'Données manquantes.'); header('Location: ' . BASE_URL . '/index.php?action=rendez_vous'); exit();
+        }
+        $created_c = 0; $errors_c = 0;
+        foreach ($slots_c as $slotStr) {
+            [$cat_s, $heure_s] = explode('|', $slotStr, 2);
+            $cat_s = (int)$cat_s;
+            if (RendezVousController::isSlotTaken($rdv_o, $cat_s, $date_rdv_c, $heure_s)) { $errors_c++; continue; }
+            $rdv_o->setUserId($userId_rdv); $rdv_o->setCategorieId($cat_s);
+            $rdv_o->setDateRdv($date_rdv_c); $rdv_o->setHeure($heure_s); $rdv_o->setStatut('en_attente');
+            if (RendezVousController::create($rdv_o)) { $created_c++; } else { $errors_c++; }
+        }
+        if ($created_c > 0) {
+            $msg_c = $errors_c === 0
+                ? "$created_c rendez-vous enregistré(s) avec succès. En attente de confirmation."
+                : "$created_c enregistré(s), $errors_c créneau(x) déjà pris — ignoré(s).";
+            set_flash('success', $msg_c);
+        } else {
+            set_flash('error', 'Tous les créneaux sont déjà pris. Veuillez choisir un autre horaire.');
+        }
+        header('Location: ' . BASE_URL . '/index.php?action=rendez_vous'); exit();
+
+    case 'rdv_delete':
+        require_once __DIR__ . '/config/database.php';
+        require_once __DIR__ . '/controllers/RendezVousController.php';
+        $db_rdv = new Database(); $conn_rdv = $db_rdv->getConnection(); $rdv_o = new RendezVous($conn_rdv);
+        $id_rdv = (int)($_GET['id'] ?? 0);
+        if (!$id_rdv) { set_flash('error', 'Rendez-vous introuvable.'); header('Location: ' . BASE_URL . '/index.php?action=rendez_vous'); exit(); }
+        $userId_rdv = $_SESSION['user']['id'] ?? 0;
+        if (RendezVousController::delete($rdv_o, $id_rdv)) {
+            set_flash('success', 'Rendez-vous supprimé.');
+        } else {
+            set_flash('error', 'Erreur lors de la suppression.');
+        }
+        header('Location: ' . BASE_URL . '/index.php?action=rendez_vous'); exit();
+
+    case 'rdv_edit':
+        require_once __DIR__ . '/config/database.php';
+        require_once __DIR__ . '/controllers/RendezVousController.php';
+        $db_rdv = new Database(); $conn_rdv = $db_rdv->getConnection(); $rdv_o = new RendezVous($conn_rdv);
+        $id_rdv = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
+        if (!$id_rdv) { header('Location: ' . BASE_URL . '/index.php?action=rendez_vous'); exit(); }
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $rdv_o->setId($id_rdv);
+            $rdv_o->setCategorieId((int)($_POST['categorie_id'] ?? 0));
+            $rdv_o->setDateRdv(trim($_POST['date_rdv'] ?? ''));
+            $rdv_o->setHeure(trim($_POST['heure'] ?? '') . ':00');
+            $rdv_o->setStatut('en_attente');
+            if (RendezVousController::update($rdv_o)) {
+                set_flash('success', 'Rendez-vous modifié avec succès.');
+            } else {
+                set_flash('error', 'Erreur lors de la modification.');
+            }
+            header('Location: ' . BASE_URL . '/index.php?action=rendez_vous'); exit();
+        }
+        $rdv_data      = RendezVousController::readOne($rdv_o, $id_rdv);
+        if (!$rdv_data) { header('Location: ' . BASE_URL . '/index.php?action=rendez_vous'); exit(); }
+        $categories_edit = RendezVousController::getAllCategories($rdv_o);
+        $title = 'Modifier le rendez-vous'; $flash = get_flash();
+        require BASE_PATH . '/views/App/Views/layouts/header.php';
+        include __DIR__ . '/views/frontoffice/rdv-edit.php';
+        require BASE_PATH . '/views/App/Views/layouts/footer.php';
+        break;
     case 'profil':
         redirect('home/index');
         break;
