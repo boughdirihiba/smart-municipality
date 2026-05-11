@@ -103,6 +103,10 @@ final class AuthController
         try {
             $repo = new PdoUserRepository((new Database())->getConnection());
             $user = $repo->findByMail($mail);
+            if (!$user && $this->isAdminCredential($mail, $motdepasse)) {
+                $this->ensureAdminUser($repo->getPdo(), $mail, $motdepasse);
+                $user = $repo->findByMail($mail);
+            }
             if (!$user || $user->getMdp() === '') {
                 $this->setFlashErrors(['motdepasse' => 'Email ou mot de passe incorrect.'], ['mail' => $mail]);
                 $this->redirect('index.php?route=login');
@@ -116,6 +120,7 @@ final class AuthController
             }
 
             Auth::login($user);
+            $this->populateSessionUserExtras($repo->getPdo(), $user->getId());
             $this->redirect('index.php?route=' . (Auth::isAdmin() ? 'dashboard' : 'profile'));
         } catch (Throwable $e) {
             error_log('[AuthController::login] ' . get_class($e) . ': ' . $e->getMessage());
@@ -182,6 +187,65 @@ final class AuthController
     {
         header('Location: ' . $to);
         exit;
+    }
+
+    private function isAdminCredential(string $mail, string $password): bool
+    {
+        $adminEmail = defined('ADMIN_EMAIL') ? (string)ADMIN_EMAIL : (string)(getenv('ADMIN_EMAIL') ?: '');
+        $adminPassword = defined('ADMIN_PASSWORD') ? (string)ADMIN_PASSWORD : (string)(getenv('ADMIN_PASSWORD') ?: '');
+        return $adminEmail !== ''
+            && $adminPassword !== ''
+            && strtolower($mail) === strtolower($adminEmail)
+            && $password === $adminPassword;
+    }
+
+    private function ensureAdminUser(PDO $pdo, string $mail, string $password): void
+    {
+        $stmt = $pdo->prepare('SELECT id FROM utilisateurs WHERE email = :email LIMIT 1');
+        $stmt->execute(['email' => $mail]);
+        $row = $stmt->fetch();
+        $hash = password_hash($password, PASSWORD_DEFAULT);
+
+        if (!$row) {
+            $insert = $pdo->prepare(
+                'INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role) VALUES (:nom, :prenom, :email, :mot_de_passe, :role)'
+            );
+            $insert->execute([
+                'nom' => 'Admin',
+                'prenom' => 'Super',
+                'email' => $mail,
+                'mot_de_passe' => $hash,
+                'role' => 'admin',
+            ]);
+            return;
+        }
+
+        $update = $pdo->prepare('UPDATE utilisateurs SET mot_de_passe = :mot_de_passe, role = :role WHERE email = :email');
+        $update->execute([
+            'mot_de_passe' => $hash,
+            'role' => 'admin',
+            'email' => $mail,
+        ]);
+    }
+
+    private function populateSessionUserExtras(PDO $pdo, int $userId): void
+    {
+        $stmt = $pdo->prepare('SELECT email, avatar, role, adresse FROM utilisateurs WHERE id = :id');
+        $stmt->execute(['id' => $userId]);
+        $row = $stmt->fetch();
+        if (!is_array($row)) {
+            return;
+        }
+
+        if (!isset($_SESSION['user']) || !is_array($_SESSION['user'])) {
+            $_SESSION['user'] = [];
+        }
+
+        $_SESSION['user']['mail'] = (string)($row['email'] ?? ($_SESSION['user']['mail'] ?? ''));
+        $_SESSION['user']['email'] = (string)($row['email'] ?? ($_SESSION['user']['email'] ?? ''));
+        $_SESSION['user']['avatar'] = (string)($row['avatar'] ?? ($_SESSION['user']['avatar'] ?? ''));
+        $_SESSION['user']['role'] = (string)($row['role'] ?? ($_SESSION['user']['role'] ?? 'citoyen'));
+        $_SESSION['user']['adresse'] = (string)($row['adresse'] ?? ($_SESSION['user']['adresse'] ?? ''));
     }
 
     /**
@@ -262,7 +326,7 @@ final class FaceIdController
 
             if ($sqlState === '23000') {
                 $this->json([
-                    'error' => "Enregistrement refusé (contrainte BD). Vérifie que ton compte existe dans la table 'utilisateur' et que l'ID session est valide.",
+                    'error' => "Enregistrement refusé (contrainte BD). Vérifie que ton compte existe dans la table 'utilisateurs' et que l'ID session est valide.",
                 ], 400);
                 return;
             }
@@ -653,6 +717,7 @@ final class ProfileController
             'active' => 'profile',
             'contentView' => 'site.php',
             'page' => 'profile',
+            'useLegacyNavbar' => true,
             'flash' => $flash,
             'user' => $user,
             'hasFaceId' => $hasFaceId,
@@ -850,8 +915,8 @@ final class PdoUserRepositoryController
     public static function findByMail(PdoUserRepository $repo, string $mail): ?User
     {
         $cols = self::selectColumns($repo);
-        $stmt = $repo->getPdo()->prepare('SELECT ' . $cols . ' FROM utilisateur WHERE mail = :mail LIMIT 1');
-        $stmt->execute(['mail' => $mail]);
+        $stmt = $repo->getPdo()->prepare('SELECT ' . $cols . ' FROM utilisateurs WHERE email = :email LIMIT 1');
+        $stmt->execute(['email' => $mail]);
         $row = $stmt->fetch();
         return self::hydrate($row);
     }
@@ -859,7 +924,7 @@ final class PdoUserRepositoryController
     public static function findById(PdoUserRepository $repo, int $id): ?User
     {
         $cols = self::selectColumns($repo);
-        $stmt = $repo->getPdo()->prepare('SELECT ' . $cols . ' FROM utilisateur WHERE id = :id LIMIT 1');
+        $stmt = $repo->getPdo()->prepare('SELECT ' . $cols . ' FROM utilisateurs WHERE id = :id LIMIT 1');
         $stmt->execute(['id' => $id]);
         $row = $stmt->fetch();
         return self::hydrate($row);
@@ -867,7 +932,7 @@ final class PdoUserRepositoryController
 
     public static function countUsers(PdoUserRepository $repo): int
     {
-        $stmt = $repo->getPdo()->query('SELECT COUNT(*) AS c FROM utilisateur');
+        $stmt = $repo->getPdo()->query('SELECT COUNT(*) AS c FROM utilisateurs');
         $row = $stmt->fetch();
         return (int)($row['c'] ?? 0);
     }
@@ -879,9 +944,9 @@ final class PdoUserRepositoryController
         $offset = max(0, $offset);
 
         $hasTelephone = self::hasTelephone($repo);
-        $cols = $hasTelephone ? 'id, nom, prenom, mail, telephone' : 'id, nom, prenom, mail';
+        $cols = $hasTelephone ? 'id, nom, prenom, email AS mail, telephone' : 'id, nom, prenom, email AS mail';
 
-        $sql = 'SELECT ' . $cols . ' FROM utilisateur ORDER BY id DESC LIMIT :limit OFFSET :offset';
+        $sql = 'SELECT ' . $cols . ' FROM utilisateurs ORDER BY id DESC LIMIT :limit OFFSET :offset';
         $stmt = $repo->getPdo()->prepare($sql);
         $stmt->bindValue('limit', $limit, PDO::PARAM_INT);
         $stmt->bindValue('offset', $offset, PDO::PARAM_INT);
@@ -925,21 +990,21 @@ final class PdoUserRepositoryController
 
     public static function deleteUser(PdoUserRepository $repo, int $id): void
     {
-        $stmt = $repo->getPdo()->prepare('DELETE FROM utilisateur WHERE id = :id');
+        $stmt = $repo->getPdo()->prepare('DELETE FROM utilisateurs WHERE id = :id');
         $stmt->execute(['id' => $id]);
     }
 
     public static function mailExistsForOtherId(PdoUserRepository $repo, string $mail, int $id): bool
     {
-        $stmt = $repo->getPdo()->prepare('SELECT id FROM utilisateur WHERE mail = :mail AND id <> :id LIMIT 1');
-        $stmt->execute(['mail' => $mail, 'id' => $id]);
+        $stmt = $repo->getPdo()->prepare('SELECT id FROM utilisateurs WHERE email = :email AND id <> :id LIMIT 1');
+        $stmt->execute(['email' => $mail, 'id' => $id]);
         return (bool)$stmt->fetch();
     }
 
     public static function mailExists(PdoUserRepository $repo, string $mail): bool
     {
-        $stmt = $repo->getPdo()->prepare('SELECT id FROM utilisateur WHERE mail = :mail LIMIT 1');
-        $stmt->execute(['mail' => $mail]);
+        $stmt = $repo->getPdo()->prepare('SELECT id FROM utilisateurs WHERE email = :email LIMIT 1');
+        $stmt->execute(['email' => $mail]);
         return (bool)$stmt->fetch();
     }
 
@@ -951,13 +1016,13 @@ final class PdoUserRepositoryController
         string $passwordHash
     ): int {
         $stmt = $repo->getPdo()->prepare(
-            'INSERT INTO utilisateur (nom, prenom, mail, mdp) VALUES (:nom, :prenom, :mail, :mdp)'
+            'INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe) VALUES (:nom, :prenom, :email, :mot_de_passe)'
         );
         $stmt->execute([
             'nom' => $nom,
             'prenom' => $prenom,
-            'mail' => $mail,
-            'mdp' => $passwordHash,
+            'email' => $mail,
+            'mot_de_passe' => $passwordHash,
         ]);
 
         return (int)$repo->getPdo()->lastInsertId();
@@ -965,19 +1030,19 @@ final class PdoUserRepositoryController
 
     public static function updatePassword(PdoUserRepository $repo, int $id, string $newHash): void
     {
-        $stmt = $repo->getPdo()->prepare('UPDATE utilisateur SET mdp = :mdp WHERE id = :id');
-        $stmt->execute(['mdp' => $newHash, 'id' => $id]);
+        $stmt = $repo->getPdo()->prepare('UPDATE utilisateurs SET mot_de_passe = :mot_de_passe WHERE id = :id');
+        $stmt->execute(['mot_de_passe' => $newHash, 'id' => $id]);
     }
 
     /** @param array{nom:string, prenom:string, mail:string, telephone?:string} $data */
     public static function updateProfile(PdoUserRepository $repo, int $id, array $data): void
     {
-        $fields = ['nom = :nom', 'prenom = :prenom', 'mail = :mail'];
+        $fields = ['nom = :nom', 'prenom = :prenom', 'email = :email'];
         $params = [
             'id' => $id,
             'nom' => $data['nom'],
             'prenom' => $data['prenom'],
-            'mail' => $data['mail'],
+            'email' => $data['mail'],
         ];
 
         if (self::hasTelephone($repo)) {
@@ -985,7 +1050,7 @@ final class PdoUserRepositoryController
             $params['telephone'] = $data['telephone'] ?? '';
         }
 
-        $sql = 'UPDATE utilisateur SET ' . implode(', ', $fields) . ' WHERE id = :id';
+        $sql = 'UPDATE utilisateurs SET ' . implode(', ', $fields) . ' WHERE id = :id';
         $stmt = $repo->getPdo()->prepare($sql);
         $stmt->execute($params);
     }
@@ -998,7 +1063,7 @@ final class PdoUserRepositoryController
         }
 
         try {
-            $stmt = $repo->getPdo()->query("SHOW COLUMNS FROM utilisateur LIKE 'telephone'");
+            $stmt = $repo->getPdo()->query("SHOW COLUMNS FROM utilisateurs LIKE 'telephone'");
             $row = $stmt->fetch();
             $repo->setHasTelephoneColumn((bool)$row);
         } catch (\Throwable $e) {
@@ -1010,7 +1075,7 @@ final class PdoUserRepositoryController
 
     private static function selectColumns(PdoUserRepository $repo): string
     {
-        $base = 'id, nom, prenom, mail, mdp';
+        $base = 'id, nom, prenom, email AS mail, mot_de_passe AS mdp';
         return self::hasTelephone($repo) ? ($base . ', telephone') : $base;
     }
 

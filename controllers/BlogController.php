@@ -288,13 +288,13 @@ class BlogController {
     // ========== RÉCUPÉRATION DES POSTS ==========
     public function getPosts($search = '') {
         try {
-            $sql = "SELECT p.*, u.name as user_name, u.avatar as user_avatar,
+            $sql = "SELECT p.*, CONCAT(u.prenom, ' ', u.nom) as user_name, u.avatar as user_avatar,
                     (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments_count,
                     (SELECT COUNT(*) FROM reactions WHERE post_id = p.id) as reactions_count
                     FROM posts p 
-                    JOIN users u ON p.user_id = u.id";
+                    JOIN utilisateurs u ON p.user_id = u.id";
             if (!empty($search)) {
-                $sql .= " WHERE (p.content LIKE :search OR u.name LIKE :search)";
+                $sql .= " WHERE (p.content LIKE :search OR u.prenom LIKE :search OR u.nom LIKE :search)";
             }
             $sql .= " ORDER BY p.created_at DESC";
             $stmt = $this->db->prepare($sql);
@@ -357,15 +357,15 @@ class BlogController {
     // ========== PAGINATION ==========
     public function getPostsPaginated($search = '', $limit = 10, $offset = 0) {
         try {
-            $sql = "SELECT p.*, u.name as user_name, u.avatar as user_avatar,
+            $sql = "SELECT p.*, CONCAT(u.prenom, ' ', u.nom) as user_name, u.avatar as user_avatar,
                     COUNT(DISTINCT c.id) as comments_count,
                     COUNT(DISTINCT r.id) as reactions_count
                     FROM posts p
-                    JOIN users u ON p.user_id = u.id
+                    JOIN utilisateurs u ON p.user_id = u.id
                     LEFT JOIN comments c ON c.post_id = p.id
                     LEFT JOIN reactions r ON r.post_id = p.id";
             if (!empty($search)) {
-                $sql .= " WHERE (p.content LIKE :search OR u.name LIKE :search)";
+                $sql .= " WHERE (p.content LIKE :search OR u.prenom LIKE :search OR u.nom LIKE :search)";
             }
             $sql .= " GROUP BY p.id ORDER BY p.created_at DESC LIMIT :limit OFFSET :offset";
             $stmt = $this->db->prepare($sql);
@@ -382,9 +382,9 @@ class BlogController {
             $commentsByPost = [];
             if (!empty($postIds)) {
                 $placeholders = implode(',', array_fill(0, count($postIds), '?'));
-                $stmtComments = $this->db->prepare("SELECT c.*, u.name as user_name, u.avatar as user_avatar 
+                $stmtComments = $this->db->prepare("SELECT c.*, CONCAT(u.prenom, ' ', u.nom) as user_name, u.avatar as user_avatar 
                                                      FROM comments c 
-                                                     JOIN users u ON c.user_id = u.id 
+                                                     JOIN utilisateurs u ON c.user_id = u.id 
                                                      WHERE c.post_id IN ($placeholders) 
                                                      ORDER BY c.created_at ASC");
                 $stmtComments->execute($postIds);
@@ -434,9 +434,9 @@ class BlogController {
     public function getTotalPostsCount($search = '') {
         try {
             $sql = "SELECT COUNT(DISTINCT p.id) FROM posts p
-                    JOIN users u ON p.user_id = u.id";
+                    JOIN utilisateurs u ON p.user_id = u.id";
             if (!empty($search)) {
-                $sql .= " WHERE (p.content LIKE :search OR u.name LIKE :search)";
+                $sql .= " WHERE (p.content LIKE :search OR u.prenom LIKE :search OR u.nom LIKE :search)";
             }
             $stmt = $this->db->prepare($sql);
             if (!empty($search)) {
@@ -452,9 +452,9 @@ class BlogController {
     }
 
     public function getCommentsByPost($post_id) {
-        $sql = "SELECT c.*, u.name as user_name, u.avatar as user_avatar 
-                FROM comments c 
-                JOIN users u ON c.user_id = u.id 
+        $sql = "SELECT c.*, CONCAT(u.prenom, ' ', u.nom) as user_name, u.avatar as user_avatar 
+            FROM comments c 
+            JOIN utilisateurs u ON c.user_id = u.id 
                 WHERE c.post_id = :post_id 
                 ORDER BY c.created_at ASC";
         $stmt = $this->db->prepare($sql);
@@ -476,9 +476,9 @@ class BlogController {
             exit;
         }
         $post_id = (int)$_GET['post_id'];
-        $sql = "SELECT u.id, u.name, u.avatar, r.type
-                FROM reactions r
-                JOIN users u ON r.user_id = u.id
+        $sql = "SELECT u.id, CONCAT(u.prenom, ' ', u.nom) AS name, u.avatar, r.type
+            FROM reactions r
+            JOIN utilisateurs u ON r.user_id = u.id
                 WHERE r.post_id = :post_id
                 ORDER BY r.created_at DESC";
         $stmt = $this->db->prepare($sql);
@@ -771,7 +771,8 @@ class BlogController {
     }
 
     private function redirectBack() {
-        $url = $_SERVER['HTTP_REFERER'] ?? '/projetweb/views/frontoffice.php';
+        $fallback = BASE_URL . '/index.php?action=blog';
+        $url = $_SERVER['HTTP_REFERER'] ?? $fallback;
         header('Location: ' . $url);
         exit();
     }
@@ -785,31 +786,28 @@ class BlogController {
         }
         $email = trim(htmlspecialchars($data['email']));
         $password = trim(htmlspecialchars($data['password']));
-        $sql = "SELECT id, name, avatar, role FROM users WHERE email = :email AND password = :password";
+        $sql = "SELECT id, nom, prenom, avatar, role, mot_de_passe FROM utilisateurs WHERE email = :email LIMIT 1";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([':email' => $email, ':password' => $password]);
+        $stmt->execute([':email' => $email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($user) {
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['user_name'] = $user['name'];
+        if ($user && isset($user['mot_de_passe']) && password_verify($password, (string)$user['mot_de_passe'])) {
+            $displayName = trim(($user['prenom'] ?? '') . ' ' . ($user['nom'] ?? ''));
+            $_SESSION['user_id'] = (int)$user['id'];
+            $_SESSION['user_name'] = $displayName !== '' ? $displayName : 'Utilisateur';
             $_SESSION['user_avatar'] = !empty($user['avatar']) ? $user['avatar'] : 'https://randomuser.me/api/portraits/lego/1.jpg';
-            $_SESSION['user_role'] = $user['role'];
-            $_SESSION['success'] = "Bienvenue " . $user['name'] . " !";
-            if ($user['role'] === 'admin') {
-                header('Location: /projetweb/views/backoffice.php');
-            } else {
-                header('Location: /projetweb/views/frontoffice.php');
-            }
+            $_SESSION['user_role'] = $user['role'] ?? 'citoyen';
+            $_SESSION['success'] = "Bienvenue " . $_SESSION['user_name'] . " !";
+            header('Location: ' . BASE_URL . '/index.php?action=blog');
             exit();
-        } else {
-            $_SESSION['error'] = "Email ou mot de passe incorrect";
-            $this->redirectBack();
         }
+
+        $_SESSION['error'] = "Email ou mot de passe incorrect";
+        $this->redirectBack();
     }
 
     public function logout() {
         session_destroy();
-        header('Location: /projetweb/views/frontoffice.php');
+        header('Location: ' . BASE_URL . '/index.php?action=blog');
         exit();
     }
 

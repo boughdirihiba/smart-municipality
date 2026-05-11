@@ -12,6 +12,15 @@ final class Auth
 
     private static function adminEmail(): string
     {
+        if (defined('ADMIN_EMAIL')) {
+            return (string)ADMIN_EMAIL;
+        }
+
+        $env = getenv('ADMIN_EMAIL');
+        if (is_string($env) && trim($env) !== '') {
+            return trim($env);
+        }
+
         return self::ADMIN_EMAIL;
     }
 
@@ -100,6 +109,7 @@ final class Auth
             'nom' => $user->getNom(),
             'prenom' => $user->getPrenom(),
             'mail' => $user->getMail(),
+            'email' => $user->getMail(),
             'telephone' => $user->getTelephone(),
         ];
 

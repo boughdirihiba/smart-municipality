@@ -7,7 +7,19 @@ require_once __DIR__ . '/../controllers/BlogController.php';
 
 $controller = new BlogController();
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-$posts = $controller->searchPostsInPhp($search);
+$pageNum = isset($_GET['p']) ? (int)$_GET['p'] : 1;
+$pageNum = $pageNum > 0 ? $pageNum : 1;
+$limit = 8;
+$offset = ($pageNum - 1) * $limit;
+$posts = $controller->getPostsPaginated($search, $limit, $offset);
+$totalPosts = $controller->getTotalPostsCount($search);
+$totalPages = max(1, (int)ceil($totalPosts / $limit));
+if ($pageNum > $totalPages) {
+    $pageNum = $totalPages;
+}
+
+$blogControllerUrl = BASE_URL . '/controllers/BlogController.php';
+$blogPageUrl = BASE_URL . '/index.php?action=blog';
 
 $success_message = $_SESSION['success'] ?? '';
 $error_message = $_SESSION['error'] ?? '';
@@ -128,6 +140,26 @@ $current_font_size = $_SESSION['font_size'] ?? 100;
             padding: 0 1rem;
             display: flex;
             gap: 2rem;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin: 16px 0 8px;
+            flex-wrap: wrap;
+        }
+        .pagination a {
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border-light);
+            background: var(--bg-card);
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        .pagination a.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
         }
         .content-left { flex: 2; }
         .sidebar-right {
@@ -395,7 +427,7 @@ $current_font_size = $_SESSION['font_size'] ?? 100;
 
         <?php if (isset($_SESSION['user_id'])): ?>
         <div class="create-card">
-            <form method="POST" action="/projetweb/controllers/BlogController.php" enctype="multipart/form-data" onsubmit="return validatePost()">
+            <form method="POST" action="<?= htmlspecialchars($blogControllerUrl) ?>" enctype="multipart/form-data" onsubmit="return validatePost()">
                 <input type="hidden" name="action" value="createPost">
                 <div class="post-input-area"><div class="avatar-sm"><img src="<?= htmlspecialchars($sessionAvatar ?? 'https://randomuser.me/api/portraits/lego/1.jpg') ?>"></div><textarea class="post-textarea" id="postContent" name="content" rows="2" placeholder="<?= $t('write_comment') ?>"></textarea></div>
                 <div id="mediaPreviewContainer" class="media-preview-area" style="display:none;"><img id="previewImg" style="display:none;"><video id="previewVideo" controls style="display:none;"></video><button type="button" id="removeMediaBtn" style="display:none;"><i class="fas fa-times"></i></button></div>
@@ -464,6 +496,16 @@ $current_font_size = $_SESSION['font_size'] ?? 100;
             </div>
             <?php endforeach; endif; ?>
         </div>
+        <?php if ($totalPages > 1): ?>
+            <div class="pagination" aria-label="Pagination">
+                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                    <a
+                        href="<?= htmlspecialchars($blogPageUrl . '?p=' . $i . ($search !== '' ? '&search=' . urlencode($search) : '')) ?>"
+                        class="<?= $i === $pageNum ? 'active' : '' ?>"
+                    ><?= $i ?></a>
+                <?php endfor; ?>
+            </div>
+        <?php endif; ?>
     </div>
     <aside class="sidebar-right">
         <div class="trend-card"><h4><i class="fas fa-fire" style="color: var(--accent);"></i> <?= $t('trends') ?></h4><div class="trend-item"><i class="fas fa-swimmer"></i> 🏛️ <?= $t('trend1') ?></div><div class="trend-item"><i class="fas fa-tree"></i> 🌿 <?= $t('trend2') ?></div><div class="trend-item"><i class="fas fa-bicycle"></i> 🚴‍♂️ <?= $t('trend3') ?></div></div>
@@ -473,9 +515,9 @@ $current_font_size = $_SESSION['font_size'] ?? 100;
 </div>
 
 <!-- MODALES -->
-<div id="loginModal" class="modal"><div class="modal-content"><div style="text-align:center; margin-bottom:1rem;"><img class="logo-icon" src="logo.png" alt="Logo" style="width:60px;"><h3 style="color:var(--accent);"><?= $t('login_title') ?></h3></div><?php if (!isset($_SESSION['user_id'])): ?><form method="POST" action="/projetweb/controllers/BlogController.php" onsubmit="return validateLogin()"><input type="hidden" name="action" value="login"><input type="email" name="email" id="loginEmail" placeholder="Email" required><input type="password" name="password" id="loginPassword" placeholder="<?= $t('login_title') ?>" required><div class="modal-buttons"><button type="button" class="modal-cancel" onclick="closeLoginModal()"><?= $t('cancel') ?></button><button type="submit" class="modal-save"><?= $t('login_btn') ?></button></div></form><?php else: ?><div style="text-align:center;"><div class="avatar-md" style="margin:0 auto 1rem; width:80px; height:80px;"><img src="<?= htmlspecialchars($sessionAvatar ?? 'https://randomuser.me/api/portraits/lego/1.jpg') ?>"></div><p><?= $t('logged_as') ?> <strong><?= $_SESSION['user_name'] ?></strong></p><form method="POST" action="/projetweb/controllers/BlogController.php"><input type="hidden" name="action" value="logout"><button type="submit" class="modal-save" style="background:var(--danger);"><?= $t('logout') ?></button></form></div><?php endif; ?></div></div>
-<div id="editPostModal" class="modal"><div class="modal-content"><h3><?= $t('edit_post_title') ?></h3><form method="POST" action="/projetweb/controllers/BlogController.php"><input type="hidden" name="action" value="updatePost"><input type="hidden" name="post_id" id="edit_post_id"><textarea id="edit_post_content" name="content" rows="4" placeholder="<?= $t('write_comment') ?>"></textarea><div class="modal-buttons"><button type="button" class="modal-cancel" onclick="closeEditModal()"><?= $t('cancel') ?></button><button type="submit" class="modal-save"><?= $t('save') ?></button></div></form></div></div>
-<div id="editCommentModal" class="modal"><div class="modal-content"><h3><?= $t('edit_comment_title') ?></h3><form method="POST" action="/projetweb/controllers/BlogController.php"><input type="hidden" name="action" value="updateComment"><input type="hidden" name="comment_id" id="edit_comment_id"><textarea id="edit_comment_content" name="content" rows="3" placeholder="<?= $t('write_comment') ?>"></textarea><div class="modal-buttons"><button type="button" class="modal-cancel" onclick="closeEditCommentModal()"><?= $t('cancel') ?></button><button type="submit" class="modal-save"><?= $t('save') ?></button></div></form></div></div>
+<div id="loginModal" class="modal"><div class="modal-content"><div style="text-align:center; margin-bottom:1rem;"><img class="logo-icon" src="logo.png" alt="Logo" style="width:60px;"><h3 style="color:var(--accent);"><?= $t('login_title') ?></h3></div><?php if (!isset($_SESSION['user_id'])): ?><form method="POST" action="<?= htmlspecialchars($blogControllerUrl) ?>" onsubmit="return validateLogin()"><input type="hidden" name="action" value="login"><input type="email" name="email" id="loginEmail" placeholder="Email" required><input type="password" name="password" id="loginPassword" placeholder="<?= $t('login_title') ?>" required><div class="modal-buttons"><button type="button" class="modal-cancel" onclick="closeLoginModal()"><?= $t('cancel') ?></button><button type="submit" class="modal-save"><?= $t('login_btn') ?></button></div></form><?php else: ?><div style="text-align:center;"><div class="avatar-md" style="margin:0 auto 1rem; width:80px; height:80px;"><img src="<?= htmlspecialchars($sessionAvatar ?? 'https://randomuser.me/api/portraits/lego/1.jpg') ?>"></div><p><?= $t('logged_as') ?> <strong><?= $_SESSION['user_name'] ?></strong></p><form method="POST" action="<?= htmlspecialchars($blogControllerUrl) ?>"><input type="hidden" name="action" value="logout"><button type="submit" class="modal-save" style="background:var(--danger);"><?= $t('logout') ?></button></form></div><?php endif; ?></div></div>
+<div id="editPostModal" class="modal"><div class="modal-content"><h3><?= $t('edit_post_title') ?></h3><form method="POST" action="<?= htmlspecialchars($blogControllerUrl) ?>"><input type="hidden" name="action" value="updatePost"><input type="hidden" name="post_id" id="edit_post_id"><textarea id="edit_post_content" name="content" rows="4" placeholder="<?= $t('write_comment') ?>"></textarea><div class="modal-buttons"><button type="button" class="modal-cancel" onclick="closeEditModal()"><?= $t('cancel') ?></button><button type="submit" class="modal-save"><?= $t('save') ?></button></div></form></div></div>
+<div id="editCommentModal" class="modal"><div class="modal-content"><h3><?= $t('edit_comment_title') ?></h3><form method="POST" action="<?= htmlspecialchars($blogControllerUrl) ?>"><input type="hidden" name="action" value="updateComment"><input type="hidden" name="comment_id" id="edit_comment_id"><textarea id="edit_comment_content" name="content" rows="3" placeholder="<?= $t('write_comment') ?>"></textarea><div class="modal-buttons"><button type="button" class="modal-cancel" onclick="closeEditCommentModal()"><?= $t('cancel') ?></button><button type="submit" class="modal-save"><?= $t('save') ?></button></div></form></div></div>
 <div id="confirmDeleteModal" class="modal"><div class="modal-content"><h3 id="confirmDeleteTitle"><?= $t('confirm_delete_title') ?></h3><p id="confirmDeleteMessage"><?= $t('confirm_delete_post') ?></p><div class="modal-buttons"><button class="modal-cancel" id="confirmDeleteCancel"><?= $t('cancel') ?></button><button class="modal-save" id="confirmDeleteConfirm" style="background:var(--danger);"><?= $t('delete') ?></button></div></div></div>
 <div id="messageModal" class="modal"><div class="modal-content"><h3 id="messageModalTitle"><?= $t('ok') ?></h3><p id="messageModalText"></p><div class="modal-buttons"><button class="modal-save" id="messageModalOk"><?= $t('ok') ?></button></div></div></div>
 <div id="reactionsModal" class="modal"><div class="modal-content" style="max-width:500px;"><h3><i class="fas fa-smile"></i> <?= $t('reactions_list') ?></h3><div id="reactionsListContainer" style="max-height:400px;overflow-y:auto;"><div style="text-align:center;"><i class="fas fa-spinner fa-pulse"></i> Chargement...</div></div><div class="modal-buttons"><button class="modal-cancel" onclick="closeReactionsModal()"><?= $t('close') ?></button></div></div></div>
@@ -495,7 +537,7 @@ function performSearch() {
     if (query.length < 2) { searchResultsDiv.classList.remove('show'); searchResultsDiv.innerHTML = ''; return; }
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-        fetch(`/projetweb/controllers/BlogController.php?action=searchAjax&q=${encodeURIComponent(query)}`)
+        fetch(`<?= htmlspecialchars($blogControllerUrl) ?>?action=searchAjax&q=${encodeURIComponent(query)}`)
             .then(res => res.json())
             .then(data => {
                 if (data.length === 0) { searchResultsDiv.innerHTML = '<div class="no-result">Aucun résultat</div>'; searchResultsDiv.classList.add('show'); return; }
@@ -508,12 +550,15 @@ function performSearch() {
 }
 searchInput.addEventListener('input', performSearch);
 document.addEventListener('click', e => { if (!searchResultsDiv.contains(e.target) && e.target !== searchInput) searchResultsDiv.classList.remove('show'); });
-document.getElementById('searchButton').addEventListener('click', () => { const q = searchInput.value.trim(); if (q !== '') window.location.href = `?search=${encodeURIComponent(q)}`; });
+document.getElementById('searchButton').addEventListener('click', () => {
+    const q = searchInput.value.trim();
+    if (q !== '') window.location.href = `<?= htmlspecialchars($blogPageUrl) ?>?search=${encodeURIComponent(q)}`;
+});
 searchInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('searchButton').click(); } });
 
 // ========== RÉACTIONS (POPUP MODERNE) ==========
 function submitReaction(postId, type) {
-    fetch('/projetweb/controllers/BlogController.php', {
+    fetch('<?= htmlspecialchars($blogControllerUrl) ?>', {
         method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `action=ajaxReactToPost&post_id=${postId}&type=${type}`
     }).then(res => res.json()).then(data => {
@@ -564,7 +609,7 @@ function addCommentAjax(postId) {
     const input = document.getElementById(`comment-input-${postId}`);
     const content = input.value.trim();
     if (!content) { showToast('Le commentaire ne peut pas être vide'); return; }
-    fetch('/projetweb/controllers/BlogController.php', {
+    fetch('<?= htmlspecialchars($blogControllerUrl) ?>', {
         method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `action=ajaxCreateComment&post_id=${postId}&content=${encodeURIComponent(content)}`
     }).then(res => res.json()).then(data => {
@@ -580,7 +625,7 @@ function addCommentAjax(postId) {
 function editCommentAjax(commentId, oldContent) {
     const newContent = prompt('Modifier votre commentaire :', oldContent);
     if (!newContent || newContent === oldContent) return;
-    fetch('/projetweb/controllers/BlogController.php', {
+    fetch('<?= htmlspecialchars($blogControllerUrl) ?>', {
         method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `action=ajaxUpdateComment&comment_id=${commentId}&content=${encodeURIComponent(newContent)}`
     }).then(res => res.json()).then(data => {
@@ -608,10 +653,10 @@ function executeDelete() {
     const { type, id, postId, cardElement } = pendingDelete;
     if (!type || !id) return;
     if (type === 'post') {
-        fetch('/projetweb/controllers/BlogController.php', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: `action=ajaxDeletePost&post_id=${id}` })
+        fetch('<?= htmlspecialchars($blogControllerUrl) ?>', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: `action=ajaxDeletePost&post_id=${id}` })
         .then(res => res.json()).then(data => { if (data.error) showToast(data.error); else { if (cardElement) cardElement.remove(); showToast('Publication supprimée'); } closeConfirmModal(); });
     } else if (type === 'comment') {
-        fetch('/projetweb/controllers/BlogController.php', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: `action=ajaxDeleteComment&comment_id=${id}` })
+        fetch('<?= htmlspecialchars($blogControllerUrl) ?>', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: `action=ajaxDeleteComment&comment_id=${id}` })
         .then(res => res.json()).then(data => { if (data.error) showToast(data.error); else { document.querySelector(`.comment-item[data-comment-id="${id}"]`).remove(); document.getElementById(`comment-count-${postId}`).innerText = `(${data.total_comments})`; showToast('Commentaire supprimé'); } closeConfirmModal(); });
     }
 }
@@ -625,7 +670,7 @@ function showReactionsList(postId) {
     const container = document.getElementById('reactionsListContainer');
     container.innerHTML = '<div style="text-align:center;"><i class="fas fa-spinner fa-pulse"></i> Chargement...</div>';
     modal.classList.add('show');
-    fetch(`/projetweb/controllers/BlogController.php?action=getReactionsList&post_id=${postId}`)
+    fetch(`<?= htmlspecialchars($blogControllerUrl) ?>?action=getReactionsList&post_id=${postId}`)
         .then(res => res.json())
         .then(data => {
             if (data.error) { container.innerHTML = `<div class="no-result">${data.error}</div>`; return; }
@@ -674,7 +719,7 @@ async function speakPostFromServer(postId, element) {
     if (currentElement === element && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) { stopSpeaking(); return; }
     stopSpeaking();
     try {
-        const response = await fetch(`/projetweb/controllers/BlogController.php?action=getSpeakText&post_id=${postId}`);
+        const response = await fetch(`<?= htmlspecialchars($blogControllerUrl) ?>?action=getSpeakText&post_id=${postId}`);
         const data = await response.json();
         if (data.error || !data.text) { showMessageModal("<?= addslashes($t('error')) ?>", data.error || "Texte non disponible", true); return; }
         const utterance = new SpeechSynthesisUtterance(data.text);
