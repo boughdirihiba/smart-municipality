@@ -2,8 +2,9 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
 require_once "config/database.php";
-require_once "config/Language.php";  // ← AJOUTER CETTE LIGNE
+// Pas besoin de Language.php si on n'utilise pas __()
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: index.php?action=dashboard");
@@ -53,12 +54,12 @@ try {
     $stmt->bindParam(":document_id", $document_id);
     
     if ($stmt->execute()) {
-        $_SESSION['success_message'] = "✅ " . __('success_created');
+        $_SESSION['success_message'] = "✅ Notification envoyée avec succès";
     } else {
-        $_SESSION['error_message'] = "❌ " . __('error_occurred');
+        $_SESSION['error_message'] = "❌ Erreur lors de l'envoi";
     }
 } catch(PDOException $e) {
-    $_SESSION['error_message'] = "❌ Erreur: " . $e->getMessage();
+    $_SESSION['error_message'] = "❌ Erreur technique : " . $e->getMessage();
 }
 
 header("Location: index.php?action=dashboard");

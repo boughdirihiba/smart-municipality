@@ -16,21 +16,13 @@ $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 1;
 $database = new Database();
 $db = $database->connect();
 
-// ==================== SYSTÈME DE TRI COMPLET ====================
-$sort = isset($_GET['sort']) ? $_GET['sort'] : 'date';
-$order = isset($_GET['order']) ? $_GET['order'] : 'DESC';
-
-$allowed_sort = ['nom', 'popularite', 'date'];
-$sort_column = in_array($sort, $allowed_sort) ? $sort : 'date';
-$order_direction = ($order === 'ASC' || $order === 'DESC') ? $order : 'DESC';
-
 // Récupérer les services depuis la table services
 $sql = "SELECT * FROM services ORDER BY id DESC";
 $stmt = $db->prepare($sql);
 $stmt->execute();
 $allServices = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Filtrer les services uniques par nom et ajouter le compteur de demandes
+// Filtrer les services uniques par nom et ajouter le compteur de demandes et les notes
 $uniqueServices = [];
 $seenNames = [];
 
@@ -62,56 +54,13 @@ foreach($allServices as $service) {
 }
 $allServices = $uniqueServices;
 
-// Appliquer le tri
-if($sort_column == 'nom') {
-    if($order_direction == 'ASC') {
-        usort($allServices, function($a, $b) {
-            return strcoll(
-                mb_strtolower(trim($a['nom']), 'UTF-8'), 
-                mb_strtolower(trim($b['nom']), 'UTF-8')
-            );
-        });
-    } else {
-        usort($allServices, function($a, $b) {
-            return strcoll(
-                mb_strtolower(trim($b['nom']), 'UTF-8'), 
-                mb_strtolower(trim($a['nom']), 'UTF-8')
-            );
-        });
-    }
-} elseif($sort_column == 'popularite') {
-    if($order_direction == 'ASC') {
-        usort($allServices, function($a, $b) {
-            return $a['demandes_count'] - $b['demandes_count'];
-        });
-    } else {
-        usort($allServices, function($a, $b) {
-            return $b['demandes_count'] - $a['demandes_count'];
-        });
-    }
-} else {
-    if($order_direction == 'ASC') {
-        usort($allServices, function($a, $b) {
-            $dateA = strtotime($a['date_creation']);
-            $dateB = strtotime($b['date_creation']);
-            return $dateA - $dateB;
-        });
-    } else {
-        usort($allServices, function($a, $b) {
-            $dateA = strtotime($a['date_creation']);
-            $dateB = strtotime($b['date_creation']);
-            return $dateB - $dateA;
-        });
-    }
-}
-
 // Récupérer les demandes
 $sql = "SELECT * FROM demandes ORDER BY date_creation DESC";
 $stmt = $db->prepare($sql);
 $stmt->execute();
 $demandes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Récupérer les fichiers
+// Récupérer les fichiers pour chaque demande
 foreach($demandes as &$demande) {
     $sqlDocs = "SELECT * FROM documents WHERE demande_id = :demande_id ORDER BY uploaded_at DESC";
     $stmtDocs = $db->prepare($sqlDocs);
@@ -126,6 +75,7 @@ foreach($demandes as &$demande) {
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
+    /* --- Styles (inchangés, identiques à l'original) --- */
     * {
         margin: 0;
         padding: 0;
@@ -144,7 +94,6 @@ foreach($demandes as &$demande) {
         background: #0f172a;
         color: #e2e8f0;
     }
-
 
     body.dark-mode .hero {
         background: linear-gradient(135deg, #0f172a, #1e293b);
@@ -309,7 +258,6 @@ foreach($demandes as &$demande) {
         --card-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
         --card-hover-shadow: 0 20px 35px rgba(5, 46, 22, 0.12);
     }
-
 
     .notification-bell {
         position: relative;
@@ -524,7 +472,6 @@ foreach($demandes as &$demande) {
         position: relative;
     }
 
-    /* QR Code Button */
     .btn-qr {
         background: rgba(255,255,255,0.2);
         border: 2px solid rgba(255,255,255,0.3);
@@ -546,7 +493,6 @@ foreach($demandes as &$demande) {
         transform: translateY(-2px);
     }
 
-    /* MODAL QR CODE */
     .qr-modal {
         display: none;
         position: fixed;
@@ -957,7 +903,6 @@ foreach($demandes as &$demande) {
         gap: 8px;
     }
 
-    /* STYLES POUR LE RATING */
     .rating-container {
         margin: 15px 0;
         padding-top: 10px;
@@ -1431,6 +1376,7 @@ foreach($demandes as &$demande) {
         #qrCodeContainer canvas,
         #qrCodeContainer img { width: 180px !important; height: 180px !important; }
     }
+    
 </style>
 <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/chatbot.css">
 
@@ -1485,54 +1431,44 @@ foreach($demandes as &$demande) {
                 <span class="sort-label"><i class="fas fa-sort-amount-down"></i> TRIER PAR</span>
                 <div class="sort-buttons">
                     <div class="sort-group">
-                        <a href="<?php echo BASE_URL; ?>/?sort=nom&order=ASC" class="sort-btn <?php echo ($sort == 'nom' && $order == 'ASC') ? 'active' : ''; ?>">
+                        <button type="button" class="sort-btn" data-sort="nom" data-order="ASC">
                             <i class="fas fa-sort-alpha-down"></i> A→Z
-                        </a>
-                        <a href="<?php echo BASE_URL; ?>/?sort=nom&order=DESC" class="sort-btn <?php echo ($sort == 'nom' && $order == 'DESC') ? 'active' : ''; ?>">
+                        </button>
+                        <button type="button" class="sort-btn" data-sort="nom" data-order="DESC">
                             <i class="fas fa-sort-alpha-up"></i> Z→A
-                        </a>
+                        </button>
                     </div>
                     <div class="sort-group">
-                        <a href="<?php echo BASE_URL; ?>/?sort=popularite&order=DESC" class="sort-btn <?php echo ($sort == 'popularite' && $order == 'DESC') ? 'active' : ''; ?>">
+                        <button type="button" class="sort-btn" data-sort="popularite" data-order="DESC">
                             <i class="fas fa-chart-line"></i> Plus populaire
-                        </a>
-                        <a href="<?php echo BASE_URL; ?>/?sort=popularite&order=ASC" class="sort-btn <?php echo ($sort == 'popularite' && $order == 'ASC') ? 'active' : ''; ?>">
+                        </button>
+                        <button type="button" class="sort-btn" data-sort="popularite" data-order="ASC">
                             <i class="fas fa-chart-line"></i> Moins populaire
-                        </a>
+                        </button>
                     </div>
                     <div class="sort-group">
-                        <a href="<?php echo BASE_URL; ?>/?sort=date&order=DESC" class="sort-btn <?php echo ($sort == 'date' && $order == 'DESC') ? 'active' : ''; ?>">
+                        <button type="button" class="sort-btn" data-sort="date" data-order="DESC">
                             <i class="fas fa-calendar-alt"></i> Plus récent
-                        </a>
-                        <a href="<?php echo BASE_URL; ?>/?sort=date&order=ASC" class="sort-btn <?php echo ($sort == 'date' && $order == 'ASC') ? 'active' : ''; ?>">
+                        </button>
+                        <button type="button" class="sort-btn" data-sort="date" data-order="ASC">
                             <i class="fas fa-calendar-alt"></i> Plus ancien
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="sort-info">
-            <i class="fas fa-chart-simple"></i> Tri actuel : <strong>
-                <?php 
-                if($sort == 'nom') {
-                    echo ($order == 'ASC') ? 'Nom (A → Z)' : 'Nom (Z → A)';
-                } elseif($sort == 'popularite') {
-                    echo ($order == 'DESC') ? 'Plus populaire d\'abord' : 'Moins populaire d\'abord';
-                } else {
-                    echo ($order == 'DESC') ? 'Plus récent d\'abord' : 'Plus ancien d\'abord';
-                }
-                ?>
-            </strong> 
+        <div class="sort-info" id="sortInfo">
+            <i class="fas fa-chart-simple"></i> Tri actuel : <strong id="currentSortLabel">Plus récent d'abord</strong>
             <span style="background: white; padding: 4px 14px; border-radius: 40px; font-size: 11px; font-weight: 600;">
                 <i class="fas fa-layer-group"></i> <?php echo count($allServices); ?> service(s)
             </span>
         </div>
 
-        <div class="services-grid">
+        <div class="services-grid" id="servicesGrid">
             <?php if (!empty($allServices) && count($allServices) > 0): ?>
                 <?php foreach ($allServices as $service): ?>
-                    <div class="service-card" data-service-id="<?php echo $service['id']; ?>">
+                    <div class="service-card" data-service-id="<?php echo $service['id']; ?>" data-nom="<?php echo htmlspecialchars($service['nom']); ?>" data-popularite="<?php echo $service['demandes_count']; ?>" data-date="<?php echo strtotime($service['date_creation']); ?>">
                         <div class="card-icon">
                             <i class="<?php echo htmlspecialchars($service['icone']); ?>"></i>
                         </div>
@@ -1612,7 +1548,7 @@ foreach($demandes as &$demande) {
                                     <td><span class="demande-id">#<?php echo htmlspecialchars($demande['id']); ?></span></td>
                                     <td><strong><?php echo htmlspecialchars($demande['nom']); ?></strong></td>
                                     <td><?php echo htmlspecialchars($demande['type_service']); ?></td>
-                                    </tr><?php echo htmlspecialchars(substr($demande['documents'] ?? '', 0, 35)); ?></td>
+                                    <td><?php echo htmlspecialchars(substr($demande['documents'] ?? '', 0, 35)); ?></td>
                                     <td><?php echo date('d/m/Y', strtotime($demande['date_creation'])); ?></td>
                                     <td class="files-cell">
                                         <?php if ($demande['fichiers_count'] > 0): ?>
@@ -1742,7 +1678,6 @@ foreach($demandes as &$demande) {
         const modal = document.getElementById('qrModal');
         modal.style.display = 'flex';
         
-        // Générer le QR code
         const container = document.getElementById('qrCodeContainer');
         container.innerHTML = '';
         
@@ -1773,7 +1708,6 @@ foreach($demandes as &$demande) {
         }
     }
 
-    // Fermer le modal en cliquant en dehors
     window.onclick = function(event) {
         const modal = document.getElementById('qrModal');
         if (event.target === modal) {
@@ -1825,6 +1759,88 @@ foreach($demandes as &$demande) {
         });
     });
 
+    // ========== TRI DYNAMIQUE DES SERVICES (côté client) ==========
+    let currentSort = { field: 'date', order: 'DESC' };
+    
+    function getSortedServices(services, field, order) {
+        return services.slice().sort((a, b) => {
+            let valA, valB;
+            if (field === 'nom') {
+                valA = a.nom.toLowerCase();
+                valB = b.nom.toLowerCase();
+                const cmp = valA.localeCompare(valB, 'fr');
+                return order === 'ASC' ? cmp : -cmp;
+            } else if (field === 'popularite') {
+                valA = a.popularite;
+                valB = b.popularite;
+                return order === 'ASC' ? valA - valB : valB - valA;
+            } else { // date
+                valA = a.date;
+                valB = b.date;
+                return order === 'ASC' ? valA - valB : valB - valA;
+            }
+        });
+    }
+    
+    function updateSortInfo(field, order) {
+        const labelMap = {
+            'nom_ASC': 'Nom (A → Z)',
+            'nom_DESC': 'Nom (Z → A)',
+            'popularite_DESC': 'Plus populaire d\'abord',
+            'popularite_ASC': 'Moins populaire d\'abord',
+            'date_DESC': 'Plus récent d\'abord',
+            'date_ASC': 'Plus ancien d\'abord'
+        };
+        const key = `${field}_${order}`;
+        document.getElementById('currentSortLabel').innerText = labelMap[key] || 'Plus récent d\'abord';
+    }
+    
+    function applySort(field, order) {
+        currentSort = { field, order };
+        // Récupérer les services depuis les cartes existantes (évite de re-parcourir le DOM)
+        const cards = Array.from(document.querySelectorAll('#servicesGrid .service-card'));
+        const servicesData = cards.map(card => ({
+            element: card,
+            id: card.dataset.serviceId,
+            nom: card.dataset.nom,
+            popularite: parseInt(card.dataset.popularite, 10),
+            date: parseInt(card.dataset.date, 10)
+        }));
+        
+        const sortedServices = getSortedServices(servicesData, field, order);
+        const grid = document.getElementById('servicesGrid');
+        // Réordonner les éléments dans le DOM
+        sortedServices.forEach(service => {
+            grid.appendChild(service.element);
+        });
+        
+        updateSortInfo(field, order);
+        
+        // Mettre à jour l'état actif des boutons
+        document.querySelectorAll('.sort-btn').forEach(btn => {
+            const btnField = btn.dataset.sort;
+            const btnOrder = btn.dataset.order;
+            if (btnField === field && btnOrder === order) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+    }
+    
+    // Initialisation des écouteurs sur les boutons de tri
+    function initSortButtons() {
+        const sortBtns = document.querySelectorAll('.sort-btn');
+        sortBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const field = btn.dataset.sort;
+                const order = btn.dataset.order;
+                applySort(field, order);
+            });
+        });
+    }
+    
     // ========== SYSTÈME DE RATING COMPLET ET FONCTIONNEL ==========
     
     function loadRatingForService(serviceId) {
@@ -2343,9 +2359,13 @@ foreach($demandes as &$demande) {
         })
         .catch(console.error);
 
-    initDarkMode();
-    
+    // Initialisation au chargement
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialiser le tri (par défaut : plus récent d'abord)
+        applySort('date', 'DESC');
+        initSortButtons();
+        initDarkMode();
+        
         document.querySelectorAll('.service-card').forEach(card => {
             const serviceId = card.dataset.serviceId;
             if (serviceId) {

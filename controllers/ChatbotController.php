@@ -16,8 +16,8 @@ class ChatbotController {
         $this->db = $database->connect();
         $this->model = new Chatbot($this->db);
         
-        // Charger la clé API
-        require_once __DIR__ . '/../config/config.php';
+        // Charger la clé API depuis le fichier renommé
+        require_once __DIR__ . '/../config/config1.php';
         $this->apiKey = GROK_API_KEY;
         
         if (strpos($this->apiKey, 'gsk_') === 0) {

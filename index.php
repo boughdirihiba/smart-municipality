@@ -5,6 +5,7 @@ declare(strict_types=1);
 require __DIR__ . '/config/config.php';
 require __DIR__ . '/app/Core/Autoloader.php';
 
+
 // ─── LEGACY ACTION ROUTER ─────────────────────────────────────────────────────
 // If ?action= is present, delegate to the legacy controller system.
 if (!empty($_GET['action']) || !empty($_POST['action'])) {
