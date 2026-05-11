@@ -25,11 +25,15 @@ final class Auth
     public static function check(): bool
     {
         self::startSession();
-        if (isset($_SESSION['user_id']) && is_int($_SESSION['user_id']) && $_SESSION['user_id'] > 0) {
+        if (isset($_SESSION['user_id']) && (int)$_SESSION['user_id'] > 0) {
             return true;
         }
 
-        if (isset($_SESSION['user']['db_id']) && is_int($_SESSION['user']['db_id']) && $_SESSION['user']['db_id'] > 0) {
+        if (isset($_SESSION['user']['id']) && (int)$_SESSION['user']['id'] > 0) {
+            return true;
+        }
+
+        if (isset($_SESSION['user']['db_id']) && (int)$_SESSION['user']['db_id'] > 0) {
             return true;
         }
 
@@ -40,12 +44,16 @@ final class Auth
     {
         self::startSession();
 
-        if (isset($_SESSION['user_id']) && is_int($_SESSION['user_id'])) {
-            return $_SESSION['user_id'];
+        if (isset($_SESSION['user_id'])) {
+            return (int)$_SESSION['user_id'];
         }
 
-        if (isset($_SESSION['user']['db_id']) && is_int($_SESSION['user']['db_id'])) {
-            return $_SESSION['user']['db_id'];
+        if (isset($_SESSION['user']['id'])) {
+            return (int)$_SESSION['user']['id'];
+        }
+
+        if (isset($_SESSION['user']['db_id'])) {
+            return (int)$_SESSION['user']['db_id'];
         }
 
         return 0;
@@ -59,7 +67,7 @@ final class Auth
         return is_array($u) ? $u : [];
     }
 
-    public static function requireLogin(string $redirectTo = 'index.php?route=login'): void
+    public static function requireLogin(string $redirectTo = 'index.php?route=auth/login'): void
     {
         if (!self::check()) {
             header('Location: ' . $redirectTo);
@@ -70,14 +78,15 @@ final class Auth
     public static function isAdmin(): bool
     {
         self::startSession();
-        $adminEmail = self::adminEmail();
-        if ($adminEmail === '') {
-            return false;
-        }
 
         $u = self::user();
-        $mail = strtolower(trim((string)($u['mail'] ?? '')));
-        return $mail !== '' && $mail === strtolower($adminEmail);
+        $role = strtolower(trim((string)($u['role'] ?? $_SESSION['user_role'] ?? '')));
+        if ($role !== '') {
+            return $role === 'admin';
+        }
+
+        $mail = strtolower(trim((string)($u['mail'] ?? $u['email'] ?? '')));
+        return $mail !== '' && $mail === strtolower(self::adminEmail());
     }
 
     public static function requireAdmin(string $redirectTo = 'index.php?route=profile'): void
@@ -94,14 +103,52 @@ final class Auth
         self::startSession();
         session_regenerate_id(true);
 
-        $_SESSION['user_id'] = $user->getId();
+        $id = (int)$user->getId();
+        $nom = method_exists($user, 'getNom') ? trim((string)$user->getNom()) : '';
+        $prenom = method_exists($user, 'getPrenom') ? trim((string)$user->getPrenom()) : '';
+        $email = method_exists($user, 'getMail')
+            ? trim((string)$user->getMail())
+            : (method_exists($user, 'getEmail') ? trim((string)$user->getEmail()) : '');
+        $telephone = method_exists($user, 'getTelephone') ? trim((string)$user->getTelephone()) : '';
+        $avatar = method_exists($user, 'getAvatar') ? trim((string)$user->getAvatar()) : '';
+        $role = method_exists($user, 'getRole') ? trim((string)$user->getRole()) : '';
+
+        if ($prenom === '' && $nom === '' && method_exists($user, 'getName')) {
+            $fullName = trim((string)$user->getName());
+            if ($fullName !== '') {
+                $parts = preg_split('/\s+/', $fullName, 2);
+                $prenom = (string)($parts[0] ?? '');
+                $nom = (string)($parts[1] ?? '');
+            }
+        }
+
+        if ($role === '') {
+            $role = 'citoyen';
+        }
+
+        $displayName = trim($prenom . ' ' . $nom);
+        if ($displayName === '') {
+            $displayName = $email !== '' ? $email : 'Utilisateur';
+        }
+
+        $_SESSION['user_id'] = $id;
+
         $_SESSION['user'] = [
-            'db_id' => $user->getId(),
-            'nom' => $user->getNom(),
-            'prenom' => $user->getPrenom(),
-            'mail' => $user->getMail(),
-            'telephone' => $user->getTelephone(),
+            'id' => $id,
+            'db_id' => $id,
+            'nom' => $nom,
+            'prenom' => $prenom,
+            'name' => $displayName,
+            'email' => $email,
+            'mail' => $email,
+            'telephone' => $telephone,
+            'avatar' => $avatar !== '' ? $avatar : 'sidebar-photo.svg',
+            'role' => $role,
         ];
+
+        $_SESSION['user_name'] = $displayName;
+        $_SESSION['user_role'] = $role;
+        $_SESSION['user_avatar'] = $avatar !== '' ? $avatar : 'sidebar-photo.svg';
 
         if (!isset($_SESSION['settings']) || !is_array($_SESSION['settings'])) {
             $_SESSION['settings'] = [

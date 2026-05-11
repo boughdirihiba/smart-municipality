@@ -110,7 +110,8 @@ function bootstrap_user_session_from_database(): void
     ];
 }
 
-bootstrap_user_session_from_database();
+// Do not auto-bootstrap a demo user; require explicit login.
+// bootstrap_user_session_from_database();
 
 function e(string $value): string
 {

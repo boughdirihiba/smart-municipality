@@ -58,7 +58,11 @@
     </style>
 </head>
 <?php $currentRoute = $_GET['route'] ?? 'home/index'; ?>
-<?php $userRole = $_SESSION['user']['role'] ?? 'citoyen'; ?>
+<?php $currentUser = $_SESSION['user'] ?? []; ?>
+<?php $userRole = $currentUser['role'] ?? 'citoyen'; ?>
+<?php $displayName = trim(($currentUser['prenom'] ?? '') . ' ' . ($currentUser['nom'] ?? '')); ?>
+<?php if ($displayName === '') { $displayName = (string)($currentUser['name'] ?? ($_SESSION['user_name'] ?? 'Utilisateur')); } ?>
+<?php $logoutUrl = BASE_URL . '/index.php?route=auth/logout'; ?>
 <?php $currentTheme = $_SESSION['user_theme'] ?? 'light'; ?>
 <?php $currentFontSize = $_SESSION['font_size'] ?? 100; ?>
 <?php $redirectUrl = rawurlencode($_SERVER['REQUEST_URI'] ?? '/index.php?action=blog'); ?>
@@ -109,6 +113,13 @@
         <div class="nav-search">
             <span class="nav-search-icon">⌕</span>
             <input type="text" placeholder="Rechercher...">
+        </div>
+        <div class="accessibility-group" style="margin-left:12px; gap:0.5rem;">
+            <div style="display:flex; flex-direction:column; align-items:flex-end; line-height:1.1;">
+                <strong style="color:#fff; font-size:0.92rem;"><?php echo e($displayName); ?></strong>
+                <span class="accessibility-label" style="opacity:0.75;"><?php echo e($userRole); ?></span>
+            </div>
+            <a class="accessibility-btn" href="<?php echo e($logoutUrl); ?>">Déconnexion</a>
         </div>
     </div>
 </nav>

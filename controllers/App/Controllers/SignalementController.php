@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Models\Signalement;
+use Config\Auth;
 
 class SignalementController extends Controller
 {
@@ -18,6 +19,8 @@ class SignalementController extends Controller
 
     public function create(): void
     {
+        Auth::requireLogin('index.php?route=auth/login');
+
         $this->render('frontoffice/signalements/create', [
             'title' => 'Créer un signalement',
             'errors' => [],
@@ -27,6 +30,8 @@ class SignalementController extends Controller
 
     public function store(): void
     {
+        Auth::requireLogin('index.php?route=auth/login');
+
         $data = [
             'titre' => trim((string)($_POST['titre'] ?? '')),
             'description' => trim((string)($_POST['description'] ?? '')),
@@ -62,7 +67,7 @@ class SignalementController extends Controller
             'latitude' => (float)$data['latitude'],
             'longitude' => (float)$data['longitude'],
             'image' => $imageName,
-            'user_id' => (int)$_SESSION['user']['id'],
+            'user_id' => Auth::id(),
         ]);
 
         if ($saved) {
@@ -77,7 +82,9 @@ class SignalementController extends Controller
 
     public function list(): void
     {
-        $items = $this->model->allByUser((int)$_SESSION['user']['id']);
+        Auth::requireLogin('index.php?route=auth/login');
+
+        $items = $this->model->allByUser(Auth::id());
         $this->render('frontoffice/signalements/list', [
             'title' => 'Mes signalements',
             'items' => $items,
@@ -86,6 +93,8 @@ class SignalementController extends Controller
 
     public function detail(): void
     {
+        Auth::requireLogin('index.php?route=auth/login');
+
         $id = (int)($_GET['id'] ?? 0);
         $item = $this->model->find($id);
 
@@ -105,6 +114,8 @@ class SignalementController extends Controller
 
     public function aiAssist(): void
     {
+        Auth::requireLogin('index.php?route=auth/login');
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
             header('Content-Type: application/json; charset=utf-8');

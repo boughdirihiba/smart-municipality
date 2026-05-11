@@ -69,10 +69,7 @@ $avatarName = $currentUser['avatar'] ?? 'sidebar-photo.svg';
 
 <section class="card hero-note">
 	<p><strong>Mode actuel :</strong> <?php echo e($_SESSION['user']['role'] ?? 'citoyen'); ?></p>
-	<div class="hero-actions">
-		<a class="btn-secondaire" href="<?php echo BASE_URL; ?>/index.php?route=home/index&role=citoyen">Mode citoyen</a>
-		<a class="btn-secondaire" href="<?php echo BASE_URL; ?>/index.php?route=home/index&role=admin">Mode admin</a>
-	</div>
+	<p style="margin-top:0.5rem; opacity:0.85;">Votre session est liée à votre compte. Utilisez Déconnexion pour revenir au login.</p>
 </section>
 
 <section class="card">

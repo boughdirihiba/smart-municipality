@@ -5,22 +5,21 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\Controller;
+use Config\Auth;
 use App\Models\Signalement;
 
 class HomeController extends Controller
 {
     public function index(): void
     {
-        if (isset($_GET['role']) && in_array($_GET['role'], ['citoyen', 'admin'], true)) {
-            $_SESSION['user']['role'] = $_GET['role'];
-        }
+        Auth::requireLogin('index.php?route=auth/login');
 
-        if (($_SESSION['user']['role'] ?? 'citoyen') === 'admin') {
+        if (Auth::isAdmin()) {
             redirect('admin/list');
         }
 
         $signalementModel = new Signalement();
-        $userId = (int)($_SESSION['user']['id'] ?? 0);
+        $userId = Auth::id();
         $userSignalements = $userId > 0 ? $signalementModel->allByUser($userId) : [];
         $latestSignalements = array_slice($userSignalements, 0, 3);
         $resolvedCount = 0;

@@ -3,7 +3,30 @@
 declare(strict_types=1);
 
 require __DIR__ . '/config/config.php';
+require __DIR__ . '/config/Auth.php';
 require __DIR__ . '/app/Core/Autoloader.php';
+
+\Config\Auth::startSession();
+
+$route = trim((string)($_GET['route'] ?? ''));
+$isAuthRoute = $route !== '' && str_starts_with($route, 'auth/');
+
+if ($route === '') {
+    $route = \Config\Auth::check()
+        ? (\Config\Auth::isAdmin() ? 'admin/list' : 'home/index')
+        : 'auth/login';
+    $_GET['route'] = $route;
+}
+
+if (!\Config\Auth::check()) {
+    if (!$isAuthRoute) {
+        header('Location: ' . BASE_URL . '/index.php?route=auth/login');
+        exit;
+    }
+} elseif ($route === 'auth/login' || $route === 'auth/signup') {
+    header('Location: ' . BASE_URL . '/index.php?route=' . (\Config\Auth::isAdmin() ? 'admin/list' : 'home/index'));
+    exit;
+}
 
 
 // ─── LEGACY ACTION ROUTER ─────────────────────────────────────────────────────
@@ -17,7 +40,7 @@ if (!empty($_GET['action']) || !empty($_POST['action'])) {
 }
 
 // ─── NEW MVC ROUTER ──────────────────────────────────────────────────────────
-$route = trim((string)($_GET['route'] ?? 'home/index'));
+$route = trim((string)($_GET['route'] ?? $route));
 $route = trim($route, '/');
 
 [$controllerPart, $actionPart] = array_pad(explode('/', $route, 2), 2, 'index');

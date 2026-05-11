@@ -1,514 +1,548 @@
-CREATE DATABASE IF NOT EXISTS smart_municipality CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+DROP DATABASE IF EXISTS smart_municipality;
+CREATE DATABASE IF NOT EXISTS smart_municipality DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 USE smart_municipality;
 
--- ========================================
--- 1. UTILISATEURS
--- ========================================
+CREATE TABLE utilisateurs (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  nom varchar(100) NOT NULL,
+  prenom varchar(100) NOT NULL,
+  email varchar(255) NOT NULL,
+  mot_de_passe varchar(255) NOT NULL,
+  avatar varchar(255) DEFAULT 'default-avatar.png',
+  telephone varchar(20) DEFAULT NULL,
+  adresse varchar(255) DEFAULT NULL,
+  role enum('citoyen','admin') DEFAULT 'citoyen',
+  statut enum('actif','inactif','banni') DEFAULT 'actif',
+  created_at datetime DEFAULT current_timestamp(),
+  updated_at datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (id),
+  UNIQUE KEY email (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE IF NOT EXISTS utilisateurs (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nom VARCHAR(100) NOT NULL,
-    prenom VARCHAR(100) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    mot_de_passe VARCHAR(255) NOT NULL,
-    avatar VARCHAR(255) DEFAULT 'default-avatar.png',
-    telephone VARCHAR(20) NULL,
-    adresse VARCHAR(255) NULL,
-    role ENUM('citoyen', 'admin') DEFAULT 'citoyen',
-    statut ENUM('actif', 'inactif', 'banni') DEFAULT 'actif',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+CREATE TABLE categories (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  nom varchar(100) NOT NULL,
+  description text DEFAULT NULL,
+  icone varchar(255) DEFAULT NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- ========================================
--- 2. RENDEZ-VOUS
--- ========================================
+CREATE TABLE categorie_evenement (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  nom varchar(100) NOT NULL,
+  description text DEFAULT NULL,
+  image_url varchar(500) DEFAULT NULL,
+  created_at timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE IF NOT EXISTS categories (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nom VARCHAR(100) NOT NULL,
-    description TEXT NULL,
-    icone VARCHAR(255) NULL
-);
+CREATE TABLE services (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  nom varchar(100) NOT NULL,
+  description text DEFAULT NULL,
+  icone varchar(50) DEFAULT 'fas fa-folder-open',
+  actif tinyint(4) DEFAULT 1,
+  date_creation datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE IF NOT EXISTS rendez_vous (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    categorie_id INT NOT NULL,
-    date_rdv DATE NOT NULL,
-    heure TIME NOT NULL,
-    statut ENUM('en_attente', 'confirme', 'annule', 'termine') DEFAULT 'en_attente',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_rdv_user FOREIGN KEY (user_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
-    CONSTRAINT fk_rdv_categorie FOREIGN KEY (categorie_id) REFERENCES categories(id) ON DELETE CASCADE
-);
+CREATE TABLE services_en_ligne (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  nom varchar(100) NOT NULL,
+  description text DEFAULT NULL,
+  icone varchar(255) DEFAULT NULL,
+  documents_requis text DEFAULT NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- ========================================
--- 3. EVENEMENTS
--- ========================================
+CREATE TABLE evenements (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  titre varchar(255) NOT NULL,
+  description text DEFAULT NULL,
+  max_participants int(11) DEFAULT 50,
+  lieu varchar(255) NOT NULL,
+  date_evenement date NOT NULL,
+  heure varchar(10) DEFAULT NULL,
+  categorie_id int(11) NOT NULL,
+  created_at timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (id),
+  KEY fk_evenements_categorie (categorie_id),
+  CONSTRAINT fk_evenements_categorie
+    FOREIGN KEY (categorie_id)
+    REFERENCES categorie_evenement (id)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE IF NOT EXISTS evenements (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    titre VARCHAR(255) NOT NULL,
-    description TEXT NULL,
-    lieu VARCHAR(255) NOT NULL,
-    date_evenement DATE NOT NULL,
-    heure VARCHAR(10) NULL,
-    categorie VARCHAR(50) NULL,
-    image_url VARCHAR(500) NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+CREATE TABLE participations (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  user_id int(11) NOT NULL,
+  event_id int(11) NOT NULL,
+  date_participation datetime NOT NULL,
+  statut enum('inscrit','present','absent') DEFAULT 'inscrit',
+  statut_validation enum('en_attente','valide','refuse') DEFAULT 'en_attente',
+  date_validation datetime DEFAULT NULL,
+  commentaire_refus text DEFAULT NULL,
+  nombre_participants int(11) DEFAULT 1,
+  PRIMARY KEY (id),
+  KEY event_id (event_id),
+  KEY user_id (user_id),
+  CONSTRAINT fk_participations_evenement
+    FOREIGN KEY (event_id)
+    REFERENCES evenements (id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT fk_participations_user
+    FOREIGN KEY (user_id)
+    REFERENCES utilisateurs (id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE IF NOT EXISTS participations (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    event_id INT NOT NULL,
-    date_participation DATETIME DEFAULT CURRENT_TIMESTAMP,
-    statut ENUM('inscrit', 'present', 'absent') DEFAULT 'inscrit',
-    CONSTRAINT fk_participation_user FOREIGN KEY (user_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
-    CONSTRAINT fk_participation_event FOREIGN KEY (event_id) REFERENCES evenements(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_participation (user_id, event_id)
-);
+CREATE TABLE demandes (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  nom varchar(100) DEFAULT NULL,
+  type_service varchar(100) DEFAULT NULL,
+  documents varchar(255) DEFAULT NULL,
+  date_creation date DEFAULT NULL,
+  statut_admin varchar(30) DEFAULT 'En attente',
+  user_id int(11) DEFAULT NULL,
+  service_id int(11) DEFAULT NULL,
+  PRIMARY KEY (id),
+  KEY fk_demandes_user (user_id),
+  KEY fk_demandes_service (service_id),
+  CONSTRAINT fk_demandes_service
+    FOREIGN KEY (service_id)
+    REFERENCES services (id)
+    ON DELETE SET NULL,
+  CONSTRAINT fk_demandes_user
+    FOREIGN KEY (user_id)
+    REFERENCES utilisateurs (id)
+    ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- ========================================
--- 4. BLOG
--- ========================================
+CREATE TABLE documents (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  demande_id int(11) NOT NULL,
+  nom_fichier varchar(255) NOT NULL,
+  chemin_fichier varchar(500) NOT NULL,
+  type_fichier varchar(100) DEFAULT NULL,
+  taille int(11) DEFAULT NULL,
+  uploaded_at datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (id),
+  KEY demande_id (demande_id),
+  CONSTRAINT documents_ibfk_1
+    FOREIGN KEY (demande_id)
+    REFERENCES demandes (id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE IF NOT EXISTS posts (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    content TEXT NOT NULL,
-    image VARCHAR(255) NULL,
-    video VARCHAR(255) NULL,
-    statut ENUM('publie', 'brouillon', 'supprime') DEFAULT 'publie',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_posts_user FOREIGN KEY (user_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
-);
+CREATE TABLE notifications (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  user_id int(11) NOT NULL,
+  message text DEFAULT NULL,
+  statut varchar(20) DEFAULT 'non_lu',
+  date_creation datetime DEFAULT current_timestamp(),
+  document_id int(11) DEFAULT NULL,
+  demande_id int(11) DEFAULT NULL,
+  PRIMARY KEY (id),
+  KEY document_id (document_id),
+  KEY fk_notifications_user (user_id),
+  CONSTRAINT fk_notifications_user
+    FOREIGN KEY (user_id)
+    REFERENCES utilisateurs (id)
+    ON DELETE CASCADE,
+  CONSTRAINT notifications_ibfk_1
+    FOREIGN KEY (document_id)
+    REFERENCES documents (id)
+    ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE IF NOT EXISTS comments (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    post_id INT NOT NULL,
-    user_id INT NOT NULL,
-    content TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_comments_post FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
-    CONSTRAINT fk_comments_user FOREIGN KEY (user_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
-);
+CREATE TABLE ratings (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  service_id int(11) NOT NULL,
+  visitor_id varchar(100) NOT NULL,
+  rating int(11) DEFAULT NULL CHECK (rating between 1 and 5),
+  comment text DEFAULT NULL,
+  created_at timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (id),
+  UNIQUE KEY unique_rating (service_id,visitor_id),
+  KEY idx_service_id (service_id),
+  KEY idx_visitor_id (visitor_id),
+  CONSTRAINT fk_ratings_service
+    FOREIGN KEY (service_id)
+    REFERENCES services (id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE IF NOT EXISTS reactions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    post_id INT NOT NULL,
-    user_id INT NOT NULL,
-    type ENUM('like', 'love', 'haha', 'wow', 'sad', 'angry') NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_reactions_post FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
-    CONSTRAINT fk_reactions_user FOREIGN KEY (user_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_reaction (post_id, user_id)
-);
+CREATE TABLE localisations (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  adresse varchar(255) NOT NULL,
+  quartier varchar(120) DEFAULT NULL,
+  latitude decimal(10,8) NOT NULL,
+  longitude decimal(11,8) NOT NULL,
+  created_at datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- ========================================
--- 5. SIGNALEMENTS + CARTE INTELLIGENTE
--- ========================================
+CREATE TABLE signalements (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  user_id int(11) DEFAULT NULL,
+  localisation_id int(11) DEFAULT NULL,
+  titre varchar(255) NOT NULL,
+  description text NOT NULL,
+  image varchar(255) DEFAULT NULL,
+  categorie varchar(100) NOT NULL,
+  latitude decimal(10,8) NOT NULL,
+  longitude decimal(11,8) NOT NULL,
+  statut enum('en_attente','en_cours','resolu','rejete') DEFAULT 'en_attente',
+  progression tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
+  date_signalement datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (id),
+  KEY fk_signalements_user (user_id),
+  KEY fk_signalements_localisation (localisation_id),
+  CONSTRAINT fk_signalements_localisation
+    FOREIGN KEY (localisation_id)
+    REFERENCES localisations (id)
+    ON DELETE SET NULL,
+  CONSTRAINT fk_signalements_user
+    FOREIGN KEY (user_id)
+    REFERENCES utilisateurs (id)
+    ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE IF NOT EXISTS localisations (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    adresse VARCHAR(255) NOT NULL,
-    quartier VARCHAR(120) NULL,
-    latitude DECIMAL(10,8) NOT NULL,
-    longitude DECIMAL(11,8) NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+CREATE TABLE interventions (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  titre varchar(255) NOT NULL,
+  description text NOT NULL,
+  tasks_json longtext DEFAULT NULL,
+  type enum('route','eclairage','eau','transport','ordures','autre') NOT NULL,
+  latitude decimal(10,8) NOT NULL,
+  longitude decimal(11,8) NOT NULL,
+  statut enum('planifiee','en_cours','terminee','annulee') NOT NULL DEFAULT 'planifiee',
+  progression tinyint(3) UNSIGNED NOT NULL DEFAULT 0,
+  date_intervention date DEFAULT NULL,
+  signalement_id int(11) DEFAULT NULL,
+  created_at datetime DEFAULT current_timestamp(),
+  updated_at datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (id),
+  KEY fk_intervention_signalement (signalement_id),
+  CONSTRAINT fk_intervention_signalement
+    FOREIGN KEY (signalement_id)
+    REFERENCES signalements (id)
+    ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE IF NOT EXISTS signalements (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NULL,
-    localisation_id INT NULL,
-    titre VARCHAR(255) NOT NULL,
-    description TEXT NOT NULL,
-    image VARCHAR(255) NULL,
-    categorie VARCHAR(100) NOT NULL,
-    latitude DECIMAL(10,8) NOT NULL,
-    longitude DECIMAL(11,8) NOT NULL,
-    statut ENUM('en_attente', 'en_cours', 'resolu', 'rejete') DEFAULT 'en_attente',
-    progression TINYINT UNSIGNED NOT NULL DEFAULT 0,
-    date_signalement DATETIME DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_signalements_user FOREIGN KEY (user_id) REFERENCES utilisateurs(id) ON DELETE SET NULL,
-    CONSTRAINT fk_signalements_localisation FOREIGN KEY (localisation_id) REFERENCES localisations(id) ON DELETE SET NULL
-);
+CREATE TABLE equipes (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  nom varchar(100) NOT NULL,
+  description text DEFAULT NULL,
+  type_intervention varchar(50) NOT NULL,
+  nombre_agents int(11) DEFAULT 1,
+  statut enum('disponible','en_mission','repos','inactif') DEFAULT 'disponible',
+  created_at datetime DEFAULT current_timestamp(),
+  updated_at datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE IF NOT EXISTS interventions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    titre VARCHAR(255) NOT NULL,
-    description TEXT NOT NULL,
-    tasks_json LONGTEXT NULL,
-    type ENUM('route', 'eclairage', 'eau', 'transport', 'ordures', 'autre') NOT NULL,
-    latitude DECIMAL(10,8) NOT NULL,
-    longitude DECIMAL(11,8) NOT NULL,
-    statut ENUM('planifiee', 'en_cours', 'terminee', 'annulee') NOT NULL DEFAULT 'planifiee',
-    progression TINYINT UNSIGNED NOT NULL DEFAULT 0,
-    date_intervention DATE NULL,
-    signalement_id INT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_intervention_signalement FOREIGN KEY (signalement_id) REFERENCES signalements(id) ON DELETE SET NULL
-);
+CREATE TABLE agents_equipe (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  equipe_id int(11) NOT NULL,
+  user_id int(11) NOT NULL,
+  role varchar(50) DEFAULT 'agent',
+  active tinyint(1) DEFAULT 1,
+  created_at datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (id),
+  KEY fk_agents_equipe (equipe_id),
+  KEY fk_agents_user (user_id),
+  CONSTRAINT fk_agents_equipe
+    FOREIGN KEY (equipe_id)
+    REFERENCES equipes (id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_agents_user
+    FOREIGN KEY (user_id)
+    REFERENCES utilisateurs (id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- ========================================
--- 6. GESTION DES ÉQUIPES & RESSOURCES
--- ========================================
+CREATE TABLE couts_intervention (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  intervention_id int(11) NOT NULL,
+  type_intervention varchar(50) NOT NULL,
+  cout_base decimal(10,2) DEFAULT 0.00,
+  cout_materiel decimal(10,2) DEFAULT 0.00,
+  cout_main_oeuvre decimal(10,2) DEFAULT 0.00,
+  cout_deplacement decimal(10,2) DEFAULT 0.00,
+  cout_total decimal(10,2) DEFAULT 0.00,
+  estimations_ml varchar(255) DEFAULT NULL,
+  facteurs_ajustement longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(facteurs_ajustement)),
+  historique_similar longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(historique_similar)),
+  created_at datetime DEFAULT current_timestamp(),
+  updated_at datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (id),
+  UNIQUE KEY unique_cout_intervention (intervention_id),
+  CONSTRAINT fk_cout_intervention
+    FOREIGN KEY (intervention_id)
+    REFERENCES interventions (id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE IF NOT EXISTS equipes (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nom VARCHAR(100) NOT NULL,
-    description TEXT NULL,
-    type_intervention VARCHAR(50) NOT NULL,
-    nombre_agents INT DEFAULT 1,
-    statut ENUM('disponible', 'en_mission', 'repos', 'inactif') DEFAULT 'disponible',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+CREATE TABLE budgets (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  titre varchar(255) NOT NULL,
+  annee int(11) NOT NULL,
+  categorie varchar(50) NOT NULL,
+  zone varchar(100) DEFAULT NULL,
+  montant_alloue decimal(12,2) NOT NULL,
+  montant_depense decimal(12,2) DEFAULT 0.00,
+  montant_reserve decimal(12,2) DEFAULT 0.00,
+  statut enum('planifie','en_cours','termine','depassement') DEFAULT 'planifie',
+  description text DEFAULT NULL,
+  responsable_id int(11) DEFAULT NULL,
+  created_at datetime DEFAULT current_timestamp(),
+  updated_at datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (id),
+  UNIQUE KEY unique_budget_period (annee,categorie,zone),
+  KEY fk_budget_responsable (responsable_id),
+  CONSTRAINT fk_budget_responsable
+    FOREIGN KEY (responsable_id)
+    REFERENCES utilisateurs (id)
+    ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE IF NOT EXISTS agents_equipe (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    equipe_id INT NOT NULL,
-    user_id INT NOT NULL,
-    role VARCHAR(50) DEFAULT 'agent',
-    active TINYINT(1) DEFAULT 1,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_agents_equipe FOREIGN KEY (equipe_id) REFERENCES equipes(id) ON DELETE CASCADE,
-    CONSTRAINT fk_agents_user FOREIGN KEY (user_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
-);
+CREATE TABLE budget_forecasts (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  budget_id int(11) NOT NULL,
+  mois int(11) NOT NULL,
+  depenses_estimees decimal(12,2) NOT NULL,
+  depenses_reelles decimal(12,2) DEFAULT 0.00,
+  precision_score decimal(5,2) DEFAULT 0.00,
+  facteurs longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(facteurs)),
+  created_at datetime DEFAULT current_timestamp(),
+  updated_at datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (id),
+  UNIQUE KEY unique_forecast_period (budget_id,mois),
+  CONSTRAINT fk_forecast_budget
+    FOREIGN KEY (budget_id)
+    REFERENCES budgets (id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- GPS TRACKING TEMPS RÉEL
--- GPS TRACKING and time_tracking tables removed (not used)
+CREATE TABLE budget_transactions (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  budget_id int(11) NOT NULL,
+  intervention_id int(11) DEFAULT NULL,
+  montant decimal(12,2) NOT NULL,
+  type enum('debit','credit') DEFAULT 'debit',
+  description varchar(255) DEFAULT NULL,
+  created_at datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (id),
+  KEY fk_transaction_budget (budget_id),
+  KEY fk_transaction_intervention (intervention_id),
+  CONSTRAINT fk_transaction_budget
+    FOREIGN KEY (budget_id)
+    REFERENCES budgets (id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_transaction_intervention
+    FOREIGN KEY (intervention_id)
+    REFERENCES interventions (id)
+    ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- ESTIMATION DE COÛTS (MODÈLE ML)
-CREATE TABLE IF NOT EXISTS couts_intervention (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    intervention_id INT NOT NULL,
-    type_intervention VARCHAR(50) NOT NULL,
-    cout_base DECIMAL(10,2) DEFAULT 0,
-    cout_materiel DECIMAL(10,2) DEFAULT 0,
-    cout_main_oeuvre DECIMAL(10,2) DEFAULT 0,
-    cout_deplacement DECIMAL(10,2) DEFAULT 0,
-    cout_total DECIMAL(10,2) DEFAULT 0,
-    estimations_ml VARCHAR(255) NULL,
-    facteurs_ajustement JSON NULL,
-    historique_similar JSON NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_cout_intervention FOREIGN KEY (intervention_id) REFERENCES interventions(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_cout_intervention (intervention_id)
-);
+CREATE TABLE posts (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  user_id int(11) NOT NULL,
+  content text NOT NULL,
+  image varchar(255) DEFAULT NULL,
+  video varchar(255) DEFAULT NULL,
+  created_at timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (id),
+  KEY fk_posts_user (user_id),
+  CONSTRAINT fk_posts_user
+    FOREIGN KEY (user_id)
+    REFERENCES utilisateurs (id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- RAPPORTS AUTOMATISÉS
-CREATE TABLE IF NOT EXISTS rapports (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    titre VARCHAR(255) NOT NULL,
-    type VARCHAR(50) NOT NULL,
-    periode_debut DATE NOT NULL,
-    periode_fin DATE NOT NULL,
-    contenu LONGTEXT NULL,
-    fichier_pdf VARCHAR(500) NULL,
-    metriques JSON NULL,
-    status ENUM('en_generation', 'termine', 'erreur') DEFAULT 'en_generation',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+CREATE TABLE comments (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  post_id int(11) NOT NULL,
+  user_id int(11) NOT NULL,
+  content text NOT NULL,
+  created_at timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (id),
+  KEY fk_comments_post (post_id),
+  KEY fk_comments_user (user_id),
+  CONSTRAINT fk_comments_post
+    FOREIGN KEY (post_id)
+    REFERENCES posts (id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_comments_user
+    FOREIGN KEY (user_id)
+    REFERENCES utilisateurs (id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- HISTORIQUE DES POSITIONS DES SIGNALEMENTS
-CREATE TABLE IF NOT EXISTS historique_positions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    signalement_id INT NOT NULL,
-    latitude DECIMAL(10,8) NOT NULL,
-    longitude DECIMAL(11,8) NOT NULL,
-    source VARCHAR(50) DEFAULT 'citoyen',
-    commentaire TEXT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_hist_signalement FOREIGN KEY (signalement_id) REFERENCES signalements(id) ON DELETE CASCADE
-);
+CREATE TABLE reactions (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  post_id int(11) NOT NULL,
+  user_id int(11) NOT NULL,
+  type enum('like','love','haha','wow','sad','angry') NOT NULL,
+  created_at timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (id),
+  UNIQUE KEY unique_reaction (post_id,user_id),
+  KEY fk_reactions_user (user_id),
+  CONSTRAINT fk_reactions_post
+    FOREIGN KEY (post_id)
+    REFERENCES posts (id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_reactions_user
+    FOREIGN KEY (user_id)
+    REFERENCES utilisateurs (id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- GPS TRACKING DES ÉQUIPES EN TEMPS RÉEL
-CREATE TABLE IF NOT EXISTS gps_tracking (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    equipe_id INT NOT NULL,
-    intervention_id INT NULL,
-    latitude DECIMAL(10,8) NOT NULL,
-    longitude DECIMAL(11,8) NOT NULL,
-    `precision` DECIMAL(8,2) NULL,
-    vitesse DECIMAL(8,2) NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_gps_equipe FOREIGN KEY (equipe_id) REFERENCES equipes(id) ON DELETE CASCADE,
-    CONSTRAINT fk_gps_intervention FOREIGN KEY (intervention_id) REFERENCES interventions(id) ON DELETE SET NULL
-);
+CREATE TABLE alertes (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  signalement_id int(11) NOT NULL,
+  user_id int(11) NOT NULL,
+  message text NOT NULL,
+  lu tinyint(1) DEFAULT 0,
+  created_at datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (id),
+  KEY fk_alertes_signalement (signalement_id),
+  KEY fk_alertes_user (user_id),
+  CONSTRAINT fk_alertes_signalement
+    FOREIGN KEY (signalement_id)
+    REFERENCES signalements (id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_alertes_user
+    FOREIGN KEY (user_id)
+    REFERENCES utilisateurs (id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- SUIVI DU TEMPS DES INTERVENTIONS
-CREATE TABLE IF NOT EXISTS time_tracking (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    intervention_id INT NULL,
-    equipe_id INT NULL,
-    heure_debut DATETIME NOT NULL,
-    heure_fin DATETIME NULL,
-    duree_minutes INT NULL,
-    statut VARCHAR(20) DEFAULT 'en_cours',
-    notes TEXT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_time_intervention FOREIGN KEY (intervention_id) REFERENCES interventions(id) ON DELETE SET NULL,
-    CONSTRAINT fk_time_equipe FOREIGN KEY (equipe_id) REFERENCES equipes(id) ON DELETE SET NULL
-);
-
-CREATE TABLE IF NOT EXISTS alertes (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    signalement_id INT NOT NULL,
-    user_id INT NOT NULL,
-    message TEXT NOT NULL,
-    lu TINYINT(1) DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_alertes_signalement FOREIGN KEY (signalement_id) REFERENCES signalements(id) ON DELETE CASCADE,
-    CONSTRAINT fk_alertes_user FOREIGN KEY (user_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
-);
-
--- ========================================
--- 6. SERVICES EN LIGNE
--- ========================================
-
-CREATE TABLE IF NOT EXISTS services_en_ligne (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nom VARCHAR(100) NOT NULL,
-    description TEXT NULL,
-    icone VARCHAR(255) NULL,
-    documents_requis TEXT NULL
-);
-
-CREATE TABLE IF NOT EXISTS demandes (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    service_id INT NOT NULL,
-    statut ENUM('choix_service', 'documents_requis', 'televersement', 'soumission', 'en_traitement', 'accepte', 'refuse') DEFAULT 'choix_service',
-    commentaire TEXT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_demandes_user FOREIGN KEY (user_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
-    CONSTRAINT fk_demandes_service FOREIGN KEY (service_id) REFERENCES services_en_ligne(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS documents (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    demande_id INT NOT NULL,
-    nom_fichier VARCHAR(255) NOT NULL,
-    chemin_fichier VARCHAR(500) NOT NULL,
-    type_fichier VARCHAR(20) NULL,
-    taille INT NULL,
-    uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_documents_demande FOREIGN KEY (demande_id) REFERENCES demandes(id) ON DELETE CASCADE
-);
-
--- ========================================
--- DONNEES DE TEST
--- ========================================
+CREATE TABLE rendez_vous (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  user_id int(11) NOT NULL,
+  categorie_id int(11) NOT NULL,
+  date_rdv date NOT NULL,
+  heure time NOT NULL,
+  statut enum('en_attente','confirme','annule','termine') DEFAULT 'en_attente',
+  created_at datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (id),
+  KEY fk_rdv_user (user_id),
+  KEY fk_rdv_categorie (categorie_id),
+  CONSTRAINT fk_rdv_categorie
+    FOREIGN KEY (categorie_id)
+    REFERENCES categories (id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_rdv_user
+    FOREIGN KEY (user_id)
+    REFERENCES utilisateurs (id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, avatar, telephone, adresse, role, statut) VALUES
-('Eliza', 'Thorne', 'eliza@email.com', '1234', 'default-avatar.png', '00000000', 'Centre-ville', 'citoyen', 'actif'),
-('Super', 'Admin', 'admin@email.com', '1234', 'default-avatar.png', '11111111', 'Mairie Centrale', 'admin', 'actif');
+('Admin', 'Systeme', 'admin@smart.local', '$2y$10$adminhashplaceholder', 'default-avatar.png', '70000000', 'Mairie Centrale', 'admin', 'actif'),
+('Ali', 'Ben Salah', 'ali.bensalah@smart.local', '$2y$10$userhashplaceholder', 'default-avatar.png', '71000000', 'Avenue Habib Bourguiba', 'citoyen', 'actif'),
+('Sara', 'Trabelsi', 'sara.trabelsi@smart.local', '$2y$10$userhashplaceholder2', 'default-avatar.png', '72000000', 'Rue de Marseille', 'citoyen', 'actif');
 
 INSERT INTO categories (nom, description, icone) VALUES
-('Etat Civil', 'Services lies aux actes de naissance, mariage, deces', 'etat-civil.png'),
-('Urbanisme', 'Permis de construire, plans d urbanisme', 'urbanisme.png'),
-('Cadastre', 'Consultation et modification des plans cadastraux', 'cadastre.png'),
-('Services Sociaux', 'Aide sociale, allocations, accompagnement', 'services-sociaux.png'),
-('Services Usagers', 'Eau, electricite, assainissement', 'services-usagers.png');
+('Etat Civil', 'Actes et papiers officiels', 'fa-id-card'),
+('Urbanisme', 'Permis et plans urbains', 'fa-city'),
+('Affaires Sociales', 'Demandes et assistance sociale', 'fa-hands-helping');
 
-INSERT INTO rendez_vous (user_id, categorie_id, date_rdv, heure, statut) VALUES
-(1, 1, '2026-04-14', '10:00:00', 'en_attente'),
-(1, 2, '2026-04-16', '14:00:00', 'confirme'),
-(1, 3, '2026-04-20', '09:00:00', 'annule');
+INSERT INTO categorie_evenement (nom, description, image_url) VALUES
+('Culture', 'Evenements culturels et associatifs', 'uploads/categories/culture.jpg'),
+('Environnement', 'Actions de nettoyage et sensibilisation', 'uploads/categories/environnement.jpg');
 
-INSERT INTO evenements (titre, description, lieu, date_evenement, heure, categorie) VALUES
-('Journee portes ouvertes', 'Decouvrez les services de la municipalite', 'Mairie Centrale', '2026-05-01', '09:00', 'Culturel'),
-('Campagne de nettoyage', 'Nettoyage collectif du quartier', 'Place Centrale', '2026-05-10', '08:00', 'Environnement');
-
-INSERT INTO localisations (adresse, quartier, latitude, longitude) VALUES
-('Avenue de la Republique', 'Secteur 1', 36.80650000, 10.18150000),
-('Rue des Pecheurs', 'Secteur 1', 36.80710000, 10.18290000),
-('Rue des Pecheurs', 'Secteur 2', 36.80800000, 10.18340000),
-('Place Centrale', 'Beni Khalled', 36.65050000, 10.60010000);
-
-INSERT INTO signalements (user_id, localisation_id, titre, description, image, categorie, latitude, longitude, statut) VALUES
-(1, 1, 'Nid-de-poule', 'Nid-de-poule dangereux sur la route principale', NULL, 'route', 36.80650000, 10.18150000, 'en_attente'),
-(1, 2, 'Panne d eclairage', 'Lampadaire en panne depuis 3 jours', NULL, 'eclairage', 36.80710000, 10.18290000, 'en_cours'),
-(1, 4, 'Fuite d eau', 'Fuite d eau majeure sur conduite d egout', NULL, 'eau', 36.65050000, 10.60010000, 'en_attente'),
-(2, 1, 'Bac a ordures plein', 'Le bac a ordures deborde depuis ce matin dans la rue principale', NULL, 'ordures', 36.80650000, 10.18150000, 'en_cours'),
-(1, 2, 'Feu tricolore bloque', 'Le feu tricolore reste bloque au rouge depuis la nuit derniere', NULL, 'transport', 36.80710000, 10.18290000, 'en_attente'),
-(2, 3, 'Trottoir casse', 'Trottoir casse avec risque de chute pour les pietons', NULL, 'route', 36.80800000, 10.18340000, 'en_attente'),
-(1, 4, 'Odeur suspecte', 'Odeur suspecte et fuite visible pres de la canalisation', NULL, 'eau', 36.65050000, 10.60010000, 'en_cours'),
-(2, 1, 'Poteau endommage', 'Poteau endommage apres un choc vehicule, intervention necessaire', NULL, 'eclairage', 36.80650000, 10.18150000, 'rejete'),
-(1, 2, 'Bouche d egout ouverte', 'Bouche d egout ouverte sans protection dans la voie publique', NULL, 'route', 36.80710000, 10.18290000, 'en_attente'),
-(2, 3, 'Collecte en retard', 'La collecte des dechets a pris beaucoup de retard dans le secteur', NULL, 'ordures', 36.80800000, 10.18340000, 'en_cours'),
-(1, 4, 'Bus en panne', 'Bus immobilise au point d arret avec voyageurs sur le trottoir', NULL, 'transport', 36.65050000, 10.60010000, 'en_attente'),
-(2, 1, 'Flaque d eau permanente', 'Flaque d eau permanente apres fuite sur reseau secondaire', NULL, 'eau', 36.80650000, 10.18150000, 'resolu'),
-(1, 2, 'Lampadaire clignotant', 'Lampadaire clignotant de facon intermittente en soiree', NULL, 'eclairage', 36.80710000, 10.18290000, 'en_attente'),
-(2, 3, 'Chaussée fissuree', 'Chaussée fissuree sur plusieurs metres et circulation difficile', NULL, 'route', 36.80800000, 10.18340000, 'en_cours'),
-(1, 4, 'Dechets abandonnés', 'Dechets abandonnés autour du point de collecte apres passage incomplet', NULL, 'ordures', 36.65050000, 10.60010000, 'en_attente'),
-(2, 1, 'Passage pieton efface', 'Marquage du passage pieton presque efface devant l ecole', NULL, 'route', 36.80650000, 10.18150000, 'resolu'),
-(1, 2, 'Canalisation percee', 'Canalisation percee avec perte d eau importante dans la rue', NULL, 'eau', 36.80710000, 10.18290000, 'en_cours'),
-(2, 3, 'Arret de bus sale', 'Abri de bus sale et encombre par des emballages', NULL, 'transport', 36.80800000, 10.18340000, 'en_attente'),
-(1, 4, 'Cable expose', 'Cable expose pres du lampadaire apres deterioration du boitier', NULL, 'eclairage', 36.65050000, 10.60010000, 'rejete'),
-(2, 1, 'Depose sauvage', 'Depose sauvage de sacs poubelles sur le terrain vague voisin', NULL, 'ordures', 36.80650000, 10.18150000, 'en_attente');
-
-INSERT INTO interventions (titre, description, type, latitude, longitude, statut, progression, date_intervention) VALUES
-('Reparation eclairage Avenue Republique', 'Intervention planifiee sur trois lampadaires de l avenue principale.', 'eclairage', 36.80690000, 10.18220000, 'planifiee', 20, '2026-04-26'),
-('Nettoyage secteur Place Centrale', 'Equipe de collecte mobilisee pour nettoyage complet du secteur.', 'ordures', 36.65070000, 10.60030000, 'en_cours', 55, '2026-04-23'),
-('Refection trottoir Rue des Pecheurs', 'Travaux de voirie pour mise en securite du trottoir endommage.', 'route', 36.80750000, 10.18300000, 'planifiee', 10, '2026-04-29'),
-('Inspection fuite reseau secondaire', 'Controle technique et reparation d une fuite recurrente.', 'eau', 36.65090000, 10.60060000, 'terminee', 100, '2026-04-20');
+INSERT INTO services (nom, description, icone, actif) VALUES
+('Legalisation', 'Legalisation de documents', 'fas fa-stamp', 1),
+('Permis de construire', 'Depot et suivi des permis', 'fas fa-building', 1);
 
 INSERT INTO services_en_ligne (nom, description, icone, documents_requis) VALUES
-('Legalisation de documents', 'Authentifier rapidement vos documents officiels', 'legalisation.png', 'Carte d identite (Recto/Verso), Formulaire de demande rempli, Justificatif de domicile'),
-('Extrait de naissance', 'Obtenez vos extraits d actes (naissance, mariage, deces)', 'extrait.png', 'Carte d identite, Livret de famille'),
-('Paiement taxes', 'Reglez vos impots locaux et taxes foncieres', 'paiement.png', 'Avis d imposition, Carte d identite'),
-('Depot de dossier', 'Soumettez vos dossiers d urbanisme, permis ou demandes', 'depot.png', 'Formulaire de demande, Plans, Carte d identite');
+('Extrait de naissance', 'Demande d extrait en ligne', 'fas fa-file-alt', 'CIN, date de naissance'),
+('Paiement taxe municipale', 'Paiement des taxes locales', 'fas fa-credit-card', 'Reference fiscale');
 
--- ========================================
--- 7. SIGNALEMENTS TEST EN TUNISIE
--- ========================================
+INSERT INTO evenements (titre, description, max_participants, lieu, date_evenement, heure, categorie_id) VALUES
+('Journee de proprete', 'Campagne locale de nettoyage', 100, 'Place Centrale', '2026-06-01', '09:00', 2),
+('Festival local', 'Animation culturelle municipale', 300, 'Maison de Culture', '2026-06-15', '18:00', 1);
+
+INSERT INTO participations (user_id, event_id, date_participation, statut, statut_validation, date_validation, commentaire_refus, nombre_participants) VALUES
+(2, 1, '2026-05-11 10:00:00', 'inscrit', 'valide', '2026-05-11 10:05:00', NULL, 2),
+(3, 2, '2026-05-11 11:00:00', 'inscrit', 'en_attente', NULL, NULL, 1);
+
+INSERT INTO demandes (nom, type_service, documents, date_creation, statut_admin, user_id, service_id) VALUES
+('Demande extrait', 'Extrait de naissance', 'cin.pdf', '2026-05-11', 'En attente', 2, 1),
+('Permis maison', 'Permis de construire', 'plan.pdf', '2026-05-11', 'En cours', 3, 2);
+
+INSERT INTO documents (demande_id, nom_fichier, chemin_fichier, type_fichier, taille) VALUES
+(1, 'cin.pdf', 'uploads/demandes/cin.pdf', 'application/pdf', 154321),
+(2, 'plan.pdf', 'uploads/demandes/plan.pdf', 'application/pdf', 345876);
+
+INSERT INTO notifications (user_id, message, statut, date_creation, document_id, demande_id) VALUES
+(2, 'Votre demande est en cours de traitement.', 'non_lu', '2026-05-11 12:00:00', 1, 1),
+(3, 'Un document a ete valide.', 'lu', '2026-05-11 12:10:00', 2, 2);
+
+INSERT INTO ratings (service_id, visitor_id, rating, comment) VALUES
+(1, 'visitor-ali-001', 5, 'Service rapide et clair.'),
+(2, 'visitor-sara-001', 4, 'Bonne experience globale.');
 
 INSERT INTO localisations (adresse, quartier, latitude, longitude) VALUES
 ('Avenue Habib Bourguiba', 'Tunis Centre', 36.80080000, 10.18000000),
-('Rue de Marseille', 'Bab Bhar', 36.79920000, 10.18360000),
-('Avenue Mohamed V', 'Belvedere', 36.82160000, 10.16890000),
-('Route de La Goulette', 'Bardo', 36.80970000, 10.14730000),
-('Avenue de Carthage', 'La Marsa', 36.87880000, 10.32420000),
-('Rue Hedi Chaker', 'Sfax Centre', 34.73900000, 10.76000000),
-('Avenue Taieb Mhiri', 'Sousse Centre', 35.82560000, 10.63460000),
-('Boulevard 14 Janvier', 'Monastir', 35.77800000, 10.82640000),
-('Avenue de l Environnement', 'Nabeul', 36.45690000, 10.73760000),
-('Rue Habib Thameur', 'Bizerte Centre', 37.27450000, 9.87390000),
-('Avenue Farhat Hached', 'Gabes Ville', 33.88150000, 10.09820000),
-('Route de Tunis', 'Kairouan', 35.67800000, 10.10110000),
-('Avenue Salah Ben Youssef', 'Kasserine', 35.16760000, 8.83670000),
-('Rue Ali Belhouane', 'Jendouba', 36.50100000, 8.77830000),
-('Avenue Mongi Slim', 'Sidi Bou Said', 36.86940000, 10.34310000);
+('Rue de Marseille', 'Bab Bhar', 36.79920000, 10.18360000);
 
-INSERT INTO signalements (user_id, localisation_id, titre, description, image, categorie, latitude, longitude, statut) VALUES
-(1, 5, 'Nid-de-poule au centre-ville', 'Nid-de-poule profond sur une voie tres frequentee de Tunis Centre', NULL, 'route', 36.80080000, 10.18000000, 'en_attente'),
-(2, 6, 'Eclairage public coupe', 'Plusieurs lampadaires sont hors service dans le secteur de Bab Bhar', NULL, 'eclairage', 36.79920000, 10.18360000, 'en_cours'),
-(1, 7, 'Fuite d eau sur trottoir', 'Une fuite importante provoque une mare d eau pres du Belvedere', NULL, 'eau', 36.82160000, 10.16890000, 'en_attente'),
-(2, 8, 'Depots sauvages', 'Des sacs poubelles sont abandonnes le long de la route du Bardo', NULL, 'ordures', 36.80970000, 10.14730000, 'rejete'),
-(1, 9, 'Bus en panne', 'Un bus bloque la circulation a La Marsa pendant l heure de pointe', NULL, 'transport', 36.87880000, 10.32420000, 'en_cours'),
-(2, 10, 'Marquage routier efface', 'La signalisation au sol est presque invisible dans le centre de Sfax', NULL, 'route', 34.73900000, 10.76000000, 'en_attente'),
-(1, 11, 'Lampadaire clignotant', 'Un lampadaire clignote de facon intermittente sur l avenue principale de Sousse', NULL, 'eclairage', 35.82560000, 10.63460000, 'en_attente'),
-(2, 12, 'Fuite d egout', 'Une fuite d egout degage une mauvaise odeur dans le quartier de Monastir', NULL, 'eau', 35.77800000, 10.82640000, 'en_cours'),
-(1, 13, 'Tas d ordures', 'Un tas d ordures bloque une partie du trottoir a Nabeul', NULL, 'ordures', 36.45690000, 10.73760000, 'en_attente'),
-(2, 14, 'Feu tricolore defectueux', 'Le feu tricolore reste bloque sur rouge dans le centre de Bizerte', NULL, 'transport', 37.27450000, 9.87390000, 'en_cours'),
-(1, 15, 'Trottoir casse', 'Le trottoir est casse et dangereux pour les passants a Gabes Ville', NULL, 'route', 33.88150000, 10.09820000, 'en_attente'),
-(2, 16, 'Caniveau bouche', 'Le caniveau est bouche et provoque un risque d inondation a Kairouan', NULL, 'eau', 35.67800000, 10.10110000, 'en_cours'),
-(1, 17, 'Poteau penche', 'Un poteau penche menace de tomber sur le passage pieton a Kasserine', NULL, 'eclairage', 35.16760000, 8.83670000, 'rejete'),
-(2, 18, 'Collecte en retard', 'La collecte des dechets a pris du retard dans plusieurs rues de Jendouba', NULL, 'ordures', 36.50100000, 8.77830000, 'en_attente'),
-(1, 19, 'Panne de bus', 'Un bus de ligne est tombe en panne pres de Sidi Bou Said', NULL, 'transport', 36.86940000, 10.34310000, 'en_attente');
+INSERT INTO signalements (user_id, localisation_id, titre, description, image, categorie, latitude, longitude, statut, progression, date_signalement) VALUES
+(2, 1, 'Nid-de-poule', 'Nid-de-poule dangereux sur la voie principale', NULL, 'route', 36.80080000, 10.18000000, 'en_attente', 10, '2026-05-11 09:00:00'),
+(3, 2, 'Lampadaire en panne', 'Panne eclairage depuis 3 jours', NULL, 'eclairage', 36.79920000, 10.18360000, 'en_cours', 45, '2026-05-11 09:30:00');
 
--- ========================================
--- 8. GESTION BUDGETAIRE
--- ========================================
+INSERT INTO interventions (titre, description, tasks_json, type, latitude, longitude, statut, progression, date_intervention, signalement_id) VALUES
+('Reparation chausssee', 'Intervention sur voirie', '["balisage","rebouchage"]', 'route', 36.80080000, 10.18000000, 'planifiee', 20, '2026-05-12', 1),
+('Maintenance eclairage', 'Verification et remplacement ampoule', '["diagnostic","remplacement"]', 'eclairage', 36.79920000, 10.18360000, 'en_cours', 60, '2026-05-12', 2);
 
-CREATE TABLE IF NOT EXISTS budgets (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    titre VARCHAR(255) NOT NULL,
-    annee INT NOT NULL,
-    categorie VARCHAR(50) NOT NULL,
-    zone VARCHAR(100) NULL,
-    montant_alloue DECIMAL(12,2) NOT NULL,
-    montant_depense DECIMAL(12,2) DEFAULT 0,
-    montant_reserve DECIMAL(12,2) DEFAULT 0,
-    statut ENUM('planifie', 'en_cours', 'termine', 'depassement') DEFAULT 'planifie',
-    description TEXT NULL,
-    responsable_id INT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_budget_responsable FOREIGN KEY (responsable_id) REFERENCES utilisateurs(id) ON DELETE SET NULL,
-    UNIQUE KEY unique_budget_period (annee, categorie, zone)
-);
+INSERT INTO equipes (nom, description, type_intervention, nombre_agents, statut) VALUES
+('Equipe Voirie A', 'Equipe route et trottoirs', 'route', 5, 'disponible'),
+('Equipe Lumiere B', 'Equipe eclairage public', 'eclairage', 4, 'en_mission');
 
-CREATE TABLE IF NOT EXISTS budget_forecasts (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    budget_id INT NOT NULL,
-    mois INT NOT NULL,
-    depenses_estimees DECIMAL(12,2) NOT NULL,
-    depenses_reelles DECIMAL(12,2) DEFAULT 0,
-    precision_score DECIMAL(5,2) DEFAULT 0,
-    facteurs JSON NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_forecast_budget FOREIGN KEY (budget_id) REFERENCES budgets(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_forecast_period (budget_id, mois)
-);
+INSERT INTO agents_equipe (equipe_id, user_id, role, active) VALUES
+(1, 1, 'chef', 1),
+(2, 2, 'agent', 1);
 
-CREATE TABLE IF NOT EXISTS budget_transactions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    budget_id INT NOT NULL,
-    intervention_id INT NULL,
-    montant DECIMAL(12,2) NOT NULL,
-    type ENUM('debit', 'credit') DEFAULT 'debit',
-    description VARCHAR(255) NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_transaction_budget FOREIGN KEY (budget_id) REFERENCES budgets(id) ON DELETE CASCADE,
-    CONSTRAINT fk_transaction_intervention FOREIGN KEY (intervention_id) REFERENCES interventions(id) ON DELETE SET NULL
-);
+INSERT INTO couts_intervention (intervention_id, type_intervention, cout_base, cout_materiel, cout_main_oeuvre, cout_deplacement, cout_total, estimations_ml, facteurs_ajustement, historique_similar) VALUES
+(1, 'route', 500.00, 300.00, 400.00, 80.00, 1280.00, 'modele_v1', '{"meteo":1.05}', '[{"id":10,"cout":1200}]'),
+(2, 'eclairage', 250.00, 200.00, 250.00, 50.00, 750.00, 'modele_v1', '{"nuit":1.10}', '[{"id":11,"cout":700}]');
 
--- ========================================
--- MIGRATION PATCH: Legacy compatibility
--- Run this after the main schema if the
--- legacy demandes/services controllers are used.
--- ========================================
+INSERT INTO budgets (titre, annee, categorie, zone, montant_alloue, montant_depense, montant_reserve, statut, description, responsable_id) VALUES
+('Budget Voirie', 2026, 'infrastructure', 'Tunis Centre', 150000.00, 12000.00, 10000.00, 'en_cours', 'Budget interventions routes', 1),
+('Budget Eclairage', 2026, 'maintenance', 'Bab Bhar', 90000.00, 8000.00, 5000.00, 'en_cours', 'Budget eclairage public', 1);
 
--- Add columns required by legacy DemandeController
-ALTER TABLE demandes
-    ADD COLUMN IF NOT EXISTS nom          VARCHAR(100)  NULL,
-    ADD COLUMN IF NOT EXISTS type_service VARCHAR(100)  NULL,
-    ADD COLUMN IF NOT EXISTS documents    VARCHAR(255)  NULL,
-    ADD COLUMN IF NOT EXISTS date_creation DATETIME     NULL DEFAULT CURRENT_TIMESTAMP;
+INSERT INTO budget_forecasts (budget_id, mois, depenses_estimees, depenses_reelles, precision_score, facteurs) VALUES
+(1, 5, 18000.00, 12000.00, 92.50, '{"saisonnalite":"moyenne"}'),
+(2, 5, 12000.00, 8000.00, 89.20, '{"pannes":"faibles"}');
 
--- Create `services` table used by ServiceController / DemandeController
-CREATE TABLE IF NOT EXISTS services (
-    id             INT AUTO_INCREMENT PRIMARY KEY,
-    nom            VARCHAR(150)  NOT NULL,
-    description    TEXT          NULL,
-    icone          VARCHAR(255)  NULL,
-    date_creation  DATETIME      DEFAULT CURRENT_TIMESTAMP
-);
+INSERT INTO budget_transactions (budget_id, intervention_id, montant, type, description) VALUES
+(1, 1, 4500.00, 'debit', 'Achat materiaux voirie'),
+(2, 2, 2200.00, 'debit', 'Remplacement lampadaires');
 
--- Create `notifications` table used by NotificationController / Notification model
-CREATE TABLE IF NOT EXISTS notifications (
-    id         INT AUTO_INCREMENT PRIMARY KEY,
-    user_id    INT           NOT NULL,
-    demande_id INT           NULL,
-    document_id INT          NULL,
-    message    TEXT          NOT NULL,
-    lu         TINYINT(1)    DEFAULT 0,
-    created_at DATETIME      DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_notif_user FOREIGN KEY (user_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
-);
+INSERT INTO posts (user_id, content, image, video) VALUES
+(2, 'Nouvelle campagne citoyenne lancee cette semaine.', NULL, NULL),
+(3, 'Merci a la municipalite pour les actions de nettoyage.', NULL, NULL);
 
--- Create `ratings` table used by RatingController / Rating model
-CREATE TABLE IF NOT EXISTS ratings (
-    id         INT AUTO_INCREMENT PRIMARY KEY,
-    user_id    INT           NOT NULL,
-    service_id INT           NOT NULL,
-    note       TINYINT       NOT NULL CHECK (note BETWEEN 1 AND 5),
-    commentaire TEXT         NULL,
-    created_at DATETIME      DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY unique_user_service (user_id, service_id)
-);
+INSERT INTO comments (post_id, user_id, content) VALUES
+(1, 3, 'Excellente initiative.'),
+(2, 2, 'Bravo a toutes les equipes.');
 
--- Create `categorie_evenement` table used by CategorieEvenementC
-CREATE TABLE IF NOT EXISTS categorie_evenement (
-    id         INT AUTO_INCREMENT PRIMARY KEY,
-    nom        VARCHAR(100)  NOT NULL,
-    image_url  VARCHAR(500)  NULL,
-    created_at DATETIME      DEFAULT CURRENT_TIMESTAMP
-);
+INSERT INTO reactions (post_id, user_id, type) VALUES
+(1, 2, 'like'),
+(2, 3, 'love');
 
--- Add categorie_id to evenements if not present (used by CategorieEvenementC)
-ALTER TABLE evenements
-    ADD COLUMN IF NOT EXISTS categorie_id INT NULL,
-    ADD CONSTRAINT IF NOT EXISTS fk_ev_categorie
-        FOREIGN KEY (categorie_id) REFERENCES categorie_evenement(id) ON DELETE SET NULL;
+INSERT INTO alertes (signalement_id, user_id, message, lu) VALUES
+(1, 2, 'Votre signalement a ete pris en charge.', 0),
+(2, 3, 'Intervention programmee pour votre signalement.', 1);
+
+INSERT INTO rendez_vous (user_id, categorie_id, date_rdv, heure, statut) VALUES
+(2, 1, '2026-05-20', '10:00:00', 'confirme'),
+(3, 2, '2026-05-21', '14:30:00', 'en_attente');
+
+COMMIT;

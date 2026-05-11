@@ -292,6 +292,22 @@
     return pin;
   }
 
+  function computeOverlappedPoint(lat, lng, indexAtSameCoords) {
+    if (indexAtSameCoords <= 0) {
+      return { lat, lng };
+    }
+
+    const slot = indexAtSameCoords - 1;
+    const ring = Math.floor(slot / 8) + 1;
+    const angle = (slot % 8) * (Math.PI / 4);
+    const delta = 0.00018 * ring;
+
+    return {
+      lat: lat + Math.sin(angle) * delta,
+      lng: lng + Math.cos(angle) * delta,
+    };
+  }
+
   function attachMarkerPopupInteractions(markerNode, fullPopup, lng, lat) {
     markerNode.addEventListener('click', (event) => {
       event.stopPropagation();
@@ -687,13 +703,22 @@
     const signalementMap = {};
     const interventionMap = {};
     const signalementItemsForZones = [];
+    const coordUsage = {};
 
     filteredItems.forEach((it) => {
-      const lng = Number(it.longitude);
-      const lat = Number(it.latitude);
-      if (!Number.isFinite(lng) || !Number.isFinite(lat)) {
+      const baseLng = Number(it.longitude);
+      const baseLat = Number(it.latitude);
+      if (!Number.isFinite(baseLng) || !Number.isFinite(baseLat)) {
         return;
       }
+
+      const coordKey = `${baseLat.toFixed(6)}|${baseLng.toFixed(6)}`;
+      const currentIndex = coordUsage[coordKey] || 0;
+      coordUsage[coordKey] = currentIndex + 1;
+
+      const adjustedPoint = computeOverlappedPoint(baseLat, baseLng, currentIndex);
+      const lat = adjustedPoint.lat;
+      const lng = adjustedPoint.lng;
 
       const entityType = it.entity_type === 'intervention' ? 'intervention' : 'signalement';
       const color = pointColor(it);
@@ -712,9 +737,9 @@
       });
 
       if (entityType === 'intervention') {
-        interventionMap[it.id] = it;
+        interventionMap[it.id] = { ...it, __display_lat: lat, __display_lng: lng };
       } else {
-        signalementMap[it.id] = it;
+        signalementMap[it.id] = { ...it, __display_lat: lat, __display_lng: lng };
         signalementItemsForZones.push(it);
       }
       bounds.extend([lng, lat]);
@@ -830,8 +855,12 @@
       : signalementMap[feature.properties.id];
     if (!it) return;
 
-    const lng = Number(it.longitude);
-    const lat = Number(it.latitude);
+    const featureCoordinates = feature.geometry?.coordinates || [];
+    const lng = Number(featureCoordinates[0]);
+    const lat = Number(featureCoordinates[1]);
+    if (!Number.isFinite(lng) || !Number.isFinite(lat)) {
+      return;
+    }
 
     zoomToSignalement(lng, lat);
 

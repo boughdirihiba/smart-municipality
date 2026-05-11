@@ -93,8 +93,6 @@
 
     const mail = trimValue(form, 'mail');
     const password = rawValue(form, 'motdepasse');
-    const robotCheck = byName(form, 'robot_check');
-    const isRobotChecked = robotCheck && robotCheck instanceof HTMLInputElement ? robotCheck.checked : false;
 
     let ok = true;
 
@@ -108,11 +106,6 @@
 
     if (password === '') {
       setError(form, 'motdepasse', 'Le mot de passe est obligatoire.');
-      ok = false;
-    }
-
-    if (!isRobotChecked) {
-      setError(form, 'motdepasse', 'Veuillez confirmer que vous n\'êtes pas un robot.');
       ok = false;
     }
 
@@ -461,13 +454,10 @@
     const updateUi = () => {
       const token = currentToken();
       const verified = token !== '';
-      const checked = checkbox.checked && verified;
 
-      captchaCard.classList.toggle('is-checked', checked);
-      setVisible(checked);
-      if (checked) {
-        clearError(form, 'captcha');
-      }
+      captchaCard.classList.toggle('is-checked', verified);
+      setVisible(true);
+      if (verified) clearError(form, 'captcha');
     };
 
     checkbox.addEventListener('change', () => {
@@ -510,7 +500,7 @@
       }
     });
 
-    setVisible(false);
+    setVisible(true);
     updateUi();
   };
 

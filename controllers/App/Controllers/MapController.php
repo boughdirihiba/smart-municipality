@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Models\Intervention;
 use App\Models\Signalement;
+use Config\Auth;
 
 class MapController
 {
@@ -20,6 +21,8 @@ class MapController
 
     public function data(): void
     {
+        Auth::requireLogin('index.php?route=auth/login');
+
         header('Content-Type: application/json; charset=utf-8');
 
         $categorie = (string)($_GET['categorie'] ?? '');
@@ -60,6 +63,8 @@ class MapController
 
     public function findLocalisation(): void
     {
+        Auth::requireLogin('index.php?route=auth/login');
+
         header('Content-Type: application/json; charset=utf-8');
 
         $latitude = (float)($_GET['latitude'] ?? 0);

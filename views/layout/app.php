@@ -106,7 +106,7 @@ $navItems = [
             </button>
             <div class="dropdown" role="menu">
               <a href="<?= $h($url('index.php?route=profile')) ?>">Mon profil</a>
-              <a href="<?= $h($url('index.php?route=logout')) ?>">Déconnexion</a>
+              <a href="<?= $h($url('index.php?route=auth/logout')) ?>">Déconnexion</a>
             </div>
           </div>
         </div>

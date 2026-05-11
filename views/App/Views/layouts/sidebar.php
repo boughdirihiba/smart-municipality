@@ -413,12 +413,6 @@ details.notifications-box[open] .notifications-panel {
                 <span class="icon">💰</span>
                 <span class="label">Gestion des budgets</span>
             </a>
-            <a href="<?php echo BASE_URL; ?>/index.php?route=home/index&role=citoyen"
-               class="sidebar-link"
-               title="Mode citoyen">
-                <span class="icon">👤</span>
-                <span class="label">Mode citoyen</span>
-            </a>
         <?php else: ?>
             <a href="<?php echo BASE_URL; ?>/index.php?route=signalements/list"
                class="sidebar-link <?php echo $currentRoute === 'signalements/list' ? 'active' : ''; ?>"
@@ -438,12 +432,6 @@ details.notifications-box[open] .notifications-panel {
                 <span class="icon">🏠</span>
                 <span class="label">Accueil</span>
             </a>
-            <a href="<?php echo BASE_URL; ?>/index.php?route=home/index&role=admin"
-               class="sidebar-link"
-               title="Mode admin">
-                <span class="icon">🛡️</span>
-                <span class="label">Mode admin</span>
-            </a>
         <?php endif; ?>
     </nav>
 
@@ -454,21 +442,12 @@ details.notifications-box[open] .notifications-panel {
             <span class="icon">⚙️</span>
             <span class="label">Paramètres</span>
         </a>
-        <?php if ($isAdmin): ?>
-            <a href="<?php echo BASE_URL; ?>/index.php?route=home/index&role=citoyen"
-               class="sidebar-link"
-               title="Passer en citoyen">
-                <span class="icon">↩️</span>
-                <span class="label">Passer en citoyen</span>
-            </a>
-        <?php else: ?>
-            <a href="<?php echo BASE_URL; ?>/index.php?route=home/index&role=admin"
-               class="sidebar-link"
-               title="Passer en admin">
-                <span class="icon">🛡️</span>
-                <span class="label">Passer en admin</span>
-            </a>
-        <?php endif; ?>
+        <a href="<?php echo BASE_URL; ?>/index.php?route=auth/logout"
+           class="sidebar-link"
+           title="Déconnexion">
+            <span class="icon">⎋</span>
+            <span class="label">Déconnexion</span>
+        </a>
     </div>
 </aside>
 

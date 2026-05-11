@@ -123,7 +123,7 @@ $url = static function (string $path) use ($base): string {
             </nav>
 
             <div class="landing-actions">
-                <a class="btn btn-outline" href="<?= htmlspecialchars($url('index.php?route=login'), ENT_QUOTES, 'UTF-8') ?>">Login</a>
+                <a class="btn btn-outline" href="<?= htmlspecialchars($url('index.php?route=auth/login'), ENT_QUOTES, 'UTF-8') ?>">Login</a>
                 <button class="menu-btn" type="button" aria-label="Menu">
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <path fill="currentColor" d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z" />
@@ -162,7 +162,7 @@ $url = static function (string $path) use ($base): string {
 
                 <div class="cta">
                     <a class="btn btn-primary" href="<?= htmlspecialchars($url('index.php?route=page&page=services'), ENT_QUOTES, 'UTF-8') ?>">Accéder aux services</a>
-                    <a class="btn btn-outline" href="<?= htmlspecialchars($url('index.php?route=login'), ENT_QUOTES, 'UTF-8') ?>">Se connecter</a>
+                    <a class="btn btn-outline" href="<?= htmlspecialchars($url('index.php?route=auth/login'), ENT_QUOTES, 'UTF-8') ?>">Se connecter</a>
                 </div>
             </section>
         </main>
@@ -202,7 +202,7 @@ $url = static function (string $path) use ($base): string {
         <?php endif; ?>
 
     <?php if ($page === 'login'): ?>
-        <form id="loginForm" data-form="login" novalidate action="<?= htmlspecialchars($url('index.php?route=login'), ENT_QUOTES, 'UTF-8') ?>" method="post">
+        <form id="loginForm" data-form="login" novalidate action="<?= htmlspecialchars($url('index.php?route=auth/login'), ENT_QUOTES, 'UTF-8') ?>" method="post">
 
             <div class="avatar">
                 <img src="<?= htmlspecialchars($asset('views/admin.jpeg'), ENT_QUOTES, 'UTF-8') ?>" alt="Photo admin">
@@ -254,12 +254,12 @@ $url = static function (string $path) use ($base): string {
             <div class="error-message" id="error-captcha"><?= isset($errors['captcha']) ? htmlspecialchars((string)$errors['captcha'], ENT_QUOTES, 'UTF-8') : '' ?></div>
 
             <div class="login-submitWrap" data-js-login-submit>
-                <button class="btn btn-primary" type="submit">Se connecter</button>
+                <button class="btn btn-primary" type="submit">Se connecter sans Face ID</button>
             </div>
 
             <button class="btn btn-ghost" type="button" data-faceid-login-btn>Connexion avec Face ID</button>
 
-            <a href="<?= htmlspecialchars($url('index.php?route=signup'), ENT_QUOTES, 'UTF-8') ?>">S'inscrire?</a>
+            <a href="<?= htmlspecialchars($url('index.php?route=auth/signup'), ENT_QUOTES, 'UTF-8') ?>">S'inscrire?</a>
 
         </form>
 
@@ -287,7 +287,7 @@ $url = static function (string $path) use ($base): string {
         </div>
 
     <?php elseif ($page === 'signup'): ?>
-        <form id="signupForm" data-form="signup" novalidate action="<?= htmlspecialchars($url('index.php?route=signup'), ENT_QUOTES, 'UTF-8') ?>" method="post">
+        <form id="signupForm" data-form="signup" novalidate action="<?= htmlspecialchars($url('index.php?route=auth/signup'), ENT_QUOTES, 'UTF-8') ?>" method="post">
 
             <div class="avatar">
                 <img src="<?= htmlspecialchars($asset('views/admin.jpeg'), ENT_QUOTES, 'UTF-8') ?>" alt="Photo admin">
@@ -346,7 +346,7 @@ $url = static function (string $path) use ($base): string {
 
             <button class="btn btn-primary" type="submit">Créer un compte</button>
 
-            <a href="<?= htmlspecialchars($url('index.php?route=login'), ENT_QUOTES, 'UTF-8') ?>">Déjà un compte ? Se connecter</a>
+            <a href="<?= htmlspecialchars($url('index.php?route=auth/login'), ENT_QUOTES, 'UTF-8') ?>">Déjà un compte ? Se connecter</a>
 
         </form>
 
@@ -356,7 +356,7 @@ $url = static function (string $path) use ($base): string {
             <p style="text-align:left; margin-top: 12px; font-size: 14px; line-height: 1.6;">
                 Cette page présente l’application et son objectif.
             </p>
-            <a href="<?= htmlspecialchars($url('index.php?route=login'), ENT_QUOTES, 'UTF-8') ?>">Retour au login</a>
+            <a href="<?= htmlspecialchars($url('index.php?route=auth/login'), ENT_QUOTES, 'UTF-8') ?>">Retour au login</a>
         </form>
 
     <?php elseif ($page === 'services'): ?>
@@ -365,7 +365,7 @@ $url = static function (string $path) use ($base): string {
             <p style="text-align:left; margin-top: 12px; font-size: 14px; line-height: 1.6;">
                 Cette page décrit les services proposés.
             </p>
-            <a href="<?= htmlspecialchars($url('index.php?route=login'), ENT_QUOTES, 'UTF-8') ?>">Retour au login</a>
+            <a href="<?= htmlspecialchars($url('index.php?route=auth/login'), ENT_QUOTES, 'UTF-8') ?>">Retour au login</a>
         </form>
 
     <?php elseif ($page === 'support'): ?>
@@ -374,7 +374,7 @@ $url = static function (string $path) use ($base): string {
             <p style="text-align:left; margin-top: 12px; font-size: 14px; line-height: 1.6;">
                 Cette page fournit des informations de support et d’assistance.
             </p>
-            <a href="<?= htmlspecialchars($url('index.php?route=login'), ENT_QUOTES, 'UTF-8') ?>">Retour au login</a>
+            <a href="<?= htmlspecialchars($url('index.php?route=auth/login'), ENT_QUOTES, 'UTF-8') ?>">Retour au login</a>
         </form>
 
     <?php elseif ($page === 'plan'): ?>
@@ -383,7 +383,7 @@ $url = static function (string $path) use ($base): string {
             <p style="text-align:left; margin-top: 12px; font-size: 14px; line-height: 1.6;">
                 Cette page donne une vue d’ensemble des pages disponibles.
             </p>
-            <a href="<?= htmlspecialchars($url('index.php?route=login'), ENT_QUOTES, 'UTF-8') ?>">Retour au login</a>
+            <a href="<?= htmlspecialchars($url('index.php?route=auth/login'), ENT_QUOTES, 'UTF-8') ?>">Retour au login</a>
         </form>
 
     <?php elseif ($page === 'contact'): ?>
@@ -392,7 +392,7 @@ $url = static function (string $path) use ($base): string {
             <p style="text-align:left; margin-top: 12px; font-size: 14px; line-height: 1.6;">
                 Cette page contient les informations de contact.
             </p>
-            <a href="<?= htmlspecialchars($url('index.php?route=login'), ENT_QUOTES, 'UTF-8') ?>">Retour au login</a>
+            <a href="<?= htmlspecialchars($url('index.php?route=auth/login'), ENT_QUOTES, 'UTF-8') ?>">Retour au login</a>
         </form>
 
     <?php endif; ?>

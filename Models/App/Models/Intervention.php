@@ -450,8 +450,8 @@ class Intervention implements MapDataProviderInterface
     public function create(array $data): int
     {
         $stmt = $this->pdo->prepare(
-            'INSERT INTO interventions (titre, description, type, tasks_json, latitude, longitude, statut, progression, date_intervention, signalement_id)
-             VALUES (:titre, :description, :type, :tasks_json, :latitude, :longitude, :statut, :progression, :date_intervention, :signalement_id)'
+            'INSERT INTO interventions (titre, description, type, tasks_json, latitude, longitude, statut, progression, date_intervention, signalement_id, user_id)
+             VALUES (:titre, :description, :type, :tasks_json, :latitude, :longitude, :statut, :progression, :date_intervention, :signalement_id, :user_id)'
         );
 
         $ok = $stmt->execute([
@@ -465,6 +465,7 @@ class Intervention implements MapDataProviderInterface
             ':progression' => $data['progression'],
             ':date_intervention' => $data['date_intervention'] !== '' ? $data['date_intervention'] : null,
             ':signalement_id' => $data['signalement_id'] ?? null,
+            ':user_id' => $data['user_id'] ?? null,
         ]);
 
         return $ok ? (int)$this->pdo->lastInsertId() : 0;

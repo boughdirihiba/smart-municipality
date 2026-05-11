@@ -197,7 +197,7 @@ switch ($page) {
                 </label>
 
                 <button class="btn btn-primary" type="submit">Enregistrer</button>
-                <a class="btn btn-ghost" href="<?php echo BASE_URL; ?>/index.php?route=logout" style="justify-content:center;">Déconnexion</a>
+                <a class="btn btn-ghost" href="<?php echo BASE_URL; ?>/index.php?route=auth/logout" style="justify-content:center;">Déconnexion</a>
               </form>
             </div>
           </aside>

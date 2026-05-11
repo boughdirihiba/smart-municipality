@@ -361,7 +361,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 openModal(ev.id, ev.title, props.lieu, ev.startStr, props.heure, props.places_restantes);
             <?php else: ?>
                 alert('🔐 Veuillez vous connecter pour vous inscrire.');
-                window.location.href = BASE_URL + '/index.php?route=login';
+                window.location.href = BASE_URL + '/index.php?route=auth/login';
             <?php endif; ?>
         },
         dateClick: function(info) {
