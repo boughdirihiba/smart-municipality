@@ -21,30 +21,54 @@ Les citoyens attendent aujourd’hui des services municipaux rapides, numérique
 
 ## Technologies utilisées
 
-Back-end : PHP
+### Base de données MySQL
+Pour utiliser une base de données avec ce projet :
 
-Base de données : MySQL
+1. Installe MySQL :
+   - **Windows** : via [XAMPP](https://www.apachefriends.org/fr/index.html) (inclut MySQL) ou [MySQL Installer](https://dev.mysql.com/downloads/installer/)
+   - **macOS** : `brew install mysql`
+   - **Linux (Ubuntu)** : `sudo apt install mysql-server`
 
-Front-end : HTML, CSS, JavaScript
+2. Démarre le service MySQL :
+   - **Windows (XAMPP)** : lancer MySQL dans le panneau de contrôle
+   - **macOS** : `brew services start mysql`
+   - **Linux** : `sudo systemctl start mysql`
 
-Bibliothèques : Chart.js, jsPDF
+3. Vérifie l’installation :
+   ```bash
+   mysql --version
+   ## Utilisation
 
-IA : Chatbot
+### Installation de PHP
+Pour utiliser ce projet, vous devez installer PHP. Voici les étapes :
 
-Serveur local : XAMPP / WAMP
+1. Téléchargez PHP à partir du site officiel : [PHP – Téléchargement](https://www.php.net/downloads.php).
+
+2. Installez PHP en suivant les instructions spécifiques à votre système d'exploitation :
+
+   - Pour **Windows**, vous pouvez utiliser [XAMPP](https://www.apachefriends.org/fr/index.html) ou [WampServer](http://www.wampserver.com/).
+   - Pour **macOS**, vous pouvez utiliser [Homebrew](https://brew.sh/), puis exécuter la commande suivante dans le terminal :
+    ```bash
+    brew install php
+    
+ ### JavaScript
+Aucune installation requise. JavaScript s’exécute directement dans le navigateur.
+
+### HTML/CSS
+Aucune installation requise. HTML et CSS sont directement interprétés par le navigateur.
 
 ## Membres du groupe
-Hiba Boughdiri:module service en ligne
+[Hiba Boughdiri](https://github.com/boughdirihihba):module service en ligne
 
-sirine bjaoui:module evenement
+[sirine bjaoui](https://github.com/sirineb104):module evenement
 
-chaima abdeltif:module historique et analyse de risque
+[chaima abdeltif](https://github.com/chaimaabdeltif2005):module historique et analyse de risque
 
-omar ben othman:module rendez-vous
+[omar ben othman](https://github.com/omarbenothmen):module rendez-vous
 
-fourat akrout:module login
+[fourat akrout](https://github.com/fourat01):module login
 
-ibrahim souissi:module carte intelligente
+[ibrahim souissi](https://github.com/brahimsouissi17):module carte intelligente
 
 ## Remerciements
 
