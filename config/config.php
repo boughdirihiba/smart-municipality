@@ -4,46 +4,79 @@ declare(strict_types=1);
 
 session_start();
 
-function get_base_url(): string
-{
-    if (PHP_SAPI === 'cli' || empty($_SERVER['SCRIPT_NAME'])) {
-        return '';
-    }
-
-    $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME']);
-    $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '';
-    $scriptDir = rtrim(dirname($scriptName), '/');
-
-    if ($scriptDir === '' || $scriptDir === '.') {
-        return '';
-    }
-
-    if ($requestPath !== '' && (strpos($requestPath, $scriptDir . '/') === 0 || $requestPath === $scriptDir)) {
-        return $scriptDir;
-    }
-
-    return $scriptDir;
-}
-
-function asset(string $path): string
-{
-    $baseUrl = get_base_url();
-    $path = '/' . ltrim($path, '/');
-    return ($baseUrl === '' ? '' : $baseUrl) . $path;
-}
-
 define('APP_NAME', 'Smart Municipality');
 define('BASE_PATH', dirname(__DIR__));
-$defaultBaseUrl = '/smart/smart-municipality';
-define('BASE_URL', get_base_url() ?: $defaultBaseUrl);
+
+require_once __DIR__ . '/Env.php';
+\Config\Env::load(BASE_PATH . '/.env');
+
+$baseUrl = '/smart-municipality';
+if (isset($_SERVER['SCRIPT_NAME'])) {
+    $baseUrl = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
+    if ($baseUrl === '/') {
+        $baseUrl = '';
+    }
+}
+define('BASE_URL', $baseUrl);
 define('UPLOAD_PATH', BASE_PATH . '/public/uploads/');
 define('UPLOAD_URL', BASE_URL . '/public/uploads/');
 
 define('DB_HOST', '127.0.0.1');
-define('DB_PORT', '3306');
+
+$dbPort = getenv('DB_PORT');
+$sessionPort = isset($_SESSION['db_port']) ? (string)$_SESSION['db_port'] : '';
+if ($sessionPort !== '' && ctype_digit($sessionPort)) {
+    $dbPort = $sessionPort;
+}
+
+if (!is_string($dbPort) || $dbPort === '') {
+    $dbPort = '3306';
+    $ports = ['3306', '3305'];
+    foreach ($ports as $port) {
+        $conn = @fsockopen(DB_HOST, (int)$port, $errno, $errstr, 0.2);
+        if (is_resource($conn)) {
+            fclose($conn);
+            $dbPort = $port;
+            $_SESSION['db_port'] = $dbPort;
+            break;
+        }
+    }
+}
+define('DB_PORT', $dbPort);
 define('DB_NAME', 'smart_municipality');
 define('DB_USER', 'root');
 define('DB_PASS', '');
+
+define('ADMIN_EMAIL', getenv('ADMIN_EMAIL') ?: 'fourat.akrout@gmail.com');
+define('ADMIN_PASSWORD', getenv('ADMIN_PASSWORD') ?: '05032005ff');
+
+putenv('DB_HOST=' . DB_HOST);
+putenv('DB_PORT=' . DB_PORT);
+putenv('DB_NAME=' . DB_NAME);
+putenv('DB_USER=' . DB_USER);
+putenv('DB_PASS=' . DB_PASS);
+putenv('ADMIN_EMAIL=' . ADMIN_EMAIL);
+putenv('ADMIN_PASSWORD=' . ADMIN_PASSWORD);
+
+spl_autoload_register(function (string $class): void {
+    $prefixes = [
+        'Config\\' => BASE_PATH . '/config/',
+        'Models\\' => BASE_PATH . '/Models/',
+    ];
+
+    foreach ($prefixes as $prefix => $baseDir) {
+        if (strpos($class, $prefix) !== 0) {
+            continue;
+        }
+
+        $relative = substr($class, strlen($prefix));
+        $file = $baseDir . str_replace('\\', '/', $relative) . '.php';
+        if (is_file($file)) {
+            require $file;
+        }
+        return;
+    }
+});
 
 // ─── Chatbot / AI API ────────────────────────────────────────────────────────
 // Set your Groq API key here (https://console.groq.com) or leave empty to
@@ -71,7 +104,16 @@ function pdo_connection(): \PDO
 
 function bootstrap_user_session_from_database(): void
 {
-    if (isset($_SESSION['user'])) {
+    if (isset($_SESSION['user']) && is_array($_SESSION['user'])) {
+        if (!isset($_SESSION['user']['db_id']) && isset($_SESSION['user']['id'])) {
+            $_SESSION['user']['db_id'] = (int)$_SESSION['user']['id'];
+        }
+        if (!isset($_SESSION['user']['user_id']) && isset($_SESSION['user']['id'])) {
+            $_SESSION['user']['user_id'] = (int)$_SESSION['user']['id'];
+        }
+        if (!isset($_SESSION['user_id']) && isset($_SESSION['user']['id'])) {
+            $_SESSION['user_id'] = (int)$_SESSION['user']['id'];
+        }
         return;
     }
 
@@ -84,14 +126,18 @@ function bootstrap_user_session_from_database(): void
         if (is_array($row)) {
             $_SESSION['user'] = [
                 'id' => (int)$row['id'],
+                'db_id' => (int)$row['id'],
+                'user_id' => (int)$row['id'],
                 'nom' => (string)($row['nom'] ?? ''),
                 'prenom' => (string)($row['prenom'] ?? ''),
+                'mail' => (string)($row['email'] ?? ''),
                 'email' => (string)($row['email'] ?? ''),
                 'avatar' => (string)($row['avatar'] ?? 'sidebar-photo.svg'),
                 'telephone' => (string)($row['telephone'] ?? ''),
                 'adresse' => (string)($row['adresse'] ?? ''),
                 'role' => (string)($row['role'] ?? 'citoyen'),
             ];
+            $_SESSION['user_id'] = (int)$row['id'];
             return;
         }
     } catch (\Throwable $e) {
@@ -100,17 +146,25 @@ function bootstrap_user_session_from_database(): void
 
     $_SESSION['user'] = [
         'id' => 1,
+        'db_id' => 1,
+        'user_id' => 1,
         'nom' => 'Demo',
         'prenom' => 'Citoyen',
+        'mail' => 'citoyen@demo.tn',
         'email' => 'citoyen@demo.tn',
         'avatar' => 'sidebar-photo.svg',
         'telephone' => '',
         'adresse' => '',
         'role' => 'citoyen',
     ];
+    $_SESSION['user_id'] = 1;
 }
 
-bootstrap_user_session_from_database();
+// Disable automatic session bootstrap - use proper login instead
+$autoLogin = getenv('DEMO_AUTO_LOGIN');
+if (is_string($autoLogin) && $autoLogin === '1') {
+    bootstrap_user_session_from_database();
+}
 
 function e(string $value): string
 {

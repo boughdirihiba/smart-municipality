@@ -30,26 +30,45 @@ class Database
             return $this->conn;
         }
 
-        $hosts = [$this->host];
-        if ($this->host === 'localhost') {
+        $host = getenv('DB_HOST');
+        $dbName = getenv('DB_NAME');
+        $user = getenv('DB_USER');
+        $pass = getenv('DB_PASS');
+        $envPort = getenv('DB_PORT');
+
+        $host = is_string($host) && $host !== '' ? $host : $this->host;
+        $dbName = is_string($dbName) && $dbName !== '' ? $dbName : $this->db_name;
+        $user = is_string($user) && $user !== '' ? $user : $this->username;
+        $pass = is_string($pass) ? $pass : $this->password;
+
+        $ports = [$this->port, 3306, 3305];
+        if (is_string($envPort) && ctype_digit($envPort)) {
+            array_unshift($ports, (int)$envPort);
+        }
+        $ports = array_values(array_unique(array_filter($ports, static fn($p) => is_int($p) && $p > 0)));
+
+        $hosts = [$host];
+        if ($host === 'localhost') {
             $hosts[] = '127.0.0.1';
-        } elseif ($this->host === '127.0.0.1') {
+        } elseif ($host === '127.0.0.1') {
             $hosts[] = 'localhost';
         }
 
         $lastError = null;
         foreach ($hosts as $h) {
-            try {
-                $this->conn = new \PDO(
-                    'mysql:host=' . $h . ';port=' . (int)$this->port . ';dbname=' . $this->db_name . ';charset=utf8mb4',
-                    $this->username,
-                    $this->password
-                );
-                $this->conn->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-                $this->conn->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
-                return $this->conn;
-            } catch (\PDOException $e) {
-                $lastError = $e;
+            foreach ($ports as $port) {
+                try {
+                    $this->conn = new \PDO(
+                        'mysql:host=' . $h . ';port=' . (int)$port . ';dbname=' . $dbName . ';charset=utf8mb4',
+                        $user,
+                        $pass
+                    );
+                    $this->conn->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+                    $this->conn->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
+                    return $this->conn;
+                } catch (\PDOException $e) {
+                    $lastError = $e;
+                }
             }
         }
 
@@ -68,6 +87,6 @@ class Database
 }
 
 // ─── Global alias so legacy code can use `new Database()` without a namespace ─
-if (!class_exists('Database', false)) {
+if (!class_exists('\\Database', false)) {
     class_alias('Config\\Database', 'Database');
 }

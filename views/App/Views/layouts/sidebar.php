@@ -413,6 +413,24 @@ details.notifications-box[open] .notifications-panel {
                 <span class="icon">💰</span>
                 <span class="label">Gestion des budgets</span>
             </a>
+            <a href="<?php echo BASE_URL; ?>/index.php?route=event/index"
+               class="sidebar-link <?php echo strpos($currentRoute, 'event') !== false ? 'active' : ''; ?>"
+               title="Gestion des événements">
+                <span class="icon">📅</span>
+                <span class="label">Événements</span>
+            </a>
+            <a href="<?php echo BASE_URL; ?>/index.php?route=blog/index"
+               class="sidebar-link <?php echo strpos($currentRoute, 'blog') !== false ? 'active' : ''; ?>"
+               title="Gestion du blog">
+                <span class="icon">📰</span>
+                <span class="label">Blog</span>
+            </a>
+            <a href="<?php echo BASE_URL; ?>/index.php?route=rendez_vous/index"
+               class="sidebar-link <?php echo strpos($currentRoute, 'rendez_vous') !== false ? 'active' : ''; ?>"
+               title="Gestion des rendez-vous">
+                <span class="icon">🗓️</span>
+                <span class="label">Rendez-vous</span>
+            </a>
             <a href="<?php echo BASE_URL; ?>/index.php?route=home/index&role=citoyen"
                class="sidebar-link"
                title="Mode citoyen">
@@ -431,6 +449,24 @@ details.notifications-box[open] .notifications-panel {
                title="Nouveau signalement">
                 <span class="icon">➕</span>
                 <span class="label">Nouveau signalement</span>
+            </a>
+            <a href="<?php echo BASE_URL; ?>/index.php?route=event/index"
+               class="sidebar-link <?php echo strpos($currentRoute, 'event') !== false ? 'active' : ''; ?>"
+               title="Événements">
+                <span class="icon">📅</span>
+                <span class="label">Événements</span>
+            </a>
+            <a href="<?php echo BASE_URL; ?>/index.php?route=blog/index"
+               class="sidebar-link <?php echo strpos($currentRoute, 'blog') !== false ? 'active' : ''; ?>"
+               title="Blog">
+                <span class="icon">📰</span>
+                <span class="label">Blog</span>
+            </a>
+            <a href="<?php echo BASE_URL; ?>/index.php?route=rendez_vous/myAppointments"
+               class="sidebar-link <?php echo strpos($currentRoute, 'rendez_vous') !== false ? 'active' : ''; ?>"
+               title="Mes rendez-vous">
+                <span class="icon">🗓️</span>
+                <span class="label">Rendez-vous</span>
             </a>
             <a href="<?php echo BASE_URL; ?>/index.php?route=home/index"
                class="sidebar-link <?php echo $currentRoute === 'home/index' ? 'active' : ''; ?>"
@@ -469,6 +505,12 @@ details.notifications-box[open] .notifications-panel {
                 <span class="label">Passer en admin</span>
             </a>
         <?php endif; ?>
+        <a href="<?php echo BASE_URL; ?>/index.php?route=login/logout"
+           class="sidebar-link"
+           title="Déconnexion">
+            <span class="icon">🚪</span>
+            <span class="label">Déconnexion</span>
+        </a>
     </div>
 </aside>
 
