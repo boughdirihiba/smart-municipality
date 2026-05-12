@@ -298,8 +298,8 @@ class RendezVousController {
 
             // ── CREATE MULTI ──────────────────────────────────────────────
             case 'create_multi':
-                $isAjax   = isset($_SERVER['HTTP_X_REQUESTED_WITH'])
-                            && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+                // Use POST field 'ajax=1' — reliable on all servers including XAMPP
+        $isAjax   = !empty($_POST['ajax']);
                 $date_rdv = $_POST['date_rdv'] ?? '';
                 $slots    = $_POST['slots']    ?? [];
 
@@ -384,8 +384,9 @@ class RendezVousController {
                 $rdv->setDateRdv($date_rdv);
                 $rdv->setHeure($heure);
                 $rdv->setStatut('en_attente');
-                $_SESSION[self::create($rdv) ? 'success' : 'error'] =
-                    self::create($rdv) ? "Rendez-vous enregistré." : "Erreur lors de l'enregistrement.";
+                $ok = self::create($rdv);
+                $_SESSION[$ok ? 'success' : 'error'] =
+                    $ok ? "Rendez-vous enregistré." : "Erreur lors de l'enregistrement.";
                 ob_end_clean();
                 header("Location: $frontUrl"); exit;
 
@@ -414,8 +415,9 @@ class RendezVousController {
                 $row = self::readOne($rdv, $id);
                 if ($row) {
                     $rdv->setStatut('annule');
-                    $_SESSION[self::update($rdv) ? 'success' : 'error'] =
-                        self::update($rdv) ? "Rendez-vous #$id annulé." : "Erreur lors de l'annulation.";
+                    $ok = self::update($rdv);
+                    $_SESSION[$ok ? 'success' : 'error'] =
+                        $ok ? "Rendez-vous #$id annulé." : "Erreur lors de l'annulation.";
                 }
                 header("Location: $backUrl"); exit;
 

@@ -992,7 +992,7 @@ require BASE_PATH . '/views/App/Views/layouts/header.php';
                                          data-id="<?php echo $cat['id']; ?>"
                                          onclick="toggleCat(<?php echo $cat['id']; ?>, this)">
                                         <div class="svc-check"></div>
-                                        <div class="svc-icon-wrap"><img src="../../assets/icons/<?php echo htmlspecialchars($cat['icone']); ?>" alt=""></div>
+                                        <div class="svc-icon-wrap"><img src="<?php echo BASE_URL; ?>/assets/icons/<?php echo htmlspecialchars($cat['icone']); ?>" alt="" onerror="this.style.display='none'"></div>
                                         <span><?php echo htmlspecialchars($cat['nom']); ?></span>
                                     </div>
                                 <?php endforeach; ?>
@@ -1390,88 +1390,24 @@ require BASE_PATH . '/views/App/Views/layouts/header.php';
         var slotTaken = false; // multi-service: slot check done server-side on submit
 
         function confirmRdv() {
-            var slotCount = <?php echo max(1, count($chainedSlots)); ?>;
-            var msg = slotCount > 1 ? slotCount + ' rendez-vous seront créés.' : '1 rendez-vous sera créé.';
-
-            function doSubmit() {
-                var form    = document.getElementById('rdvForm');
-                var formData = new FormData(form);
-
-                // ── AJAX submit — page never leaves rendez-vous ───────────────
-                fetch(window.location.pathname, {
-                    method: 'POST',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                    body: formData
-                })
-                .then(function(response) {
-                    // First get raw text to debug if JSON is invalid
-                    return response.text();
-                })
-                .then(function(text) {
-                    var data;
-                    try {
-                        data = JSON.parse(text);
-                    } catch(e) {
-                        // PHP returned HTML/errors instead of JSON
-                        console.error('Invalid JSON from server:', text);
-                        if (typeof Swal !== 'undefined') {
-                            Swal.fire({
-                                title: 'Erreur serveur',
-                                html: '<pre style="font-size:11px;text-align:left;max-height:200px;overflow:auto;">' + text.replace(/</g,'&lt;').substring(0,500) + '</pre>',
-                                icon: 'error'
-                            });
-                        } else {
-                            alert('Erreur serveur: ' + text.substring(0, 200));
-                        }
-                        return;
-                    }
-                    if (data.success) {
-                        if (typeof Swal !== 'undefined') {
-                            Swal.fire({
-                                title: '✅ Rendez-vous confirmé !',
-                                html: data.message || 'Votre rendez-vous a bien été enregistré.',
-                                icon: 'success',
-                                confirmButtonColor: '#135D36',
-                                confirmButtonText: 'OK'
-                            }).then(function() {
-                                window.location.href = '<?php echo BASE_URL; ?>/index.php?action=rendez_vous';
-                            });
-                        } else {
-                            alert(data.message || 'Rendez-vous enregistré !');
-                            window.location.href = '<?php echo BASE_URL; ?>/index.php?action=rendez_vous';
-                        }
-                    } else {
-                        if (typeof Swal !== 'undefined') {
-                            Swal.fire({ title: 'Erreur', text: data.message || 'Une erreur est survenue.', icon: 'error' });
-                        } else {
-                            alert(data.message || 'Erreur lors de la création.');
-                        }
-                    }
-                })
-                .catch(function(err) {
-                    console.error('RDV submit error:', err);
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({ title: 'Erreur réseau', text: 'Vérifiez votre connexion et réessayez.', icon: 'error' });
-                    }
-                });
-            }
-
             if (typeof Swal === 'undefined') {
-                if (confirm('Confirmer vos rendez-vous ?\n' + msg)) doSubmit();
-            } else {
-                Swal.fire({
-                    title: 'Confirmer vos rendez-vous ?',
-                    html: msg,
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#135D36',
-                    cancelButtonColor: '#aaa',
-                    confirmButtonText: '✓ Confirmer',
-                    cancelButtonText: 'Annuler'
-                }).then(function(result) {
-                    if (result.isConfirmed) doSubmit();
-                });
+                document.getElementById('rdvForm').submit();
+                return;
             }
+            Swal.fire({
+                title: "Confirmer vos rendez-vous ?",
+                html: "<?php echo count($chainedSlots) > 1 ? count($chainedSlots) . ' rendez-vous seront créés.' : '1 rendez-vous sera créé.'; ?>",
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonColor: "#135D36",
+                cancelButtonColor: "#aaa",
+                confirmButtonText: "✓ Confirmer",
+                cancelButtonText: "Annuler"
+            }).then(function(result) {
+                if (result.isConfirmed) {
+                    document.getElementById('rdvForm').submit();
+                }
+            });
         }
 
         function deleteMyRdv(id) {
