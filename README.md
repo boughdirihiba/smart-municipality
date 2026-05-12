@@ -1,32 +1,46 @@
-# smart-municipality
-Plateforme intelligente de gestion des services municipaux
-# Smart Municipality
+# Smart Municipality – Plateforme web intelligente pour les services municipaux
 
-## Description
-Ce projet est une plateforme web permettant aux citoyens de signaler des problèmes urbains, suivre leurs demandes, prendre des rendez-vous et recevoir des notifications.
+## Présentation du projet
 
-## Fonctionnalités
-- Création de compte utilisateur
-- Signalement des problèmes
-- Carte intelligente (AI Map)
-- Prise de rendez-vous
-- Notifications
-- Interface admin
+Dans le cadre de notre **Projet Intégré** à l’**École Esprit**, nous avons développé **Smart Municipality**, une plateforme web intelligente qui modernise et centralise les services municipaux grâce à des technologies d’IA.
 
-## Installation
-1. Cloner le projet
-2. Installer les dépendances
-3. Lancer le serveur
+Les citoyens attendent aujourd’hui des services municipaux rapides, numériques et intelligents. Pourtant, de nombreuses administrations locales souffrent encore de files d’attente, de procédures lentes et d’un manque de communication avec les usagers.
 
-## Utilisation
-L'utilisateur peut :
-- créer un compte
-- signaler un problème
-- suivre ses demandes
-- prendre un rendez-vous
+**Objectifs :**
+- Accompagner la transformation numérique des services publics locaux
+- Améliorer l’accessibilité et l’efficacité pour les citoyens et les administrateurs
+- Proposer une interface centrée utilisateur avec des modules innovants
 
-## Contribution
-Les contributions sont les bienvenues.
+**Modules principaux de la plateforme :**
+- Gestion des services en ligne
+- Système de rendez-vous et de planification
+- Réclamations et signalements citoyens
+- Intégration cartographique intelligente
+- Gestion des profils utilisateurs
+- Gestion d’événements
 
-## Licence
-Ce projet est sous licence MIT.
+## Technologies utilisées
+
+Back-end : PHP
+
+Base de données : MySQL
+
+Front-end : HTML, CSS, JavaScript
+
+Bibliothèques : Chart.js, jsPDF
+
+IA : Chatbot
+
+Serveur local : XAMPP / WAMP
+
+## Membres du groupe
+Hiba Boughdiri:module service en ligne
+sirine bjaoui:module evenement
+chaima abdeltif:module historique et analyse de risque
+omar ben othman:module rendez-vous
+fourat akrout:module login
+ibrahim souissi:module carte intelligente
+
+## Remerciements
+
+À l’**École Esprit** et à nos **mentors** pour leur accompagnement tout au long de ce projet intégré.
