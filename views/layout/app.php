@@ -7,6 +7,10 @@ use Config\Auth;
 $title = isset($title) ? (string) $title : 'Smart Municipality';
 $active = isset($active) ? (string) $active : '';
 $contentView = isset($contentView) ? (string) $contentView : '';
+$page = isset($page) ? (string)$page : '';
+$useLegacyNavbar = isset($useLegacyNavbar) ? (bool)$useLegacyNavbar : false;
+$needsFaceId = $active === 'profile' || $page === 'profile';
+$needsValidation = $needsFaceId;
 
 Auth::startSession();
 $settings = isset($_SESSION['settings']) && is_array($_SESSION['settings']) ? $_SESSION['settings'] : ['notifications' => true, 'dark_mode' => false];
@@ -62,56 +66,102 @@ $navItems = [
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= $h($asset('assets/css/theme.css')) ?>">
   <link rel="stylesheet" href="<?= $h($asset('assets/css/app.css')) ?>">
-  <link rel="stylesheet" href="<?= $h($asset('assets/css/face-id.css')) ?>">
+  <?php if ($useLegacyNavbar): ?>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+  <?php endif; ?>
+  <?php if ($needsFaceId): ?>
+    <link rel="stylesheet" href="<?= $h($asset('assets/css/face-id.css')) ?>">
+  <?php endif; ?>
 
-  <script>
-    window.__FACEID_CONFIG = {
-      faceApiLocal: <?= json_encode($asset('assets/vendor/face-api/face-api.min.js'), JSON_UNESCAPED_SLASHES) ?>,
-      faceApiCdn: 'https://unpkg.com/face-api.js@0.22.2/dist/face-api.min.js',
-      modelUrl: <?= json_encode($asset('assets/vendor/face-api/models'), JSON_UNESCAPED_SLASHES) ?>,
-      enrollUrl: <?= json_encode($url('index.php?route=faceid-enroll'), JSON_UNESCAPED_SLASHES) ?>,
-      loginUrl: <?= json_encode($url('index.php?route=faceid-login'), JSON_UNESCAPED_SLASHES) ?>
-    };
-  </script>
-  <script defer src="<?= $h($asset('assets/js/form-validation.js')) ?>"></script>
-  <script defer src="<?= $h($asset('assets/js/face-id.js')) ?>"></script>
+  <?php if ($needsFaceId): ?>
+    <script>
+      window.__FACEID_CONFIG = {
+        faceApiLocal: <?= json_encode($asset('assets/vendor/face-api/face-api.min.js'), JSON_UNESCAPED_SLASHES) ?>,
+        faceApiCdn: 'https://unpkg.com/face-api.js@0.22.2/dist/face-api.min.js',
+        modelUrl: <?= json_encode($asset('assets/vendor/face-api/models'), JSON_UNESCAPED_SLASHES) ?>,
+        enrollUrl: <?= json_encode($url('index.php?route=faceid-enroll'), JSON_UNESCAPED_SLASHES) ?>,
+        loginUrl: <?= json_encode($url('index.php?route=faceid-login'), JSON_UNESCAPED_SLASHES) ?>
+      };
+    </script>
+  <?php endif; ?>
+
+  <?php if ($needsValidation): ?>
+    <script defer src="<?= $h($asset('assets/js/form-validation.js')) ?>"></script>
+  <?php endif; ?>
+  <?php if ($needsFaceId): ?>
+    <script defer src="<?= $h($asset('assets/js/face-id.js')) ?>"></script>
+  <?php endif; ?>
 </head>
 <body class="<?= $isDark ? 'theme-dark' : '' ?>">
   <div class="app-shell">
-    <header class="navbar">
-      <div class="container nav-inner">
-        <a class="brand" href="<?= $h($url('index.php?route=events')) ?>">
-          <span class="brand-mark" aria-hidden="true"></span>
-          <span>Smart Municipality</span>
-        </a>
-
-        <nav class="nav-links" aria-label="Navigation">
-          <?php foreach ($navItems as $key => $it): ?>
-            <a
-              class="<?= $active === $key ? 'active' : '' ?>"
-              href="<?= $h($url($it['href'])) ?>"
-            ><?= $h($it['label']) ?></a>
-          <?php endforeach; ?>
-        </nav>
-
-        <div class="nav-actions">
-          <input class="input search" type="search" placeholder="Rechercher…" aria-label="Rechercher">
-
-          <div class="user-menu">
-            <button class="user-button" type="button" aria-haspopup="menu">
-              <span class="avatar" aria-hidden="true"><?= $h($initial) ?></span>
-              <span style="font-weight:900; max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                <?= $h($name !== '' ? $name : 'Utilisateur') ?>
-              </span>
-            </button>
-            <div class="dropdown" role="menu">
-              <a href="<?= $h($url('index.php?route=profile')) ?>">Mon profil</a>
-              <a href="<?= $h($url('index.php?route=logout')) ?>">Déconnexion</a>
+    <?php if ($useLegacyNavbar): ?>
+      <?php
+        $currentRoute = $_GET['route'] ?? 'home/index';
+        $action = $_GET['action'] ?? '';
+      ?>
+      <header class="legacy-navbar">
+        <div class="container legacy-nav-inner">
+          <a class="nav-brand" href="<?= $h($url('index.php?route=home/index')) ?>">
+            <img src="<?= $h($url('public/uploads/sidebar-photo.svg')) ?>" alt="Logo Smart Municipality">
+            <span class="nav-brand-text">Smart <span>Municipality</span></span>
+          </a>
+          <button class="mobile-toggle" type="button" aria-label="Ouvrir le menu" onclick="document.querySelector('.legacy-nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+          </button>
+          <ul class="legacy-nav-links" aria-label="Navigation">
+            <li><a href="<?= $h($url('index.php?route=profile')) ?>" class="<?= $currentRoute === 'profile' ? 'active' : '' ?>">Profil</a></li>
+            <li><a href="<?= $h($url('index.php?action=evenements')) ?>" class="<?= $action === 'evenements' ? 'active' : '' ?>">Événements</a></li>
+            <li><a href="<?= $h($url('index.php?route=home/index')) ?>" class="<?= $currentRoute === 'home/index' && $action === '' ? 'active' : '' ?>">Carte</a></li>
+            <li><a href="<?= $h($url('index.php?action=blog')) ?>" class="<?= $action === 'blog' ? 'active' : '' ?>">Blog</a></li>
+            <li><a href="<?= $h($url('index.php?action=manage')) ?>" class="<?= $action === 'manage' ? 'active' : '' ?>">Demandes</a></li>
+            <li><a href="<?= $h($url('index.php?action=rendez_vous')) ?>" class="<?= $action === 'rendez_vous' ? 'active' : '' ?>">Rendez-vous</a></li>
+          </ul>
+          <div class="legacy-nav-right">
+            <div class="legacy-nav-search">
+              <span class="legacy-nav-search-icon">⌕</span>
+              <input type="text" placeholder="Rechercher..." aria-label="Rechercher">
             </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+    <?php else: ?>
+      <header class="navbar">
+        <div class="container nav-inner">
+          <a class="brand" href="<?= $h($url('index.php?route=events')) ?>">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <span>Smart Municipality</span>
+          </a>
+
+          <nav class="nav-links" aria-label="Navigation">
+            <?php foreach ($navItems as $key => $it): ?>
+              <a
+                class="<?= $active === $key ? 'active' : '' ?>"
+                href="<?= $h($url($it['href'])) ?>"
+              ><?= $h($it['label']) ?></a>
+            <?php endforeach; ?>
+          </nav>
+
+          <div class="nav-actions">
+            <input class="input search" type="search" placeholder="Rechercher…" aria-label="Rechercher">
+
+            <div class="user-menu">
+              <button class="user-button" type="button" aria-haspopup="menu">
+                <span class="avatar" aria-hidden="true"><?= $h($initial) ?></span>
+                <span style="font-weight:900; max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                  <?= $h($name !== '' ? $name : 'Utilisateur') ?>
+                </span>
+              </button>
+              <div class="dropdown" role="menu">
+                <a href="<?= $h($url('index.php?route=profile')) ?>">Mon profil</a>
+                <a href="<?= $h($url('index.php?route=logout')) ?>">Déconnexion</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+    <?php endif; ?>
 
     <main class="main">
       <div class="container">

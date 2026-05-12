@@ -47,21 +47,21 @@ switch ($page) {
         ?>
 
         <?php if ($success !== ''): ?>
-          <div class="card" style="padding:14px; border-color: rgba(34,197,94,.35); margin-bottom:16px;">
-            <div style="font-weight:900; color: var(--green-700);">✓ <?= htmlspecialchars($success, ENT_QUOTES, 'UTF-8') ?></div>
+          <div class="card profile-card profile-success" style="margin-bottom:16px;">
+            <div class="profile-success-text">✓ <?= htmlspecialchars($success, ENT_QUOTES, 'UTF-8') ?></div>
           </div>
         <?php endif; ?>
 
-        <div class="grid-2">
+        <div class="profile-grid">
           <section>
-            <div class="card" style="padding:16px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; gap:16px;">
-              <div style="display:flex; align-items:center; gap:14px;">
-                <div class="avatar" style="width:56px; height:56px; border-radius:18px;"><?= htmlspecialchars($initial, ENT_QUOTES, 'UTF-8') ?></div>
+            <div class="card profile-card profile-header" style="margin-bottom:16px;">
+              <div class="profile-header-main">
+                <div class="avatar profile-avatar-initial"><?= htmlspecialchars($initial, ENT_QUOTES, 'UTF-8') ?></div>
                 <div>
-                  <div style="font-weight:950; font-size:18px;">
+                  <div class="profile-name">
                     <?= htmlspecialchars($name !== '' ? $name : 'Utilisateur', ENT_QUOTES, 'UTF-8') ?>
                   </div>
-                  <div class="muted" style="font-weight:700; margin-top:2px;">
+                  <div class="profile-email">
                     <?= htmlspecialchars($mail, ENT_QUOTES, 'UTF-8') ?>
                   </div>
                   <div style="margin-top:10px;">
@@ -73,33 +73,33 @@ switch ($page) {
               <a class="btn btn-ghost" href="#info">Modifier</a>
             </div>
 
-            <div id="info" class="card" style="padding:16px; margin-bottom:16px;">
-              <h2 class="section-title">Informations personnelles</h2>
+            <div id="info" class="card profile-card" style="margin-bottom:16px;">
+              <h2 class="profile-section-title">Informations personnelles</h2>
 
-              <form method="post" action="index.php?route=profile" style="display:grid; gap:12px;">
+              <form class="profile-form" method="post" action="index.php?route=profile">
                 <input type="hidden" name="action" value="info">
 
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="form-row-2">
                   <div>
-                    <div class="muted" style="font-weight:800; font-size:12px; margin-bottom:6px;">Prénom</div>
+                    <label class="profile-label">Prénom</label>
                     <input class="input" name="prenom" value="<?= htmlspecialchars($prenom, ENT_QUOTES, 'UTF-8') ?>">
                     <?php if (isset($errors['prenom'])): ?><div class="muted" style="color:#dc2626; font-weight:700; margin-top:6px; font-size:12px;"><?= htmlspecialchars((string)$errors['prenom'], ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
                   </div>
                   <div>
-                    <div class="muted" style="font-weight:800; font-size:12px; margin-bottom:6px;">Nom</div>
+                    <label class="profile-label">Nom</label>
                     <input class="input" name="nom" value="<?= htmlspecialchars($nom, ENT_QUOTES, 'UTF-8') ?>">
                     <?php if (isset($errors['nom'])): ?><div class="muted" style="color:#dc2626; font-weight:700; margin-top:6px; font-size:12px;"><?= htmlspecialchars((string)$errors['nom'], ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
                   </div>
                 </div>
 
                 <div>
-                  <div class="muted" style="font-weight:800; font-size:12px; margin-bottom:6px;">Email</div>
+                  <label class="profile-label">Email</label>
                   <input class="input" name="mail" value="<?= htmlspecialchars($mail, ENT_QUOTES, 'UTF-8') ?>">
                   <?php if (isset($errors['mail'])): ?><div class="muted" style="color:#dc2626; font-weight:700; margin-top:6px; font-size:12px;"><?= htmlspecialchars((string)$errors['mail'], ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
                 </div>
 
                 <div>
-                  <div class="muted" style="font-weight:800; font-size:12px; margin-bottom:6px;">Téléphone</div>
+                  <label class="profile-label">Téléphone</label>
                   <input class="input" name="telephone" value="<?= htmlspecialchars($telephone, ENT_QUOTES, 'UTF-8') ?>" placeholder="+212 ...">
                   <?php if (isset($errors['telephone'])): ?><div class="muted" style="color:#dc2626; font-weight:700; margin-top:6px; font-size:12px;"><?= htmlspecialchars((string)$errors['telephone'], ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
                 </div>
@@ -110,18 +110,18 @@ switch ($page) {
               </form>
             </div>
 
-            <div class="card" style="padding:16px;">
-              <h2 class="section-title">Sécurité</h2>
+            <div class="card profile-card">
+              <h2 class="profile-section-title">Sécurité</h2>
 
-              <div class="card" style="box-shadow:none; border:1px solid var(--border); padding:12px; border-radius:16px; margin: 10px 0 14px;">
-                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+              <div class="card profile-faceid">
+                <div class="profile-faceid-row">
                   <div>
-                    <div style="font-weight:950;">Face ID</div>
-                    <div class="muted" style="font-weight:700; margin-top:2px; font-size:12px;">
+                    <div class="profile-faceid-title">Face ID</div>
+                    <div class="profile-faceid-subtitle">
                       <?= $hasFaceId ? 'Enregistré sur ce compte.' : 'Aucun Face ID enregistré.' ?>
                     </div>
                   </div>
-                  <div style="display:flex; align-items:center; gap:10px;">
+                  <div class="profile-faceid-actions">
                     <?php if ($hasFaceId): ?>
                       <span class="badge badge-success">Activé</span>
                     <?php endif; ?>
@@ -132,22 +132,22 @@ switch ($page) {
                 </div>
               </div>
 
-              <form method="post" action="index.php?route=profile" style="display:grid; gap:12px;">
+              <form class="profile-form" method="post" action="index.php?route=profile">
                 <input type="hidden" name="action" value="password">
 
                 <div>
-                  <div class="muted" style="font-weight:800; font-size:12px; margin-bottom:6px;">Mot de passe actuel</div>
+                  <label class="profile-label">Mot de passe actuel</label>
                   <input class="input" type="password" name="current_password">
                   <?php if (isset($errors['current_password'])): ?><div class="muted" style="color:#dc2626; font-weight:700; margin-top:6px; font-size:12px;"><?= htmlspecialchars((string)$errors['current_password'], ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
                 </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="form-row-2">
                   <div>
-                    <div class="muted" style="font-weight:800; font-size:12px; margin-bottom:6px;">Nouveau mot de passe</div>
+                    <label class="profile-label">Nouveau mot de passe</label>
                     <input class="input" type="password" name="new_password">
                     <?php if (isset($errors['new_password'])): ?><div class="muted" style="color:#dc2626; font-weight:700; margin-top:6px; font-size:12px;"><?= htmlspecialchars((string)$errors['new_password'], ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
                   </div>
                   <div>
-                    <div class="muted" style="font-weight:800; font-size:12px; margin-bottom:6px;">Confirmer</div>
+                    <label class="profile-label">Confirmer</label>
                     <input class="input" type="password" name="confirm_password">
                     <?php if (isset($errors['confirm_password'])): ?><div class="muted" style="color:#dc2626; font-weight:700; margin-top:6px; font-size:12px;"><?= htmlspecialchars((string)$errors['confirm_password'], ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
                   </div>
@@ -158,10 +158,10 @@ switch ($page) {
             </div>
           </section>
 
-          <aside>
-            <div class="card" style="padding:16px; margin-bottom:16px;">
-              <h2 class="section-title">Aperçu d’activité</h2>
-              <div class="stats" style="grid-template-columns:repeat(2,1fr);">
+          <aside class="profile-aside">
+            <div class="card profile-card" style="margin-bottom:16px;">
+              <h2 class="profile-section-title">Aperçu d’activité</h2>
+              <div class="stats profile-stats">
                 <div class="card stat-card" style="box-shadow:none;">
                   <div class="stat-k">Rendez-vous</div>
                   <div class="stat-v">3</div>
@@ -181,18 +181,18 @@ switch ($page) {
               </div>
             </div>
 
-            <div class="card" style="padding:16px;">
-              <h2 class="section-title">Paramètres</h2>
-              <form method="post" action="index.php?route=profile" style="display:grid; gap:12px;">
+            <div class="card profile-card">
+              <h2 class="profile-section-title">Paramètres</h2>
+              <form class="profile-form" method="post" action="index.php?route=profile">
                 <input type="hidden" name="action" value="settings">
 
-                <label style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px; border:1px solid var(--border); border-radius:16px;">
-                  <span style="font-weight:900;">Notifications</span>
+                <label class="profile-setting-row">
+                  <span>Notifications</span>
                   <input type="checkbox" name="notifications" <?= $notifications ? 'checked' : '' ?>>
                 </label>
 
-                <label style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px; border:1px solid var(--border); border-radius:16px;">
-                  <span style="font-weight:900;">Mode sombre</span>
+                <label class="profile-setting-row">
+                  <span>Mode sombre</span>
                   <input type="checkbox" name="dark_mode" <?= $darkMode ? 'checked' : '' ?>>
                 </label>
 

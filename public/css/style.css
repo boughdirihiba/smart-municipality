@@ -966,6 +966,62 @@ input[type="range"] {
     border: 1px solid rgba(220, 38, 38, 0.25);
 }
 
+/* ============================================================
+   NAVBAR USER & AUTH STYLES
+============================================================ */
+
+.nav-divider {
+    width: 1px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 0.25rem;
+}
+
+.nav-user {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.nav-user-name {
+    color: #f8fffc;
+    font-weight: 500;
+    font-size: 14px;
+    display: none;
+}
+
+.nav-user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.nav-btn-login {
+    background: linear-gradient(135deg, #2FA084, #8DE1CC) !important;
+    color: #0f3b2c !important;
+    font-weight: 600 !important;
+    border: none !important;
+}
+
+.nav-btn-login:hover {
+    background: linear-gradient(135deg, #27926b, #6ec9b5) !important;
+    transform: translateY(-1px);
+}
+
+/* Media query to show user name on larger screens */
+@media (min-width: 992px) {
+    .nav-user-name {
+        display: block;
+    }
+}
+
+
 .map-status button {
     margin-left: 0.6rem;
     border: 0;

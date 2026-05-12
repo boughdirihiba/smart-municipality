@@ -13,7 +13,7 @@ $unreadNotificationsCount = function_exists('get_unread_notifications_count') ? 
 ?>
 <aside class="sidebar">
     <div class="sidebar-logo">
-        <img src="<?php echo BASE_URL; ?>/logo.jpeg" alt="Logo Smart Municipality">
+        <img src="<?php echo (defined('BASE_URL') ? BASE_URL : '').'/logo.jpeg'; ?>" alt="Logo Smart Municipality">
         <h2>Smart Municipality</h2>
     </div>
 
