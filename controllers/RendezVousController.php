@@ -281,8 +281,7 @@ class RendezVousController {
     public static function dispatch($conn, RendezVous $rdv) {
         if (session_status() === PHP_SESSION_NONE) session_start();
 
-        // Buffer all output so stray warnings don't corrupt JSON responses
-        ob_start();
+        // Suppress stray output for AJAX only — done per-response below
 
         // FIX: use BASE_URL constant instead of hardcoded '/smart-municipality'
         $base      = defined('BASE_URL') ? BASE_URL : '';
@@ -299,7 +298,7 @@ class RendezVousController {
             // ── CREATE MULTI ──────────────────────────────────────────────
             case 'create_multi':
                 // Use POST field 'ajax=1' — reliable on all servers including XAMPP
-        $isAjax   = !empty($_POST['ajax']);
+                $isAjax = !empty($_POST['ajax']);
                 $date_rdv = $_POST['date_rdv'] ?? '';
                 $slots    = $_POST['slots']    ?? [];
 
@@ -311,8 +310,7 @@ class RendezVousController {
                         exit;
                     }
                     $_SESSION['error'] = "Données manquantes.";
-                    ob_end_clean();
-                header("Location: $frontUrl"); exit;
+                    header("Location: $frontUrl"); exit;
                 }
 
                 $created = $errors = 0;
@@ -323,7 +321,7 @@ class RendezVousController {
                     $cat_id = (int)$cat_id;
                     if (self::isSlotTaken($rdv, $cat_id, $date_rdv, $heure)) { $errors++; continue; }
 
-                    $rdv->setUserId($_SESSION['user']['id'] ?? $_SESSION['user_id'] ?? 1);
+                    $rdv->setUserId($_SESSION['user_id'] ?? $_SESSION['user']['db_id'] ?? 1);
                     $rdv->setCategorieId($cat_id);
                     $rdv->setDateRdv($date_rdv);
                     $rdv->setHeure($heure);
@@ -359,7 +357,6 @@ class RendezVousController {
                     }
                     $_SESSION['error'] = $msg;
                 }
-                ob_end_clean();
                 header("Location: $frontUrl"); exit;
 
             // ── CREATE SINGLE ─────────────────────────────────────────────
@@ -370,8 +367,7 @@ class RendezVousController {
 
                 if (empty($categorie_id) || empty($date_rdv) || empty($heure)) {
                     $_SESSION['error'] = "Veuillez remplir tous les champs.";
-                    ob_end_clean();
-                header("Location: $frontUrl"); exit;
+                    header("Location: $frontUrl"); exit;
                 }
 
                 if (self::isSlotTaken($rdv, $categorie_id, $date_rdv, $heure)) {
@@ -379,15 +375,13 @@ class RendezVousController {
                     header("Location: $frontUrl?categorie_id=$categorie_id&date=$date_rdv"); exit;
                 }
 
-                $rdv->setUserId($_SESSION['user']['id'] ?? 1);
+                $rdv->setUserId($_SESSION['user_id'] ?? $_SESSION['user']['db_id'] ?? 1);
                 $rdv->setCategorieId($categorie_id);
                 $rdv->setDateRdv($date_rdv);
                 $rdv->setHeure($heure);
                 $rdv->setStatut('en_attente');
-                $ok = self::create($rdv);
-                $_SESSION[$ok ? 'success' : 'error'] =
-                    $ok ? "Rendez-vous enregistré." : "Erreur lors de l'enregistrement.";
-                ob_end_clean();
+                $_SESSION[self::create($rdv) ? 'success' : 'error'] =
+                    self::create($rdv) ? "Rendez-vous enregistré." : "Erreur lors de l'enregistrement.";
                 header("Location: $frontUrl"); exit;
 
             // ── CONFIRM ───────────────────────────────────────────────────
@@ -415,9 +409,8 @@ class RendezVousController {
                 $row = self::readOne($rdv, $id);
                 if ($row) {
                     $rdv->setStatut('annule');
-                    $ok = self::update($rdv);
-                    $_SESSION[$ok ? 'success' : 'error'] =
-                        $ok ? "Rendez-vous #$id annulé." : "Erreur lors de l'annulation.";
+                    $_SESSION[self::update($rdv) ? 'success' : 'error'] =
+                        self::update($rdv) ? "Rendez-vous #$id annulé." : "Erreur lors de l'annulation.";
                 }
                 header("Location: $backUrl"); exit;
 
@@ -443,8 +436,7 @@ class RendezVousController {
                     $heure        = $_POST['heure']        ?? '';
                     if (empty($id) || empty($categorie_id) || empty($date_rdv) || empty($heure)) {
                         $_SESSION['error'] = "Veuillez remplir tous les champs.";
-                        ob_end_clean();
-                header("Location: $frontUrl"); exit;
+                        header("Location: $frontUrl"); exit;
                     }
                     $rdv->setId($id);
                     $rdv->setCategorieId($categorie_id);
@@ -453,8 +445,7 @@ class RendezVousController {
                     $rdv->setStatut('en_attente');
                     $_SESSION[self::update($rdv) ? 'success' : 'error'] =
                         self::update($rdv) ? "Rendez-vous modifié." : "Erreur de modification.";
-                    ob_end_clean();
-                header("Location: $frontUrl"); exit;
+                    header("Location: $frontUrl"); exit;
                 } else {
                     // Show edit form
                     if (empty($id)) { header("Location: $frontUrl"); exit; }
@@ -521,7 +512,6 @@ class RendezVousController {
                 header("Location: $catsUrl"); exit;
 
             default:
-                ob_end_clean();
                 header("Location: $frontUrl"); exit;
         }
     }

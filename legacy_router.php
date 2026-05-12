@@ -145,7 +145,7 @@ switch ($action) {
     case 'rdv_create_multi':
         require_once __DIR__ . '/config/database.php';
         require_once __DIR__ . '/controllers/RendezVousController.php';
-        $userId_rdv = $_SESSION['user']['id'] ?? 0;
+        $userId_rdv = (int)($_SESSION['user_id'] ?? $_SESSION['user']['id'] ?? 0);
         if (!$userId_rdv) {
             set_flash('error', 'Vous devez être connecté pour prendre un rendez-vous.');
             header('Location: ' . BASE_URL . '/index.php?action=rendez_vous'); exit();

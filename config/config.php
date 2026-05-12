@@ -75,6 +75,29 @@ function bootstrap_user_session_from_database(): void
         return;
     }
 
+    // Bridge old login format ($_SESSION['user_id']) → new format ($_SESSION['user'])
+    if (isset($_SESSION['user_id']) && (int)$_SESSION['user_id'] > 0) {
+        try {
+            $pdo = pdo_connection();
+            $stmt = $pdo->prepare('SELECT id, nom, prenom, email, avatar, telephone, adresse, role FROM utilisateurs WHERE id = :id');
+            $stmt->execute(['id' => (int)$_SESSION['user_id']]);
+            $row = $stmt->fetch();
+            if (is_array($row)) {
+                $_SESSION['user'] = [
+                    'id' => (int)$row['id'],
+                    'nom' => (string)($row['nom'] ?? ''),
+                    'prenom' => (string)($row['prenom'] ?? ''),
+                    'email' => (string)($row['email'] ?? ''),
+                    'avatar' => (string)($row['avatar'] ?? 'sidebar-photo.svg'),
+                    'telephone' => (string)($row['telephone'] ?? ''),
+                    'adresse' => (string)($row['adresse'] ?? ''),
+                    'role' => (string)($row['role'] ?? 'citoyen'),
+                ];
+                return;
+            }
+        } catch (\Throwable $e) {}
+    }
+
     try {
         $pdo = pdo_connection();
         $stmt = $pdo->prepare('SELECT id, nom, prenom, email, avatar, telephone, adresse, role FROM utilisateurs ORDER BY id ASC LIMIT 1');

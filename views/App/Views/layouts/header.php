@@ -448,7 +448,7 @@ $redirectUrl   = rawurlencode($_SERVER['REQUEST_URI'] ?? '/index.php');
 </nav>
 
 <div class="app-shell">
-    <?php if ($userRole !== 'citoyen'): ?>
+    <?php if ($userRole !== 'citoyen' && empty($hideSidebar)): ?>
         <?php require BASE_PATH . '/views/App/Views/layouts/sidebar.php'; ?>
     <?php endif; ?>
     <main class="app-content">

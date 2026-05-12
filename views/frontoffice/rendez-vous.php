@@ -9,8 +9,8 @@ $conn = $db->getConnection();
 $rdv  = new RendezVous($conn);
 
 $categories = RendezVousController::getAllCategories($rdv);
-$userId_rdv = $_SESSION['user']['id'] ?? 0;
-$mesRdv     = RendezVousController::readByUser($rdv, $userId_rdv);
+$userId_rdv = (int)($_SESSION['user_id'] ?? $_SESSION['user']['id'] ?? 0);
+$mesRdv     = RendezVousController::readAll($rdv);
 
 // Multi-service selected categories
 $selectedCatIds = [];
@@ -81,7 +81,9 @@ $rdvBase      = BASE_URL . '/index.php?action=rendez_vous';
 ?>
 <?php
 // ── Layout header (navbar + sidebar) ────────────────────────────────────────
-$title = 'Rendez-vous';
+$title      = 'Rendez-vous';
+$hideSidebar = true;
+$flash      = get_flash();
 require BASE_PATH . '/views/App/Views/layouts/header.php';
 ?>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -1227,6 +1229,7 @@ require BASE_PATH . '/views/App/Views/layouts/header.php';
                         <?php if ($step == 3): ?>
                             <form id="rdvForm" action="<?php echo BASE_URL; ?>/index.php" method="POST" style="flex:1;display:flex;">
                                 <input type="hidden" name="action"   value="rdv_create_multi">
+                                <input type="hidden" name="ajax"     value="1">
                                 <input type="hidden" name="date_rdv" value="<?php echo htmlspecialchars($selectedDate); ?>">
                                 <?php foreach ($chainedSlots as $slot): ?>
                                     <input type="hidden" name="slots[]" value="<?php echo $slot['cat_id'] . '|' . $slot['heure']; ?>">
@@ -1257,7 +1260,7 @@ require BASE_PATH . '/views/App/Views/layouts/header.php';
             <div class="right-panel">
                 <div class="section-rdv-header">
                     <div class="section-rdv-title-area">
-                        <h2>Mes Rendez-vous</h2>
+                        <h2>Tous les Rendez-vous</h2>
                         <span class="rdv-count-badge"><?php echo count($mesRdv); ?> rdv</span>
                     </div>
 
@@ -1302,6 +1305,7 @@ require BASE_PATH . '/views/App/Views/layouts/header.php';
                                         </div>
                                         <div class="rdv-meta">
                                             <div class="rdv-service-name"><?php echo htmlspecialchars($item['service_nom']); ?></div>
+                                            <div class="rdv-detail-line" style="color:var(--emerald);font-size:11px;font-weight:600;"><?php echo htmlspecialchars(($item['user_prenom'] ?? '') . ' ' . ($item['user_nom'] ?? '')); ?></div>
                                             <div class="rdv-detail-line"><?php echo $dayName; ?> &bull; <?php echo substr($item['heure'], 0, 5); ?></div>
                                             <span class="rdv-status-pill <?php echo $statusClass; ?>">
                                                 <span class="rdv-dot"></span>
@@ -1390,24 +1394,88 @@ require BASE_PATH . '/views/App/Views/layouts/header.php';
         var slotTaken = false; // multi-service: slot check done server-side on submit
 
         function confirmRdv() {
-            if (typeof Swal === 'undefined') {
-                document.getElementById('rdvForm').submit();
-                return;
+            var slotCount = <?php echo max(1, count($chainedSlots)); ?>;
+            var msg = slotCount > 1 ? slotCount + ' rendez-vous seront créés.' : '1 rendez-vous sera créé.';
+
+            function doSubmit() {
+                var form     = document.getElementById('rdvForm');
+                var formData = new FormData(form);
+                fetch(window.location.pathname, {
+                    method: 'POST',
+                    body: formData,
+                    redirect: 'manual'   // ← don't follow PHP redirects
+                })
+                .then(function(r){
+                    // PHP redirected = RDV was created successfully
+                    if(r.type === 'opaqueredirect' || r.redirected || r.status === 0){
+                        if(typeof Swal!=='undefined'){
+                            Swal.fire({ title:'✅ Rendez-vous confirmé !',
+                                text:'Votre rendez-vous a été enregistré.',
+                                icon:'success', confirmButtonColor:'#135D36', confirmButtonText:'OK'
+                            }).then(function(){
+                                window.location.href='<?php echo BASE_URL; ?>/index.php?action=rendez_vous';
+                            });
+                        } else {
+                            alert('Rendez-vous enregistré !');
+                            window.location.href='<?php echo BASE_URL; ?>/index.php?action=rendez_vous';
+                        }
+                        return;
+                    }
+                    return r.text();
+                })
+                .then(function(text){
+                    if(!text) return; // already handled above
+                    var data;
+                    try { data = JSON.parse(text); }
+                    catch(e) {
+                        // Got HTML — PHP sent page instead of JSON
+                        // Likely means RDV WAS created but no JSON response
+                        console.warn('Non-JSON response, assuming success');
+                        if(typeof Swal!=='undefined'){
+                            Swal.fire({ title:'✅ Rendez-vous confirmé !',
+                                text:'Rendez-vous enregistré avec succès.',
+                                icon:'success', confirmButtonColor:'#135D36', confirmButtonText:'OK'
+                            }).then(function(){
+                                window.location.href='<?php echo BASE_URL; ?>/index.php?action=rendez_vous';
+                            });
+                        } else {
+                            window.location.href='<?php echo BASE_URL; ?>/index.php?action=rendez_vous';
+                        }
+                        return;
+                    }
+                    if(data.success){
+                        if(typeof Swal!=='undefined'){
+                            Swal.fire({ title:'✅ Confirmé !', html:data.message, icon:'success',
+                                confirmButtonColor:'#135D36', confirmButtonText:'OK'
+                            }).then(function(){
+                                window.location.href='<?php echo BASE_URL; ?>/index.php?action=rendez_vous';
+                            });
+                        } else {
+                            alert(data.message);
+                            window.location.href='<?php echo BASE_URL; ?>/index.php?action=rendez_vous';
+                        }
+                    } else {
+                        if(typeof Swal!=='undefined'){
+                            Swal.fire({ title:'Erreur', text:data.message||'Erreur inconnue.', icon:'error' });
+                        } else { alert(data.message); }
+                    }
+                })
+                .catch(function(err){
+                    console.error('Network error:', err);
+                    if(typeof Swal!=='undefined'){
+                        Swal.fire({ title:'Erreur réseau', text:'Réessayez.', icon:'error' });
+                    }
+                });
             }
-            Swal.fire({
-                title: "Confirmer vos rendez-vous ?",
-                html: "<?php echo count($chainedSlots) > 1 ? count($chainedSlots) . ' rendez-vous seront créés.' : '1 rendez-vous sera créé.'; ?>",
-                icon: "question",
-                showCancelButton: true,
-                confirmButtonColor: "#135D36",
-                cancelButtonColor: "#aaa",
-                confirmButtonText: "✓ Confirmer",
-                cancelButtonText: "Annuler"
-            }).then(function(result) {
-                if (result.isConfirmed) {
-                    document.getElementById('rdvForm').submit();
-                }
-            });
+
+            if(typeof Swal==='undefined'){
+                if(confirm('Confirmer ?\n'+msg)) doSubmit();
+            } else {
+                Swal.fire({ title:'Confirmer vos rendez-vous ?', html:msg, icon:'question',
+                    showCancelButton:true, confirmButtonColor:'#135D36', cancelButtonColor:'#aaa',
+                    confirmButtonText:'✓ Confirmer', cancelButtonText:'Annuler'
+                }).then(function(r){ if(r.isConfirmed) doSubmit(); });
+            }
         }
 
         function deleteMyRdv(id) {
