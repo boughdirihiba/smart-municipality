@@ -35,10 +35,15 @@ Serveur local : XAMPP / WAMP
 
 ## Membres du groupe
 Hiba Boughdiri:module service en ligne
+
 sirine bjaoui:module evenement
+
 chaima abdeltif:module historique et analyse de risque
+
 omar ben othman:module rendez-vous
+
 fourat akrout:module login
+
 ibrahim souissi:module carte intelligente
 
 ## Remerciements
