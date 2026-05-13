@@ -33,23 +33,51 @@ class ChatbotController {
      * Affiche le widget
      */
     public function widget() {
-        $quick_suggestions = $this->model->getSuggestions();
+        $quick_suggestions = $this->getServiceSuggestions();
         include __DIR__ . '/../views/chatbot/widget.php';
+    }
+
+    /**
+     * Construit les suggestions depuis services_en_ligne + questions générales
+     */
+    private function getServiceSuggestions(): array {
+        $suggestions = [];
+        try {
+            $sql = "SELECT nom FROM services_en_ligne ORDER BY nom ASC LIMIT 4";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($services as $s) {
+                $suggestions[] = "📄 " . $s['nom'] . " — documents requis ?";
+            }
+        } catch (Exception $e) {
+            // fallback
+        }
+        $suggestions[] = "🕐 Quels sont les horaires de la mairie ?";
+        $suggestions[] = "📞 Comment contacter la mairie ?";
+        if (empty($suggestions)) {
+            return $this->model->getSuggestions();
+        }
+        return $suggestions;
     }
 
     /**
      * Envoie un message et retourne la réponse IA
      */
     public function sendMessage() {
-        header('Content-Type: application/json');
-        
-        // Lire le message (POST x-www-form-urlencoded ou JSON)
+        // Discard any PHP warnings/notices buffered before this call
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+        ini_set('display_errors', '0');
+        header('Content-Type: application/json; charset=utf-8');
+
         $message = trim($_POST['message'] ?? '');
         if (empty($message)) {
             $input = json_decode(file_get_contents('php://input'), true);
             $message = trim($input['message'] ?? '');
         }
-        
+
         if (!empty($message)) {
             $response = $this->callAI($message);
             echo json_encode([
@@ -73,12 +101,13 @@ class ChatbotController {
         if (empty($this->apiKey)) {
             return "🔑 Service IA non configuré. Contactez l'administrateur.";
         }
-        
+
         $context = $this->getFullContext();
-        
+
         $systemPrompt = "Tu es l'assistant officiel de la mairie Smart Municipality.
-Tu connais tous les services municipaux, les démarches, horaires, contacts, événements.
-Réponds en français, avec des émojis, de façon amicale et concise.
+Tu connais tous les services municipaux en ligne, les démarches administratives, horaires, contacts et événements.
+Quand un utilisateur demande un service, indique-lui les documents requis et comment soumettre une demande via la plateforme (bouton 'Soumettre une demande').
+Réponds en français, avec des émojis, de façon amicale et concise (max 3-4 phrases).
 
 Voici les informations à ta disposition :
 $context
@@ -122,31 +151,47 @@ $context
     }
 
     /**
-     * Construit le contexte (services fixes + événements depuis BDD)
+     * Construit le contexte (services_en_ligne depuis BDD + événements)
      */
     private function getFullContext() {
-        // Services fixes
-        $services = [
-            "**État civil**" => "Acte de mariage (gratuit), extrait de naissance (gratuit), acte de décès.",
-            "**Pièces d'identité**" => "Carte nationale d'identité (25€, délai 2-3 semaines), Passeport (86€, délai 2-4 semaines).",
-            "**Permis de conduire**" => "Inscription sur ants.gouv.fr.",
-            "**Horaires**" => "Lundi-Vendredi 8h30-17h, Samedi 9h-12h.",
-            "**Contact**" => "Tél : 01 23 45 67 89 | Email : contact@smartmunicipality.com",
-            "**Démarches en ligne**" => "https://smart-municipality.fr/services"
-        ];
-        $txt = "📌 **SERVICES MUNICIPAUX** :\n";
-        foreach ($services as $cat => $desc) {
-            $txt .= "• $cat : $desc\n";
+        $txt = "";
+
+        // Services en ligne depuis la base de données
+        $txt .= "📌 **SERVICES EN LIGNE DISPONIBLES** :\n";
+        try {
+            $sql = "SELECT nom, description, documents_requis FROM services_en_ligne ORDER BY nom ASC";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if ($services) {
+                foreach ($services as $s) {
+                    $txt .= "• **{$s['nom']}** : {$s['description']}";
+                    if (!empty($s['documents_requis'])) {
+                        $txt .= " (Documents requis : {$s['documents_requis']})";
+                    }
+                    $txt .= "\n";
+                }
+            } else {
+                $txt .= "Aucun service en ligne disponible pour le moment.\n";
+            }
+        } catch (Exception $e) {
+            $txt .= "Impossible de charger les services.\n";
         }
-        
+
+        // Infos générales
+        $txt .= "\n📋 **INFORMATIONS GÉNÉRALES** :\n";
+        $txt .= "• Horaires : Lundi-Vendredi 8h30-17h, Samedi 9h-12h.\n";
+        $txt .= "• Contact : Tél : 01 23 45 67 89 | Email : contact@smartmunicipality.com\n";
+        $txt .= "• Pour soumettre une demande, l'utilisateur clique sur 'Soumettre une demande' dans l'onglet Services en ligne.\n";
+
         // Événements depuis la base
         $txt .= "\n🎉 **ÉVÉNEMENTS À VENIR** :\n";
         try {
-            $sql = "SELECT titre, lieu, date_evenement FROM evenements WHERE date_evenement >= CURDATE() ORDER BY date_evenement ASC LIMIT 6";
+            $sql = "SELECT titre, lieu, date_evenement FROM evenements ORDER BY date_evenement DESC LIMIT 6";
             $stmt = $this->db->prepare($sql);
             $stmt->execute();
             $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            if (count($events) > 0) {
+            if ($events) {
                 foreach ($events as $e) {
                     $dateFmt = date('d/m/Y', strtotime($e['date_evenement']));
                     $txt .= "• {$e['titre']} – le $dateFmt à {$e['lieu']}\n";
@@ -157,7 +202,7 @@ $context
         } catch (Exception $e) {
             $txt .= "Impossible de charger les événements.\n";
         }
-        
+
         return $txt;
     }
 

@@ -1,217 +1,148 @@
 <?php
-session_start();
-require_once __DIR__ . '/../../controllers/ParticipationC.php';
+if (session_status() === PHP_SESSION_NONE) session_start();
+require_once BASE_PATH . '/controllers/ParticipationC.php';
 
-// Vérifier si l'utilisateur est connecté
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../../views/auth/login.php');
+$userId   = $_SESSION['user']['id']   ?? $_SESSION['user_id']   ?? null;
+$userName = $_SESSION['user']['prenom'] ?? $_SESSION['prenom'] ?? 'Utilisateur';
+
+if (!$userId) {
+    header('Location: ' . BASE_URL . '/index.php?route=login');
     exit();
 }
-
-$userId = $_SESSION['user_id'];
-$isAdmin = isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
-$userName = isset($_SESSION['prenom']) ? $_SESSION['prenom'] . ' ' . $_SESSION['nom'] : 'Utilisateur';
 
 $participationC = new ParticipationC();
 $participations = $participationC->afficherParticipationsParUser($userId);
 
-// Message de confirmation pour l'annulation
-$message = '';
+$message     = '';
 $messageType = '';
-if (isset($_GET['annule']) && $_GET['annule'] == 'success') {
-    $message = '✅ Participation annulée avec succès.';
+if (isset($_GET['annule']) && $_GET['annule'] === 'success') {
+    $message     = 'Participation annulée avec succès.';
+    $messageType = 'success';
+}
+if (isset($_GET['success']) && $_GET['success'] === 'inscrit') {
+    $message     = 'Inscription envoyée ! En attente de validation.';
     $messageType = 'success';
 }
 if (isset($_GET['error'])) {
-    $message = '❌ ' . htmlspecialchars($_GET['error']);
+    $message     = htmlspecialchars($_GET['error'], ENT_QUOTES, 'UTF-8');
     $messageType = 'danger';
 }
+
+$totalInscrits = count($participations);
+$valides       = count(array_filter($participations, fn($p) => $p['statut_validation'] === 'valide'));
+$enAttente     = count(array_filter($participations, fn($p) => $p['statut_validation'] === 'en_attente'));
+$refuses       = count(array_filter($participations, fn($p) => $p['statut_validation'] === 'refuse'));
 ?>
 
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mes participations - Smart Municipality</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: #e8f5e9; }
-        .navbar { background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 15px 30px; }
-        .navbar-brand { font-weight: 700; color: #1a5e2a !important; display: flex; align-items: center; gap: 10px; }
-        .navbar-brand img { border-radius: 10px; }
-        .admin-badge { background: #f59e0b; color: white; padding: 2px 8px; border-radius: 20px; font-size: 0.6rem; font-weight: 600; margin-left: 10px; }
-        .content-container { background: white; border-radius: 20px; padding: 30px; margin: 30px auto; box-shadow: 0 5px 15px rgba(0,0,0,0.05); max-width: 1200px; }
-        .btn { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 0.8rem; padding: 8px 16px; border-radius: 10px; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; border: none; cursor: pointer; text-decoration: none; }
-        .btn-sm { font-size: 0.7rem; padding: 5px 12px; gap: 5px; }
-        .btn-primary { background: linear-gradient(135deg, #1a5e2a, #4caf50); color: white; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(26,94,42,0.3); color: white; }
-        .btn-danger { background: #dc2626; color: white; }
-        .btn-danger:hover { background: #b91c1c; transform: translateY(-2px); color: white; }
-        .btn-info { background: #0891b2; color: white; }
-        .btn-info:hover { background: #0e7490; transform: translateY(-2px); color: white; }
-        .btn-secondary { background: #6c757d; color: white; }
-        .btn-secondary:hover { background: #5a6268; transform: translateY(-2px); color: white; }
-        .table-wrapper { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .table-pro { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-        .table-pro thead th { background: linear-gradient(135deg, #1a5e2a, #4caf50); color: white; padding: 12px 15px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
-        .table-pro tbody td { padding: 12px 15px; border-bottom: 1px solid #e8f5e9; vertical-align: middle; }
-        .table-pro tbody tr:hover { background: #e8f5e9; }
-        .badge { padding: 5px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; display: inline-block; }
-        .empty-state { text-align: center; padding: 50px; }
-        .empty-state i { font-size: 3rem; color: #2e7d32; margin-bottom: 15px; }
-        .stats-card { background: linear-gradient(135deg, #1a5e2a, #4caf50); border-radius: 15px; padding: 15px; margin-bottom: 20px; color: white; display: flex; justify-content: space-around; text-align: center; }
-        .stats-card .stat { text-align: center; }
-        .stats-card .stat-number { font-size: 1.5rem; font-weight: 700; }
-        .stats-card .stat-label { font-size: 0.7rem; opacity: 0.9; }
-        .toast-message { position: fixed; top: 20px; right: 20px; z-index: 1000; animation: slideInRight 0.3s ease; }
-        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @media (max-width: 768px) { .content-container { padding: 15px; margin: 15px; } .table-wrapper { overflow-x: auto; } .table-pro { min-width: 700px; } }
-    </style>
-</head>
-<body>
-    <!-- Toast Notification -->
-    <?php if ($message): ?>
-    <div class="toast-message">
-        <div class="alert alert-<?php echo $messageType; ?> shadow rounded-3 border-0 py-2 px-3">
-            <i class="fas fa-<?php echo $messageType == 'success' ? 'check-circle' : 'exclamation-triangle'; ?> me-2"></i>
-            <?php echo $message; ?>
-            <button type="button" class="btn-close ms-2" data-bs-dismiss="alert"></button>
-        </div>
-    </div>
-    <?php endif; ?>
+<style>
+.part-wrap { max-width: 1100px; margin: 32px auto; padding: 0 24px; }
+.part-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 28px; }
+.part-stat  { background: #fff; border-radius: 14px; padding: 20px; text-align: center;
+              box-shadow: 0 2px 8px rgba(0,0,0,.06); border-top: 4px solid #135D36; }
+.part-stat .num   { font-size: 2rem; font-weight: 700; color: #135D36; }
+.part-stat .label { font-size: .8rem; color: #666; margin-top: 4px; }
+.part-table-wrap { background: #fff; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.06); overflow: hidden; }
+.part-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.part-table thead th { background: linear-gradient(135deg, #135D36, #2FA084); color: #fff;
+                       padding: 14px 16px; text-align: left; font-weight: 600; font-size: .78rem;
+                       text-transform: uppercase; letter-spacing: .4px; }
+.part-table tbody td { padding: 13px 16px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+.part-table tbody tr:last-child td { border-bottom: none; }
+.part-table tbody tr:hover { background: #f8fdf9; }
+.badge-status { display: inline-flex; align-items: center; gap: 5px;
+                padding: 4px 12px; border-radius: 20px; font-size: .72rem; font-weight: 600; }
+.badge-attente  { background: #fef3c7; color: #b45309; }
+.badge-valide   { background: #dcfce7; color: #16a34a; }
+.badge-refuse   { background: #fee2e2; color: #dc2626; }
+.btn-action { display: inline-flex; align-items: center; gap: 5px;
+              padding: 5px 12px; border-radius: 8px; font-size: .75rem;
+              font-weight: 500; text-decoration: none; border: none; cursor: pointer; }
+.btn-danger-sm  { background: #fee2e2; color: #dc2626; }
+.btn-danger-sm:hover { background: #dc2626; color: #fff; }
+.btn-info-sm    { background: #dbeafe; color: #2563eb; }
+.btn-info-sm:hover { background: #2563eb; color: #fff; }
+.empty-part { text-align: center; padding: 60px 24px; color: #666; }
+.empty-part i { font-size: 3rem; color: #ccc; margin-bottom: 12px; display: block; }
+.alert-msg { padding: 12px 18px; border-radius: 10px; margin-bottom: 20px; font-size: .88rem; }
+.alert-success { background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
+.alert-danger   { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+@media(max-width:768px){ .part-stats{ grid-template-columns:1fr 1fr; } .part-table-wrap{ overflow-x:auto; } }
+</style>
 
-    <nav class="navbar">
-        <div class="container">
-            <a class="navbar-brand" href="<?php echo BASE_URL; ?>/../../index.php">
-                <img src="<?php echo BASE_URL; ?>/../../logo.jpeg" alt="Logo" height="35">
-                Smart Municipality
-                <?php if ($isAdmin): ?>
-                    <span class="admin-badge">Admin</span>
-                <?php endif; ?>
-            </a>
-            <div>
-                <span class="text-muted me-3" style="font-size: 0.8rem;">
-                    <i class="fas fa-user me-1"></i><?php echo htmlspecialchars($userName); ?>
-                </span>
-                <a href="<?php echo BASE_URL; ?>/../../index.php" class="btn btn-primary btn-sm">
-                    <i class="fas fa-arrow-left me-1"></i>Accueil
-                </a>
-            </div>
-        </div>
-    </nav>
-    
-    <div class="container">
-        <div class="content-container">
-            <h2 class="mb-4">
-                <i class="fas fa-ticket-alt me-2" style="color: #1a5e2a;"></i>
-                Mes participations
-            </h2>
-            
-            <!-- Statistiques -->
-            <?php 
-            $totalInscrits = count($participations);
-            $valides = count(array_filter($participations, function($p) { return $p['statut_validation'] == 'valide'; }));
-            $enAttente = count(array_filter($participations, function($p) { return $p['statut_validation'] == 'en_attente'; }));
-            $refuses = count(array_filter($participations, function($p) { return $p['statut_validation'] == 'refuse'; }));
-            ?>
-            <div class="stats-card">
-                <div class="stat">
-                    <div class="stat-number"><?php echo $totalInscrits; ?></div>
-                    <div class="stat-label">Total inscriptions</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-number"><?php echo $valides; ?></div>
-                    <div class="stat-label">Validées</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-number"><?php echo $enAttente; ?></div>
-                    <div class="stat-label">En attente</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-number"><?php echo $refuses; ?></div>
-                    <div class="stat-label">Refusées</div>
-                </div>
-            </div>
-            
-            <?php if (empty($participations)): ?>
-                <div class="empty-state">
-                    <i class="fas fa-calendar-times"></i>
-                    <h3>Aucune participation</h3>
-                    <p class="text-muted">Vous n'êtes inscrit à aucun événement pour le moment.</p>
-                    <a href="<?php echo BASE_URL; ?>/../../index.php" class="btn btn-primary mt-3">
-                        <i class="fas fa-calendar-alt me-1"></i>Découvrir les événements
-                    </a>
-                </div>
-            <?php else: ?>
-                <div class="table-wrapper">
-                    <table class="table-pro">
-                        <thead>
-                            <tr>
-                                <th>Événement</th>
-                                <th>Catégorie</th>
-                                <th>Date</th>
-                                <th>Heure</th>
-                                <th>Lieu</th>
-                                <th>Participants</th>
-                                <th>Statut</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach($participations as $p): ?>
-                            <tr>
-                                <td><strong><?php echo htmlspecialchars($p['titre']); ?></strong></td>
-                                <td><?php echo htmlspecialchars($p['categorie_nom'] ?? 'Non catégorisé'); ?></td>
-                                <td><?php echo date('d/m/Y', strtotime($p['date_evenement'])); ?></td>
-                                <td><?php echo $p['heure']; ?></td>
-                                <td><?php echo htmlspecialchars($p['lieu']); ?></td>
-                                <td><?php echo $p['nombre_participants']; ?></td>
-                                <td>
-                                    <?php if($p['statut_validation'] == 'en_attente'): ?>
-                                        <span class="badge bg-warning"><i class="fas fa-clock me-1"></i>En attente</span>
-                                    <?php elseif($p['statut_validation'] == 'valide'): ?>
-                                        <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Validé</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i>Refusé</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="text-nowrap">
-                                    <?php if($p['statut_validation'] == 'valide'): ?>
-                                        <a href="ticket.php?id=<?php echo $p['id']; ?>" class="btn btn-info btn-sm">
-                                            <i class="fas fa-ticket-alt"></i> Ticket
-                                        </a>
-                                    <?php endif; ?>
-                                    <a href="annuler.php?event_id=<?php echo $p['event_id']; ?>" class="btn btn-danger btn-sm ms-1" onclick="return confirm('Êtes-vous sûr de vouloir annuler votre participation à cet événement ?')">
-                                        <i class="fas fa-times"></i> Annuler
-                                    </a>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="mt-3 text-muted small">
-                    <i class="fas fa-info-circle me-1"></i>
-                    Les inscriptions sont en attente de validation par l'administrateur.
-                </div>
-            <?php endif; ?>
-        </div>
-    </div>
+<div class="part-wrap">
+  <h2 style="font-size:1.4rem;font-weight:700;margin-bottom:20px;color:#135D36;">
+    <i class="fas fa-ticket-alt" style="margin-right:8px;"></i>Mes participations
+  </h2>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Auto-hide toast after 5 seconds
-        setTimeout(() => {
-            const toast = document.querySelector('.toast-message');
-            if (toast) {
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 300);
-            }
-        }, 5000);
-    </script>
-</body>
-</html>
+  <?php if ($message): ?>
+    <div class="alert-msg alert-<?= $messageType ?>"><?= $message ?></div>
+  <?php endif; ?>
+
+  <div class="part-stats">
+    <div class="part-stat"><div class="num"><?= $totalInscrits ?></div><div class="label">Total</div></div>
+    <div class="part-stat"><div class="num" style="color:#16a34a;"><?= $valides ?></div><div class="label">Validées</div></div>
+    <div class="part-stat"><div class="num" style="color:#b45309;"><?= $enAttente ?></div><div class="label">En attente</div></div>
+    <div class="part-stat"><div class="num" style="color:#dc2626;"><?= $refuses ?></div><div class="label">Refusées</div></div>
+  </div>
+
+  <?php if (empty($participations)): ?>
+    <div class="part-table-wrap">
+      <div class="empty-part">
+        <i class="fas fa-calendar-times"></i>
+        <p style="font-size:1rem;font-weight:600;margin-bottom:8px;">Aucune participation</p>
+        <p>Vous n'êtes inscrit à aucun événement pour le moment.</p>
+        <a href="<?= BASE_URL ?>/index.php?action=evenements" style="display:inline-block;margin-top:16px;padding:10px 22px;background:#135D36;color:#fff;border-radius:10px;text-decoration:none;font-weight:600;">
+          Découvrir les événements
+        </a>
+      </div>
+    </div>
+  <?php else: ?>
+    <div class="part-table-wrap">
+      <table class="part-table">
+        <thead>
+          <tr>
+            <th>Événement</th>
+            <th>Catégorie</th>
+            <th>Date</th>
+            <th>Heure</th>
+            <th>Lieu</th>
+            <th>Participants</th>
+            <th>Statut</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($participations as $p): ?>
+          <tr>
+            <td><strong><?= htmlspecialchars($p['titre'], ENT_QUOTES, 'UTF-8') ?></strong></td>
+            <td><?= htmlspecialchars($p['categorie_nom'] ?? 'Non catégorisé', ENT_QUOTES, 'UTF-8') ?></td>
+            <td><?= date('d/m/Y', strtotime($p['date_evenement'])) ?></td>
+            <td><?= htmlspecialchars($p['heure'] ?? '—', ENT_QUOTES, 'UTF-8') ?></td>
+            <td><?= htmlspecialchars($p['lieu'], ENT_QUOTES, 'UTF-8') ?></td>
+            <td style="text-align:center;"><?= (int)$p['nombre_participants'] ?></td>
+            <td>
+              <?php if ($p['statut_validation'] === 'en_attente'): ?>
+                <span class="badge-status badge-attente"><i class="fas fa-clock"></i> En attente</span>
+              <?php elseif ($p['statut_validation'] === 'valide'): ?>
+                <span class="badge-status badge-valide"><i class="fas fa-check-circle"></i> Validé</span>
+              <?php else: ?>
+                <span class="badge-status badge-refuse"><i class="fas fa-times-circle"></i> Refusé</span>
+              <?php endif; ?>
+            </td>
+            <td style="white-space:nowrap;">
+              <a href="<?= BASE_URL ?>/index.php?action=participation_annuler&event_id=<?= (int)$p['event_id'] ?>"
+                 class="btn-action btn-danger-sm"
+                 onclick="return confirm('Annuler votre participation à cet événement ?')">
+                <i class="fas fa-times"></i> Annuler
+              </a>
+            </td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:12px;font-size:.78rem;color:#888;">
+      <i class="fas fa-info-circle"></i> Les inscriptions sont validées par l'administrateur.
+    </p>
+  <?php endif; ?>
+</div>

@@ -1,9 +1,8 @@
 <?php
 // $service_prefill, $errors, $old_input are set by DemandeController::create()
 require_once "config/database.php";
-require_once "controllers/ServiceController.php";
-$serviceController = new ServiceController();
-$allServices = $serviceController->getServicesFront();
+$_db_create = (new Database())->connect();
+$allServices = $_db_create->query("SELECT * FROM services_en_ligne ORDER BY nom ASC")->fetchAll(PDO::FETCH_ASSOC);
 $service_prefill = $service_prefill ?? (isset($_GET['service']) ? $_GET['service'] : '');
 $errors        = $errors ?? [];
 $old_input     = $old_input ?? [];
@@ -101,6 +100,7 @@ $old_input     = $old_input ?? [];
                     <option value="">-- Sélectionnez un service --</option>
                     <?php foreach($allServices as $service): ?>
                         <option value="<?php echo htmlspecialchars($service['nom']); ?>"
+                                data-docs="<?php echo htmlspecialchars($service['documents_requis'] ?? ''); ?>"
                             <?php echo ($service_prefill == $service['nom'] ||
                                      (isset($old_input['type_service']) && $old_input['type_service'] == $service['nom']))
                                      ? 'selected' : ''; ?>>
@@ -204,7 +204,19 @@ $old_input     = $old_input ?? [];
 
     idInput.addEventListener('input', () => { validateId(); validateForm(); });
     nomInput.addEventListener('input', () => { validateNom(); updateNomCounter(); validateForm(); });
-    serviceSelect.addEventListener('change', () => { validateService(); validateForm(); });
+    serviceSelect.addEventListener('change', () => {
+        validateService();
+        validateForm();
+        // Auto-fill documents from selected service
+        const selected = serviceSelect.options[serviceSelect.selectedIndex];
+        const docs = selected ? (selected.dataset.docs || '') : '';
+        if (docs && !documentsInput.value) {
+            documentsInput.value = docs.substring(0, 40);
+            updateDocumentsCounter();
+            validateDocuments();
+            validateForm();
+        }
+    });
     documentsInput.addEventListener('input', () => { validateDocuments(); updateDocumentsCounter(); validateForm(); });
 
     idInput.addEventListener('blur', validateId);
@@ -215,6 +227,15 @@ $old_input     = $old_input ?? [];
     updateNomCounter();
     updateDocumentsCounter();
     submitBtn.disabled = true;
+
+    // Auto-fill documents on page load if service is pre-selected
+    if (serviceSelect.value) {
+        const sel = serviceSelect.options[serviceSelect.selectedIndex];
+        if (sel && sel.dataset.docs && !documentsInput.value) {
+            documentsInput.value = (sel.dataset.docs).substring(0, 40);
+            updateDocumentsCounter();
+        }
+    }
 
     let isSubmitting = false;
     form.addEventListener('submit', function(e) {

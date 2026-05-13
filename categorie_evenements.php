@@ -4,11 +4,11 @@ require_once __DIR__ . '/controllers/EvenementC.php';
 require_once __DIR__ . '/controllers/ParticipationC.php';
 require_once __DIR__ . '/controllers/CategorieEvenementC.php';
 
-$isLoggedIn = isset($_SESSION['user_id']);
-$isAdmin = isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
-$userId = $_SESSION['user_id'] ?? null;
-$userName = isset($_SESSION['prenom']) ? $_SESSION['prenom'] . ' ' . $_SESSION['nom'] : 'Invité';
-$userRole = isset($_SESSION['role']) ? $_SESSION['role'] : 'citoyen';
+$userId     = $_SESSION['user']['id']     ?? $_SESSION['user_id']   ?? null;
+$userRole   = $_SESSION['user']['role']   ?? $_SESSION['role']      ?? 'citoyen';
+$isLoggedIn = $userId !== null;
+$isAdmin    = $userRole === 'admin';
+$userName   = $_SESSION['user']['prenom'] ?? $_SESSION['prenom']    ?? 'Invité';
 
 $evenementC = new EvenementC();
 $participationC = new ParticipationC();
@@ -17,12 +17,63 @@ $categorieC = new CategorieEvenementC();
 $categorie_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $categorie = $categorieC->afficherCategorieParId($categorie_id);
 
-if (!$categorie) {
-    header('Location: index.php');
+if (!$categorie_id || !$categorie) {
+    // No category ID → show all categories listing
+    $toutes_categories = $categorieC->afficherCategories();
+    foreach ($toutes_categories as &$cat) {
+        $cat['nb_evenements'] = $categorieC->compterEvenementsParCategorie($cat['id']);
+    }
+    unset($cat);
+    $title = 'Événements';
+    require BASE_PATH . '/views/App/Views/layouts/header.php';
+    ?>
+    <style>
+        .cat-hero{background:linear-gradient(135deg,#0f3b2c,#1a7a4e);color:#fff;padding:60px 20px 40px;text-align:center;}
+        .cat-hero h1{font-size:2rem;font-weight:700;margin-bottom:10px;}
+        .cat-hero p{opacity:.85;}
+        .cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px;max-width:1200px;margin:40px auto;padding:0 20px;}
+        .cat-card{border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.1);transition:transform .2s;background:#fff;}
+        .cat-card:hover{transform:translateY(-6px);}
+        .cat-card img{width:100%;height:200px;object-fit:cover;}
+        .cat-card-body{padding:20px;}
+        .cat-card-title{font-size:1.2rem;font-weight:700;color:#0f3b2c;margin-bottom:8px;text-transform:capitalize;}
+        .cat-card-desc{color:#64748b;font-size:.88rem;margin-bottom:12px;}
+        .cat-card-count{color:#1a7a4e;font-size:.85rem;font-weight:600;margin-bottom:16px;}
+        .btn-voir{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#0f3b2c,#1a7a4e);color:#fff;padding:10px 22px;border-radius:40px;text-decoration:none;font-weight:600;}
+        .btn-voir:hover{opacity:.9;color:#fff;}
+        .cat-page-header{max-width:1200px;margin:40px auto 0;padding:0 20px;}
+        .cat-hero-title{font-size:2rem;font-weight:700;margin-bottom:10px;}
+    </style>
+    <div class="cat-hero">
+        <h1>Catégories d'événements</h1>
+        <p>Choisissez une catégorie pour voir tous les événements associés</p>
+    </div>
+    <div class="cat-page-header"><h2 style="font-size:1.5rem;font-weight:700;color:#1e293b;margin-bottom:8px;">Explorez les événements par catégorie</h2></div>
+    <div class="cat-grid">
+    <?php foreach ($toutes_categories as $cat): ?>
+        <div class="cat-card">
+            <?php if (!empty($cat['image_url'])): ?>
+                <img src="<?= htmlspecialchars($cat['image_url']) ?>" alt="<?= htmlspecialchars($cat['nom']) ?>">
+            <?php else: ?>
+                <img src="https://placehold.co/640x200/1a7a4e/white?text=<?= urlencode($cat['nom']) ?>" alt="">
+            <?php endif; ?>
+            <div class="cat-card-body">
+                <div class="cat-card-title"><?= htmlspecialchars($cat['nom']) ?></div>
+                <div class="cat-card-desc"><?= htmlspecialchars($cat['description'] ?? '') ?></div>
+                <div class="cat-card-count"><i class="fas fa-calendar-alt"></i> <?= (int)$cat['nb_evenements'] ?> événement(s)</div>
+                <a href="<?= BASE_URL ?>/index.php?action=evenements&id=<?= $cat['id'] ?>" class="btn-voir">
+                    <i class="fas fa-arrow-right"></i> Voir les événements
+                </a>
+            </div>
+        </div>
+    <?php endforeach; ?>
+    </div>
+    <?php
+    require BASE_PATH . '/views/App/Views/layouts/footer.php';
     exit();
 }
 
-$tousEvenements = $evenementC->afficherEvenementsAVenir();
+$tousEvenements = $evenementC->afficherEvenements();
 $evenements = array_filter($tousEvenements, function($event) use ($categorie_id) {
     return $event['categorie_id'] == $categorie_id;
 });
@@ -108,754 +159,698 @@ foreach ($evenementsArray as $e) {
 ?>
 
 <?php
-$title = 'Événements';
+$mesParticipations = $isLoggedIn ? $participationC->afficherParticipationsParUser($userId) : [];
+$title       = 'Événements';
+$hideSidebar = true;
+$flash       = function_exists('get_flash') ? get_flash() : null;
 require BASE_PATH . '/views/App/Views/layouts/header.php';
 ?>
 <style>
-        :root {
-            --primary: #1a5e2a;
-            --primary-dark: #0d3b1a;
-            --primary-light: #2e7d32;
-            --gradient: linear-gradient(135deg, #1a5e2a, #4caf50);
-            --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
-            --shadow-md: 0 5px 15px rgba(0,0,0,0.05);
-            --radius: 12px;
-            --radius-lg: 20px;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: #f0f4f0;
-            min-height: 100vh;
-        }
-        
-        .nav-right { display: flex; align-items: center; gap: 1rem; }
-        .nav-search {
-            display: flex;
-            align-items: center;
-            background: #f5f5f5;
-            border-radius: 30px;
-            padding: 6px 15px;
-            gap: 8px;
-        }
-        .nav-search-icon { color: #999; }
-        .nav-search input {
-            border: none;
-            background: transparent;
-            outline: none;
-            font-size: 0.8rem;
-            width: 180px;
-        }
-        .user-info { display: flex; align-items: center; gap: 12px; }
-        .user-avatar {
-            width: 35px;
-            height: 35px;
-            background: var(--gradient);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-        }
-        .btn-login {
-            background: var(--gradient);
-            border: none;
-            padding: 8px 20px;
-            border-radius: 30px;
-            font-weight: 600;
-            font-size: 0.8rem;
-            color: white;
-            text-decoration: none;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(26,94,42,0.3); }
-        .btn-dashboard {
-            background: transparent;
-            border: 2px solid var(--primary);
-            padding: 6px 18px;
-            border-radius: 30px;
-            font-weight: 600;
-            font-size: 0.75rem;
-            color: var(--primary);
-            text-decoration: none;
-        }
-        .btn-dashboard:hover { background: var(--gradient); color: white; }
-        .btn-logout {
-            background: transparent;
-            border: 2px solid #dc2626;
-            padding: 6px 18px;
-            border-radius: 30px;
-            font-weight: 600;
-            font-size: 0.75rem;
-            color: #dc2626;
-            text-decoration: none;
-        }
-        .btn-logout:hover { background: #dc2626; color: white; }
-        
-        /* Hero */
-        .hero-categorie {
-            background: var(--gradient);
-            padding: 40px 0;
-            text-align: center;
-            color: white;
-        }
-        .hero-categorie h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 10px; }
-        .hero-categorie p { font-size: 0.85rem; opacity: 0.9; }
-        .hero-stats { display: flex; justify-content: center; gap: 20px; margin-top: 15px; }
-        .hero-stat {
-            background: rgba(255,255,255,0.15);
-            backdrop-filter: blur(10px);
-            padding: 5px 15px;
-            border-radius: 30px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.75rem;
-        }
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: white;
-            text-decoration: none;
-            margin-bottom: 20px;
-            background: rgba(255,255,255,0.15);
-            padding: 5px 15px;
-            border-radius: 30px;
-            font-size: 0.75rem;
-        }
-        .back-link:hover { background: rgba(255,255,255,0.25); transform: translateX(-3px); }
-        
-        /* Filter */
-        .filter-bar {
-            background: white;
-            border-radius: var(--radius-lg);
-            padding: 1rem;
-            margin-bottom: 1rem;
-            box-shadow: var(--shadow-sm);
-        }
-        .sort-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: center;
-            background: white;
-            padding: 0.8rem 1rem;
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-sm);
-            margin-bottom: 1rem;
-        }
-        .sort-label { font-size: 0.75rem; font-weight: 600; color: var(--primary); margin-right: 10px; }
-        .sort-btn {
-            background: #f0f4f0;
-            border: none;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 500;
-            color: #555;
-            cursor: pointer;
-            text-decoration: none;
-        }
-        .sort-btn:hover, .sort-btn.active { background: var(--primary); color: white; }
-        .btn-add-event {
-            background: var(--gradient);
-            border: none;
-            padding: 8px 20px;
-            border-radius: 30px;
-            font-weight: 600;
-            font-size: 0.75rem;
-            color: white;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 1rem;
-        }
-        .btn-add-event:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(26,94,42,0.3); }
-        
-        /* Event Card */
-        .event-card {
-            background: white;
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-sm);
-            transition: all 0.3s ease;
-            margin-bottom: 1.25rem;
-            border: 1px solid rgba(0,0,0,0.03);
-            overflow: hidden;
-        }
-        .event-card:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .event-card-inner { padding: 1.25rem; }
-        .event-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 12px;
-        }
-        .event-title { font-weight: 700; font-size: 1rem; color: var(--primary-dark); margin: 0; }
-        .event-category {
-            background: #e8f5e9;
-            color: var(--primary);
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 0.65rem;
-            font-weight: 600;
-        }
-        .event-details { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
-        .event-detail { display: flex; align-items: center; gap: 5px; font-size: 0.7rem; color: #666; }
-        .event-detail i { width: 20px; color: var(--primary); }
-        .event-description { font-size: 0.7rem; color: #777; line-height: 1.4; margin-bottom: 12px; }
-        .progress-section { margin: 12px 0; }
-        .progress-stats { display: flex; justify-content: space-between; font-size: 0.65rem; color: #888; margin-bottom: 5px; }
-        .progress-bar-custom { height: 4px; background: #e8ece8; border-radius: 4px; overflow: hidden; }
-        .progress-fill { height: 100%; background: var(--primary); border-radius: 4px; }
-        .btn-subscribe {
-            width: 100%;
-            background: white;
-            border: 1.5px solid var(--primary);
-            color: var(--primary);
-            padding: 8px 12px;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 0.7rem;
-            transition: all 0.2s;
-            cursor: pointer;
-        }
-        .btn-subscribe:hover { background: var(--primary); color: white; transform: translateY(-2px); }
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 6px 12px;
-            border-radius: 10px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            width: 100%;
-            justify-content: center;
-        }
-        .status-pending { background: #ff9800; color: white; }
-        .status-confirmed { background: #4caf50; color: white; }
-        .status-refused { background: #f44336; color: white; }
-        .status-full { background: #9e9e9e; color: white; }
-        .admin-buttons { display: flex; gap: 8px; margin-top: 10px; }
-        .btn-admin { padding: 5px 10px; border-radius: 8px; font-size: 0.65rem; font-weight: 500; text-decoration: none; }
-        .btn-edit { background: #f59e0b; color: white; }
-        .btn-users { background: #0891b2; color: white; }
-        .btn-delete { background: #dc2626; color: white; }
-        
-        /* Bouton partager Facebook */
-        .btn-share {
-            background: #1877f2;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 10px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            width: 100%;
-            margin-top: 8px;
-        }
-        .btn-share:hover {
-            background: #0d5bd9;
-            transform: translateY(-2px);
-            color: white;
-        }
-        
-        /* Calendar */
-        .calendar-container {
-            background: white;
-            border-radius: var(--radius-lg);
-            padding: 20px;
-            margin-top: 30px;
-            margin-bottom: 30px;
-            box-shadow: var(--shadow-sm);
-        }
-        .fc { font-family: 'Inter', sans-serif; }
-        .fc-event {
-            cursor: pointer;
-            border-radius: 6px;
-            font-size: 0.7rem;
-            padding: 4px 6px;
-            transition: all 0.2s;
-        }
-        .fc-event:hover { transform: scale(1.02); opacity: 0.9; }
-        .fc-col-header-cell-cushion { font-weight: 600; color: var(--primary); text-transform: uppercase; font-size: 0.7rem; }
-        .fc-toolbar-title { font-size: 1rem !important; font-weight: 700 !important; color: var(--primary) !important; }
-        .fc-button { background: var(--primary) !important; border: none !important; border-radius: 8px !important; padding: 4px 10px !important; font-size: 0.7rem !important; }
-        .fc-button:hover { background: var(--primary-dark) !important; }
-        .fc-day-today { background: #e8f5e9 !important; }
-        
-        /* Modal */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(4px);
-            z-index: 10000;
-            align-items: center;
-            justify-content: center;
-        }
-        .modal-container {
-            background: white;
-            border-radius: 24px;
-            max-width: 420px;
-            width: 90%;
-            overflow: hidden;
-            animation: modalSlideIn 0.2s ease;
-        }
-        @keyframes modalSlideIn {
-            from { transform: translateY(30px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        .modal-header {
-            background: var(--gradient);
-            padding: 15px;
-            text-align: center;
-            color: white;
-        }
-        .modal-header i { font-size: 2rem; margin-bottom: 5px; }
-        .modal-header h3 { margin: 0; font-size: 1.1rem; }
-        .modal-body { padding: 20px; }
-        .modal-footer {
-            padding: 12px 20px;
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            border-top: 1px solid #e9ecef;
-        }
-        .event-details-modal {
-            background: #e8f5e9;
-            border-radius: 12px;
-            padding: 12px;
-            margin: 15px 0;
-            font-size: 0.8rem;
-        }
-        .btn-primary-custom {
-            background: var(--gradient);
-            border: none;
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.7rem;
-            color: white;
-        }
-        
-        .toast-message {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            z-index: 10001;
-            animation: slideInRight 0.3s ease;
-        }
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            background: white;
-            border-radius: var(--radius-lg);
-        }
-        .empty-state i { font-size: 2.5rem; color: var(--primary-light); margin-bottom: 1rem; }
-        .footer {
-            background: white;
-            text-align: center;
-            padding: 1.25rem;
-            margin-top: 2rem;
-            color: #666;
-            font-size: 0.7rem;
-            border-top: 1px solid rgba(0,0,0,0.05);
-        }
-        
-        @media (max-width: 768px) {
-            .hero-categorie h1 { font-size: 1.3rem; }
-            .hero-stats { flex-direction: column; align-items: center; gap: 8px; }
-            .calendar-container { padding: 10px; }
-            .fc-toolbar { flex-direction: column; gap: 10px; }
-        }
-    </style>
+/* ── Reset scoped to page ── */
+.ce-page *, .ce-page *::before, .ce-page *::after { box-sizing: border-box; }
 
-    <!-- Toast Notification -->
-    <?php if ($message): ?>
-    <div class="toast-message">
-        <div class="alert alert-<?php echo $messageType; ?> shadow rounded-3 border-0 py-2 px-3">
-            <i class="fas fa-<?php echo $messageType == 'success' ? 'check-circle' : 'exclamation-triangle'; ?> me-2"></i>
-            <?php echo $message; ?>
-            <button type="button" class="btn-close ms-2" data-bs-dismiss="alert"></button>
-        </div>
+/* ── Design tokens ── */
+.ce-page {
+    --cp: #135D36;
+    --cp-dark: #0d3b1a;
+    --cp-light: #e8f5e9;
+    --cp-mid: #2FA084;
+    --grad: linear-gradient(135deg, #135D36, #2FA084);
+    --sh1: 0 2px 8px rgba(0,0,0,.06);
+    --sh2: 0 8px 24px rgba(0,0,0,.1);
+    --r: 14px;
+    font-family: 'Inter', sans-serif;
+    background: #f4f7f4;
+    min-height: 60vh;
+}
+
+/* ── Hero ── */
+.ce-hero {
+    background: var(--grad);
+    padding: 44px 0 36px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+}
+.ce-hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 260px; height: 260px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.07);
+}
+.ce-hero::after {
+    content: '';
+    position: absolute;
+    bottom: -80px; left: -40px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.05);
+}
+.ce-hero-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+.ce-back {
+    display: inline-flex; align-items: center; gap: 7px;
+    color: rgba(255,255,255,.85); text-decoration: none;
+    font-size: .78rem; font-weight: 500;
+    background: rgba(255,255,255,.15); padding: 5px 14px;
+    border-radius: 30px; margin-bottom: 20px;
+    transition: background .2s;
+}
+.ce-back:hover { background: rgba(255,255,255,.25); color: #fff; }
+.ce-hero-title { font-size: 2rem; font-weight: 800; margin: 0 0 6px; letter-spacing: -.5px; }
+.ce-hero-desc  { font-size: .88rem; opacity: .85; margin: 0 0 20px; }
+.ce-hero-pills { display: flex; flex-wrap: wrap; gap: 10px; }
+.ce-hero-pill {
+    background: rgba(255,255,255,.18); backdrop-filter: blur(8px);
+    padding: 5px 16px; border-radius: 30px;
+    font-size: .75rem; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 6px;
+}
+
+/* ── Main layout ── */
+.ce-layout {
+    max-width: 1200px; margin: 0 auto;
+    padding: 28px 24px;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+    align-items: start;
+}
+
+/* ── Search / Sort bar ── */
+.ce-toolbar {
+    background: #fff; border-radius: var(--r);
+    padding: 14px 16px; margin-bottom: 16px;
+    box-shadow: var(--sh1);
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+}
+.ce-search {
+    flex: 1; display: flex; align-items: center;
+    gap: 8px; background: #f4f7f4; border-radius: 10px;
+    padding: 8px 14px; min-width: 180px;
+}
+.ce-search i { color: #999; font-size: .85rem; }
+.ce-search input {
+    border: none; background: transparent; outline: none;
+    font-size: .85rem; width: 100%; font-family: inherit; color: #333;
+}
+.ce-search-btn {
+    background: var(--grad); border: none; color: #fff;
+    padding: 8px 18px; border-radius: 10px; font-size: .8rem;
+    font-weight: 600; cursor: pointer; white-space: nowrap;
+    transition: opacity .2s;
+}
+.ce-search-btn:hover { opacity: .88; }
+
+.ce-sorts {
+    background: #fff; border-radius: var(--r);
+    padding: 10px 16px; margin-bottom: 16px;
+    box-shadow: var(--sh1);
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.ce-sort-lbl { font-size: .73rem; font-weight: 700; color: var(--cp); margin-right: 4px; }
+.ce-sort-btn {
+    background: #f4f7f4; border: none; cursor: pointer; text-decoration: none;
+    padding: 5px 14px; border-radius: 20px; font-size: .72rem; font-weight: 500;
+    color: #555; transition: all .15s;
+}
+.ce-sort-btn:hover, .ce-sort-btn.active { background: var(--cp); color: #fff; }
+.ce-add-btn {
+    margin-left: auto;
+    background: var(--grad); border: none; color: #fff; text-decoration: none;
+    padding: 6px 16px; border-radius: 20px; font-size: .72rem; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 6px; transition: opacity .2s;
+}
+.ce-add-btn:hover { opacity: .88; color: #fff; }
+
+/* ── Event cards ── */
+.ce-events { display: flex; flex-direction: column; gap: 16px; }
+.ce-card {
+    background: #fff; border-radius: var(--r);
+    box-shadow: var(--sh1); border: 1px solid rgba(0,0,0,.04);
+    overflow: hidden; transition: transform .25s, box-shadow .25s;
+}
+.ce-card:hover { transform: translateY(-3px); box-shadow: var(--sh2); }
+.ce-card-body { padding: 18px 20px 16px; }
+.ce-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+.ce-card-title { font-size: 1rem; font-weight: 700; color: var(--cp-dark); margin: 0; line-height: 1.3; }
+.ce-cat-pill {
+    background: var(--cp-light); color: var(--cp);
+    padding: 3px 10px; border-radius: 20px;
+    font-size: .66rem; font-weight: 700; white-space: nowrap; flex-shrink: 0;
+}
+.ce-card-meta { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 10px; }
+.ce-meta-item { display: flex; align-items: center; gap: 5px; font-size: .73rem; color: #666; }
+.ce-meta-item i { color: var(--cp); width: 14px; font-size: .75rem; }
+.ce-card-desc {
+    font-size: .73rem; color: #888; line-height: 1.5;
+    margin-bottom: 14px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.ce-progress-row { display: flex; justify-content: space-between; font-size: .68rem; color: #999; margin-bottom: 6px; }
+.ce-progress-track { height: 5px; background: #eee; border-radius: 5px; overflow: hidden; margin-bottom: 14px; }
+.ce-progress-fill { height: 100%; background: var(--grad); border-radius: 5px; transition: width .4s; }
+.ce-card-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.ce-btn-sub {
+    flex: 1; background: var(--cp-light); border: 1.5px solid var(--cp);
+    color: var(--cp); padding: 8px 14px; border-radius: 10px;
+    font-size: .76rem; font-weight: 700; cursor: pointer;
+    transition: all .2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.ce-btn-sub:hover { background: var(--cp); color: #fff; }
+.ce-status {
+    flex: 1; padding: 8px 14px; border-radius: 10px; text-align: center;
+    font-size: .74rem; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.ce-status-pending  { background: #fef3c7; color: #b45309; }
+.ce-status-ok       { background: #dcfce7; color: #16a34a; }
+.ce-status-refused  { background: #fee2e2; color: #dc2626; }
+.ce-status-full     { background: #f1f5f9; color: #64748b; }
+.ce-btn-share {
+    background: #e8f0fe; color: #1877f2; border: none; cursor: pointer;
+    padding: 8px 12px; border-radius: 10px; font-size: .73rem;
+    font-weight: 600; transition: all .2s;
+    display: inline-flex; align-items: center; gap: 5px;
+}
+.ce-btn-share:hover { background: #1877f2; color: #fff; }
+.ce-admin-row { display: flex; gap: 6px; margin-top: 8px; }
+.ce-admin-btn {
+    padding: 5px 12px; border-radius: 8px; font-size: .68rem;
+    font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+}
+.ce-btn-edit   { background: #fef3c7; color: #b45309; }
+.ce-btn-users  { background: #dbeafe; color: #2563eb; }
+.ce-btn-del    { background: #fee2e2; color: #dc2626; }
+
+/* ── Empty state ── */
+.ce-empty {
+    text-align: center; padding: 50px 24px;
+    background: #fff; border-radius: var(--r); box-shadow: var(--sh1);
+}
+.ce-empty i { font-size: 2.8rem; color: #ccc; margin-bottom: 12px; display: block; }
+.ce-empty p { color: #888; font-size: .88rem; }
+
+/* ── Calendar ── */
+.ce-calendar-wrap {
+    background: #fff; border-radius: var(--r);
+    padding: 20px; margin-top: 20px;
+    box-shadow: var(--sh1);
+}
+.ce-calendar-title {
+    font-size: .88rem; font-weight: 700; color: var(--cp);
+    margin-bottom: 14px; display: flex; align-items: center; gap: 7px;
+}
+.fc { font-family: 'Inter', sans-serif; }
+.fc-event { cursor: pointer; border-radius: 6px; font-size: .68rem; padding: 3px 6px; transition: all .2s; }
+.fc-event:hover { opacity: .85; }
+.fc-col-header-cell-cushion { font-weight: 700; color: var(--cp); text-transform: uppercase; font-size: .65rem; }
+.fc-toolbar-title { font-size: .9rem !important; font-weight: 800 !important; color: var(--cp-dark) !important; }
+.fc-button { background: var(--cp) !important; border: none !important; border-radius: 8px !important; padding: 4px 10px !important; font-size: .68rem !important; }
+.fc-button:hover { background: var(--cp-dark) !important; }
+.fc-day-today { background: var(--cp-light) !important; }
+
+/* ── Sidebar: Mes participations ── */
+.ce-sidebar { position: sticky; top: 80px; }
+.ce-side-panel {
+    background: #fff; border-radius: var(--r);
+    box-shadow: var(--sh1); overflow: hidden;
+}
+.ce-side-header {
+    background: var(--grad); color: #fff;
+    padding: 14px 18px; display: flex; align-items: center; gap: 8px;
+}
+.ce-side-header h3 { margin: 0; font-size: .9rem; font-weight: 700; }
+.ce-side-header .count-badge {
+    background: rgba(255,255,255,.25); border-radius: 20px;
+    padding: 2px 9px; font-size: .72rem; font-weight: 700; margin-left: auto;
+}
+.ce-side-body { padding: 14px; max-height: 520px; overflow-y: auto; }
+.ce-part-item {
+    border-radius: 10px; border: 1px solid #f0f0f0;
+    padding: 12px 14px; margin-bottom: 10px;
+    transition: background .15s;
+}
+.ce-part-item:last-child { margin-bottom: 0; }
+.ce-part-item:hover { background: #f9fdf9; }
+.ce-part-title { font-size: .83rem; font-weight: 700; color: #1a1a1a; margin-bottom: 5px; }
+.ce-part-meta  { font-size: .72rem; color: #888; margin-bottom: 7px; display: flex; flex-direction: column; gap: 2px; }
+.ce-part-foot  { display: flex; align-items: center; justify-content: space-between; }
+.ce-pbadge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 20px; font-size: .68rem; font-weight: 700;
+}
+.ce-pb-ok      { background: #dcfce7; color: #16a34a; }
+.ce-pb-wait    { background: #fef3c7; color: #b45309; }
+.ce-pb-no      { background: #fee2e2; color: #dc2626; }
+.ce-cancel-btn {
+    font-size: .68rem; color: #dc2626; text-decoration: none; font-weight: 600;
+    background: #fee2e2; padding: 3px 9px; border-radius: 8px; transition: all .15s;
+}
+.ce-cancel-btn:hover { background: #dc2626; color: #fff; }
+.ce-no-part {
+    text-align: center; padding: 30px 16px; color: #bbb;
+}
+.ce-no-part i { font-size: 2rem; margin-bottom: 8px; display: block; }
+.ce-no-part p { font-size: .78rem; }
+.ce-side-login {
+    text-align: center; padding: 30px 16px;
+}
+.ce-side-login i { font-size: 2rem; color: #ddd; margin-bottom: 10px; display: block; }
+.ce-side-login p { font-size: .78rem; color: #aaa; margin-bottom: 12px; }
+.ce-login-link {
+    display: inline-block; background: var(--grad); color: #fff;
+    padding: 7px 18px; border-radius: 10px; font-size: .78rem;
+    font-weight: 600; text-decoration: none; transition: opacity .2s;
+}
+.ce-login-link:hover { opacity: .88; color: #fff; }
+
+/* ── Modal ── */
+.ce-modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.5); backdrop-filter: blur(4px);
+    z-index: 10000; align-items: center; justify-content: center;
+}
+.ce-modal {
+    background: #fff; border-radius: 20px;
+    max-width: 420px; width: 92%;
+    overflow: hidden; animation: ceModalIn .22s ease;
+    box-shadow: 0 24px 64px rgba(0,0,0,.2);
+}
+@keyframes ceModalIn { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.ce-modal-head {
+    background: var(--grad); padding: 18px;
+    text-align: center; color: #fff;
+}
+.ce-modal-head i { font-size: 2rem; margin-bottom: 4px; display: block; }
+.ce-modal-head h3 { margin: 0; font-size: 1rem; font-weight: 700; }
+.ce-modal-body { padding: 20px; }
+.ce-modal-info {
+    background: var(--cp-light); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 16px; font-size: .8rem; line-height: 1.7;
+}
+.ce-modal-info p { margin: 0; }
+.ce-modal-label { font-size: .78rem; font-weight: 700; margin-bottom: 5px; display: block; color: #333; }
+.ce-modal-input {
+    width: 100%; border: 1.5px solid #e0e0e0; border-radius: 9px;
+    padding: 9px 12px; font-size: .85rem; outline: none; font-family: inherit;
+    transition: border-color .2s;
+}
+.ce-modal-input:focus { border-color: var(--cp); }
+.ce-modal-hint { font-size: .7rem; color: #999; margin-top: 4px; }
+.ce-modal-alert {
+    background: #fef3c7; border-radius: 8px;
+    padding: 8px 12px; font-size: .74rem; color: #92400e; margin-top: 10px;
+}
+.ce-modal-foot {
+    padding: 12px 20px; display: flex; gap: 10px;
+    justify-content: flex-end; border-top: 1px solid #f0f0f0;
+}
+.ce-modal-cancel {
+    background: #f1f5f9; border: none; border-radius: 9px;
+    padding: 8px 18px; font-size: .8rem; font-weight: 600;
+    color: #64748b; cursor: pointer;
+}
+.ce-modal-confirm {
+    background: var(--grad); border: none; border-radius: 9px;
+    padding: 8px 20px; font-size: .8rem; font-weight: 700;
+    color: #fff; cursor: pointer; transition: opacity .2s;
+}
+.ce-modal-confirm:hover { opacity: .88; }
+
+/* ── Toast ── */
+.ce-toast {
+    position: fixed; top: 72px; right: 20px; z-index: 10001;
+    animation: ceSlideIn .3s ease;
+}
+@keyframes ceSlideIn { from { transform: translateX(110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.ce-toast-inner {
+    display: flex; align-items: center; gap: 10px;
+    background: #fff; border-radius: 12px; padding: 12px 18px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.14);
+    font-size: .82rem; font-weight: 600; border-left: 4px solid #16a34a;
+}
+.ce-toast-inner.error { border-color: #dc2626; }
+.ce-toast-icon { font-size: 1.1rem; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+    .ce-layout { grid-template-columns: 1fr; }
+    .ce-sidebar { position: static; }
+    .ce-side-body { max-height: 300px; }
+    .ce-hero-title { font-size: 1.5rem; }
+}
+</style>
+
+<?php if ($message): ?>
+<div class="ce-toast" id="ceToast">
+    <div class="ce-toast-inner <?= $messageType === 'danger' ? 'error' : '' ?>">
+        <span class="ce-toast-icon"><?= $messageType === 'success' ? '✅' : '❌' ?></span>
+        <?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?>
     </div>
-    <?php endif; ?>
+</div>
+<?php endif; ?>
 
-    <!-- Modal d'inscription -->
-    <div id="inscriptionModal" class="modal-overlay">
-        <div class="modal-container">
-            <div class="modal-header">
-                <i class="fas fa-ticket-alt"></i>
-                <h3>Confirmer l'inscription</h3>
+<!-- Modal d'inscription -->
+<div id="inscriptionModal" class="ce-modal-overlay">
+    <div class="ce-modal">
+        <div class="ce-modal-head">
+            <i class="fas fa-ticket-alt"></i>
+            <h3>Confirmer l'inscription</h3>
+        </div>
+        <div class="ce-modal-body">
+            <div class="ce-modal-info">
+                <p><strong id="modalTitle">—</strong></p>
+                <p><i class="fas fa-map-marker-alt" style="color:#135D36;width:16px;"></i> <span id="modalLieu">—</span></p>
+                <p><i class="fas fa-calendar-day" style="color:#135D36;width:16px;"></i> <span id="modalDate">—</span> &nbsp;·&nbsp; <span id="modalHeure">—</span></p>
             </div>
-            <div class="modal-body">
-                <div class="event-details-modal">
-                    <p><i class="fas fa-calendar-alt"></i> <strong id="modalTitle">-</strong></p>
-                    <p><i class="fas fa-map-marker-alt"></i> Lieu : <span id="modalLieu">-</span></p>
-                    <p><i class="fas fa-calendar-day"></i> Date : <span id="modalDate">-</span> à <span id="modalHeure">-</span></p>
-                </div>
-                <div class="mb-2">
-                    <label class="form-label small fw-bold">Nombre de participants</label>
-                    <input type="number" id="nbParticipants" class="form-control form-control-sm" min="1" max="10" value="1">
-                    <small class="text-muted">Maximum 10 personnes</small>
-                </div>
-                <div class="alert alert-warning py-1 px-2 mb-0" style="font-size: 0.75rem;">
-                    <i class="fas fa-info-circle me-1"></i>
-                    Places restantes : <strong id="placesRestantes">-</strong>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" id="closeModalBtn">Annuler</button>
-                <button type="button" class="btn btn-primary-custom btn-sm" id="confirmModalBtn">Confirmer</button>
+            <label class="ce-modal-label">Nombre de participants</label>
+            <input type="number" id="nbParticipants" class="ce-modal-input" min="1" max="10" value="1">
+            <div class="ce-modal-hint">Maximum 10 personnes par inscription</div>
+            <div class="ce-modal-alert">
+                <i class="fas fa-info-circle"></i>
+                Places disponibles : <strong id="placesRestantes">—</strong>
             </div>
         </div>
+        <div class="ce-modal-foot">
+            <button class="ce-modal-cancel" id="closeModalBtn">Annuler</button>
+            <button class="ce-modal-confirm" id="confirmModalBtn"><i class="fas fa-check"></i> Confirmer</button>
+        </div>
     </div>
+</div>
 
+<div class="ce-page">
 
-
-
-    <!-- Hero -->
-    <section class="hero-categorie">
-        <div class="container">
-            <a href="<?php echo BASE_URL; ?>/index.php?action=evenements" class="back-link"><i class="fas fa-arrow-left"></i> Retour aux catégories</a>
-            <h1><i class="fas <?php 
-                if($categorie['nom'] == 'Culture') echo 'fa-music';
-                elseif($categorie['nom'] == 'Sport') echo 'fa-futbol';
-                elseif($categorie['nom'] == 'Environnement') echo 'fa-leaf';
-                elseif($categorie['nom'] == 'Social') echo 'fa-handshake';
-                elseif($categorie['nom'] == 'Technologie') echo 'fa-microchip';
+<!-- Hero -->
+<div class="ce-hero">
+    <div class="ce-hero-inner">
+        <a href="<?= BASE_URL ?>/index.php?action=evenements" class="ce-back">
+            <i class="fas fa-arrow-left"></i> Toutes les catégories
+        </a>
+        <h1 class="ce-hero-title">
+            <i class="fas <?php
+                $n = $categorie['nom'];
+                if ($n === 'Culture')       echo 'fa-music';
+                elseif ($n === 'Sport')     echo 'fa-futbol';
+                elseif ($n === 'Environnement') echo 'fa-leaf';
+                elseif ($n === 'Social')    echo 'fa-handshake';
+                elseif ($n === 'Technologie') echo 'fa-microchip';
                 else echo 'fa-tag';
-            ?> me-2"></i><?php echo htmlspecialchars($categorie['nom']); ?></h1>
-            <p><?php echo htmlspecialchars($categorie['description']); ?></p>
-            <div class="hero-stats">
-                <div class="hero-stat"><i class="fas fa-calendar-alt"></i> <?php echo $nbEvenements; ?> événement(s)</div>
-                <div class="hero-stat"><i class="fas fa-users"></i> <?php echo $totalPlaces; ?> places totales</div>
-            </div>
-        </div>
-    </section>
-
-    <div class="container">
-        <!-- Filtres -->
-        <div class="filter-bar">
-            <form method="GET" class="row g-2">
-                <input type="hidden" name="id" value="<?php echo $categorie_id; ?>">
-                <div class="col-md-10">
-                    <div class="input-group">
-                        <span class="input-group-text bg-white"><i class="fas fa-search text-success"></i></span>
-                        <input type="text" name="search" class="form-control" placeholder="Rechercher..." value="<?php echo htmlspecialchars($recherche); ?>">
-                    </div>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary-custom w-100"><i class="fas fa-search me-1"></i> Rechercher</button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Tris -->
-        <div class="sort-buttons">
-            <span class="sort-label"><i class="fas fa-sort me-1"></i> Trier par :</span>
-            <a href="?id=<?php echo $categorie_id; ?>&sort_by=date&sort_order=<?php echo $sort_by == 'date' && $sort_order == 'asc' ? 'desc' : 'asc'; ?><?php echo $recherche ? '&search='.urlencode($recherche) : ''; ?>" class="sort-btn <?php echo $sort_by == 'date' ? 'active' : ''; ?>">Date <?php if($sort_by == 'date') echo $sort_order == 'asc' ? '↑' : '↓'; ?></a>
-            <a href="?id=<?php echo $categorie_id; ?>&sort_by=titre&sort_order=<?php echo $sort_by == 'titre' && $sort_order == 'asc' ? 'desc' : 'asc'; ?><?php echo $recherche ? '&search='.urlencode($recherche) : ''; ?>" class="sort-btn <?php echo $sort_by == 'titre' ? 'active' : ''; ?>">Titre <?php if($sort_by == 'titre') echo $sort_order == 'asc' ? '↑' : '↓'; ?></a>
-            <a href="?id=<?php echo $categorie_id; ?>&sort_by=lieu&sort_order=<?php echo $sort_by == 'lieu' && $sort_order == 'asc' ? 'desc' : 'asc'; ?><?php echo $recherche ? '&search='.urlencode($recherche) : ''; ?>" class="sort-btn <?php echo $sort_by == 'lieu' ? 'active' : ''; ?>">Lieu <?php if($sort_by == 'lieu') echo $sort_order == 'asc' ? '↑' : '↓'; ?></a>
-        </div>
-
-        <!-- Admin Add Button -->
-        <?php if ($isAdmin): ?>
-        <div class="text-end mb-3">
-            <a href="<?php echo BASE_URL; ?>/views/evenement/ajouter.php?categorie=<?php echo $categorie_id; ?>" class="btn-add-event">
-                <i class="fas fa-plus-circle"></i> Ajouter un événement
-            </a>
-        </div>
+            ?>" style="margin-right:10px;"></i><?= htmlspecialchars($categorie['nom']) ?>
+        </h1>
+        <?php if (!empty($categorie['description'])): ?>
+            <p class="ce-hero-desc"><?= htmlspecialchars($categorie['description']) ?></p>
         <?php endif; ?>
+        <div class="ce-hero-pills">
+            <span class="ce-hero-pill"><i class="fas fa-calendar-alt"></i> <?= $nbEvenements ?> événement(s)</span>
+            <span class="ce-hero-pill"><i class="fas fa-users"></i> <?= $totalPlaces ?> places totales</span>
+            <?php if ($isLoggedIn): ?>
+                <span class="ce-hero-pill"><i class="fas fa-ticket-alt"></i> <?= count($mesParticipations) ?> réservation(s)</span>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
 
-        <!-- Liste des événements -->
+<!-- Layout -->
+<div class="ce-layout">
+
+    <!-- ── Left: events ── -->
+    <div class="ce-main">
+
+        <!-- Search + sort toolbar -->
+        <form method="GET" style="margin-bottom:0;">
+            <input type="hidden" name="id" value="<?= $categorie_id ?>">
+            <div class="ce-toolbar">
+                <div class="ce-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" name="search" placeholder="Rechercher un événement…" value="<?= htmlspecialchars($recherche) ?>">
+                </div>
+                <button type="submit" class="ce-search-btn"><i class="fas fa-search"></i> Rechercher</button>
+                <?php if ($recherche): ?>
+                    <a href="?action=evenements_categorie&id=<?= $categorie_id ?>" style="color:#dc2626;font-size:.78rem;text-decoration:none;">✕ Effacer</a>
+                <?php endif; ?>
+            </div>
+        </form>
+
+        <div class="ce-sorts">
+            <span class="ce-sort-lbl"><i class="fas fa-sort"></i> Trier :</span>
+            <?php
+            $sorts = ['date' => 'Date', 'titre' => 'Titre', 'lieu' => 'Lieu'];
+            foreach ($sorts as $key => $label):
+                $nextOrder = ($sort_by === $key && $sort_order === 'asc') ? 'desc' : 'asc';
+                $arrow     = $sort_by === $key ? ($sort_order === 'asc' ? ' ↑' : ' ↓') : '';
+                $q = "?action=evenements_categorie&id=$categorie_id&sort_by=$key&sort_order=$nextOrder" . ($recherche ? '&search='.urlencode($recherche) : '');
+            ?>
+            <a href="<?= $q ?>" class="ce-sort-btn <?= $sort_by === $key ? 'active' : '' ?>"><?= "$label$arrow" ?></a>
+            <?php endforeach; ?>
+            <?php if ($isAdmin): ?>
+                <a href="<?= BASE_URL ?>/views/evenement/ajouter.php?categorie=<?= $categorie_id ?>" class="ce-add-btn">
+                    <i class="fas fa-plus-circle"></i> Ajouter un événement
+                </a>
+            <?php endif; ?>
+        </div>
+
+        <!-- Events list -->
         <?php if (empty($evenementsArray)): ?>
-        <div class="empty-state">
+        <div class="ce-empty">
             <i class="fas fa-calendar-times"></i>
-            <h5>Aucun événement trouvé</h5>
-            <p class="text-muted">Aucun événement dans la catégorie "<?php echo htmlspecialchars($categorie['nom']); ?>"</p>
-            <a href="<?php echo BASE_URL; ?>/index.php?action=evenements_categorie&id=<?php echo $categorie_id; ?>" class="btn btn-primary-custom btn-sm mt-2">Réinitialiser</a>
+            <p style="font-size:1rem;font-weight:700;color:#444;margin-bottom:6px;">Aucun événement trouvé</p>
+            <p>Aucun événement dans la catégorie "<?= htmlspecialchars($categorie['nom']) ?>"</p>
+            <a href="?action=evenements_categorie&id=<?= $categorie_id ?>" style="display:inline-block;margin-top:14px;background:linear-gradient(135deg,#135D36,#2FA084);color:#fff;padding:8px 20px;border-radius:10px;font-size:.8rem;font-weight:600;text-decoration:none;">Réinitialiser</a>
         </div>
         <?php else: ?>
-            <?php foreach($evenementsArray as $event): 
-                $placesTotal = $event['max_participants'];
-                $placesValidees = $participationC->compterParticipationsValidees($event['id']);
-                $placesRestantes = $placesTotal - $placesValidees;
-                $pourcentage = $placesTotal > 0 ? round(($placesValidees / $placesTotal) * 100) : 0;
-                $estComplet = $placesRestantes <= 0;
-                $estInscrit = false;
-                $statutValidation = null;
+        <div class="ce-events">
+            <?php foreach ($evenementsArray as $event):
+                $placesTotal   = $event['max_participants'];
+                $placesValidees= $participationC->compterParticipationsValidees($event['id']);
+                $placesRest    = $placesTotal - $placesValidees;
+                $pct           = $placesTotal > 0 ? round($placesValidees / $placesTotal * 100) : 0;
+                $estComplet    = $placesRest <= 0;
+                $estInscrit    = false;
+                $statutVal     = null;
                 if ($isLoggedIn) {
                     $estInscrit = $participationC->estInscrit($userId, $event['id']);
-                    $statutValidation = $participationC->getStatutValidation($userId, $event['id']);
+                    $statutVal  = $participationC->getStatutValidation($userId, $event['id']);
                 }
             ?>
-            <div class="event-card event-card-wrapper"
-                 data-id="<?php echo $event['id']; ?>"
-                 data-title="<?php echo htmlspecialchars($event['titre']); ?>"
-                 data-lieu="<?php echo htmlspecialchars($event['lieu']); ?>"
-                 data-date="<?php echo date('d/m/Y', strtotime($event['date_evenement'])); ?>"
-                 data-heure="<?php echo $event['heure']; ?>"
-                 data-places="<?php echo $placesRestantes; ?>">
-                <div class="event-card-inner">
-                    <div class="event-header">
-                        <h5 class="event-title"><?php echo htmlspecialchars($event['titre']); ?></h5>
-                        <span class="event-category"><?php echo htmlspecialchars($event['categorie_nom'] ?? $categorie['nom']); ?></span>
+            <div class="ce-card event-card-wrapper"
+                 data-id="<?= $event['id'] ?>"
+                 data-title="<?= htmlspecialchars($event['titre']) ?>"
+                 data-lieu="<?= htmlspecialchars($event['lieu']) ?>"
+                 data-date="<?= date('d/m/Y', strtotime($event['date_evenement'])) ?>"
+                 data-heure="<?= htmlspecialchars($event['heure'] ?? '') ?>"
+                 data-places="<?= $placesRest ?>">
+                <div class="ce-card-body">
+                    <div class="ce-card-top">
+                        <h5 class="ce-card-title"><?= htmlspecialchars($event['titre']) ?></h5>
+                        <span class="ce-cat-pill"><?= htmlspecialchars($event['categorie_nom'] ?? $categorie['nom']) ?></span>
                     </div>
-                    <div class="event-details">
-                        <span class="event-detail"><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($event['lieu']); ?></span>
-                        <span class="event-detail"><i class="fas fa-calendar-day"></i> <?php echo date('d/m/Y', strtotime($event['date_evenement'])); ?></span>
-                        <span class="event-detail"><i class="fas fa-clock"></i> <?php echo $event['heure']; ?></span>
+                    <div class="ce-card-meta">
+                        <span class="ce-meta-item"><i class="fas fa-map-marker-alt"></i><?= htmlspecialchars($event['lieu']) ?></span>
+                        <span class="ce-meta-item"><i class="fas fa-calendar-day"></i><?= date('d/m/Y', strtotime($event['date_evenement'])) ?></span>
+                        <span class="ce-meta-item"><i class="fas fa-clock"></i><?= htmlspecialchars($event['heure'] ?? '—') ?></span>
                     </div>
-                    <div class="event-description"><?php echo substr(htmlspecialchars($event['description']), 0, 100); ?>...</div>
-                    <div class="progress-section">
-                        <div class="progress-stats">
-                            <span><i class="fas fa-users"></i> <?php echo $placesValidees; ?>/<?php echo $placesTotal; ?> inscrits</span>
-                            <span><?php echo $placesRestantes; ?> places restantes</span>
-                        </div>
-                        <div class="progress-bar-custom"><div class="progress-fill" style="width: <?php echo $pourcentage; ?>%;"></div></div>
+                    <?php if (!empty($event['description'])): ?>
+                    <div class="ce-card-desc"><?= htmlspecialchars($event['description']) ?></div>
+                    <?php endif; ?>
+                    <div class="ce-progress-row">
+                        <span><i class="fas fa-users" style="color:#135D36;margin-right:4px;"></i><?= $placesValidees ?>/<?= $placesTotal ?> inscrits</span>
+                        <span><?= $placesRest ?> place(s) restante(s)</span>
                     </div>
-                    <div class="action-buttons">
+                    <div class="ce-progress-track">
+                        <div class="ce-progress-fill" style="width:<?= $pct ?>%;"></div>
+                    </div>
+                    <div class="ce-card-actions">
                         <?php if ($estInscrit): ?>
-                            <?php if ($statutValidation == 'en_attente'): ?>
-                                <div class="status-badge status-pending"><i class="fas fa-clock"></i> En attente</div>
-                            <?php elseif ($statutValidation == 'valide'): ?>
-                                <div class="status-badge status-confirmed"><i class="fas fa-check-circle"></i> Inscrit</div>
+                            <?php if ($statutVal === 'valide'): ?>
+                                <div class="ce-status ce-status-ok"><i class="fas fa-check-circle"></i> Inscrit</div>
+                            <?php elseif ($statutVal === 'en_attente'): ?>
+                                <div class="ce-status ce-status-pending"><i class="fas fa-clock"></i> En attente</div>
                             <?php else: ?>
-                                <div class="status-badge status-refused"><i class="fas fa-times-circle"></i> Refusé</div>
+                                <div class="ce-status ce-status-refused"><i class="fas fa-times-circle"></i> Refusé</div>
                             <?php endif; ?>
                         <?php elseif ($estComplet): ?>
-                            <div class="status-badge status-full"><i class="fas fa-ban"></i> Complet</div>
+                            <div class="ce-status ce-status-full"><i class="fas fa-ban"></i> Complet</div>
                         <?php else: ?>
-                            <!-- Bouton inscription pour TOUS les utilisateurs connectés (y compris admin) -->
-                            <button class="btn-subscribe btn-inscrire"><i class="fas fa-ticket-alt"></i> S'inscrire</button>
+                            <button class="ce-btn-sub btn-inscrire"><i class="fas fa-ticket-alt"></i> S'inscrire</button>
                         <?php endif; ?>
-                        
-                        <!-- Bouton Partager Facebook avec message automatique -->
-                        <button onclick="partagerFacebook(<?php echo $event['id']; ?>, '<?php echo htmlspecialchars(addslashes($event['titre'])); ?>', '<?php echo htmlspecialchars(addslashes($event['lieu'])); ?>', '<?php echo date('d/m/Y', strtotime($event['date_evenement'])); ?>', '<?php echo htmlspecialchars(addslashes($event['description'])); ?>')" class="btn-share">
-                            <i class="fab fa-facebook-f"></i> Partager sur Facebook
+                        <button onclick="partagerFacebook(<?= $event['id'] ?>, '<?= htmlspecialchars(addslashes($event['titre'])) ?>', '<?= htmlspecialchars(addslashes($event['lieu'])) ?>', '<?= date('d/m/Y', strtotime($event['date_evenement'])) ?>', '')" class="ce-btn-share">
+                            <i class="fab fa-facebook-f"></i>
                         </button>
-                        
                         <?php if ($isAdmin): ?>
-                        <div class="admin-buttons">
-                            <a href="<?php echo BASE_URL; ?>/views/evenement/modifier.php?id=<?php echo $event['id']; ?>" class="btn-admin btn-edit"><i class="fas fa-edit"></i></a>
-                            <a href="<?php echo BASE_URL; ?>/views/evenement/participants.php?id=<?php echo $event['id']; ?>" class="btn-admin btn-users"><i class="fas fa-users"></i></a>
-                            <a href="<?php echo BASE_URL; ?>/views/evenement/supprimer.php?id=<?php echo $event['id']; ?>" class="btn-admin btn-delete" onclick="return confirm('Supprimer ?')"><i class="fas fa-trash"></i></a>
+                        <div class="ce-admin-row" style="width:100%;">
+                            <a href="<?= BASE_URL ?>/views/evenement/modifier.php?id=<?= $event['id'] ?>" class="ce-admin-btn ce-btn-edit"><i class="fas fa-edit"></i> Modifier</a>
+                            <a href="<?= BASE_URL ?>/views/evenement/participants.php?id=<?= $event['id'] ?>" class="ce-admin-btn ce-btn-users"><i class="fas fa-users"></i> Participants</a>
+                            <a href="<?= BASE_URL ?>/views/evenement/supprimer.php?id=<?= $event['id'] ?>" class="ce-admin-btn ce-btn-del" onclick="return confirm('Supprimer ?')"><i class="fas fa-trash"></i></a>
                         </div>
                         <?php endif; ?>
                     </div>
                 </div>
             </div>
             <?php endforeach; ?>
+        </div>
         <?php endif; ?>
 
-        <!-- ========== CALENDRIER ========== -->
-        <div class="calendar-container">
+        <!-- Calendar -->
+        <div class="ce-calendar-wrap">
+            <div class="ce-calendar-title"><i class="fas fa-calendar-alt"></i> Calendrier des événements</div>
             <div id="calendar"></div>
         </div>
-    </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <p class="mb-0">&copy; 2024 Smart Municipality - Tous droits réservés</p>
+    </div><!-- /ce-main -->
+
+    <!-- ── Right: Mes participations ── -->
+    <aside class="ce-sidebar">
+        <div class="ce-side-panel">
+            <div class="ce-side-header">
+                <i class="fas fa-ticket-alt"></i>
+                <h3>Mes réservations</h3>
+                <?php if ($isLoggedIn): ?>
+                    <span class="count-badge"><?= count($mesParticipations) ?></span>
+                <?php endif; ?>
+            </div>
+            <div class="ce-side-body">
+                <?php if (!$isLoggedIn): ?>
+                    <div class="ce-side-login">
+                        <i class="fas fa-lock"></i>
+                        <p>Connectez-vous pour voir vos réservations</p>
+                        <a href="<?= BASE_URL ?>/index.php?route=login" class="ce-login-link">Se connecter</a>
+                    </div>
+                <?php elseif (empty($mesParticipations)): ?>
+                    <div class="ce-no-part">
+                        <i class="fas fa-calendar-times"></i>
+                        <p>Vous n'avez aucune réservation pour le moment.</p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($mesParticipations as $mp): ?>
+                    <div class="ce-part-item">
+                        <div class="ce-part-title"><?= htmlspecialchars($mp['titre']) ?></div>
+                        <div class="ce-part-meta">
+                            <span><i class="fas fa-calendar-day" style="width:14px;color:#135D36;"></i> <?= date('d/m/Y', strtotime($mp['date_evenement'])) ?></span>
+                            <span><i class="fas fa-map-marker-alt" style="width:14px;color:#135D36;"></i> <?= htmlspecialchars($mp['lieu']) ?></span>
+                            <span><i class="fas fa-users" style="width:14px;color:#135D36;"></i> <?= (int)$mp['nombre_participants'] ?> participant(s)</span>
+                        </div>
+                        <div class="ce-part-foot">
+                            <?php if ($mp['statut_validation'] === 'valide'): ?>
+                                <span class="ce-pbadge ce-pb-ok"><i class="fas fa-check"></i> Validé</span>
+                            <?php elseif ($mp['statut_validation'] === 'en_attente'): ?>
+                                <span class="ce-pbadge ce-pb-wait"><i class="fas fa-clock"></i> En attente</span>
+                            <?php else: ?>
+                                <span class="ce-pbadge ce-pb-no"><i class="fas fa-times"></i> Refusé</span>
+                            <?php endif; ?>
+                            <a href="<?= BASE_URL ?>/index.php?action=participation_annuler&event_id=<?= (int)$mp['event_id'] ?>"
+                               class="ce-cancel-btn"
+                               onclick="return confirm('Annuler cette réservation ?')">
+                                Annuler
+                            </a>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                    <div style="text-align:center;margin-top:10px;">
+                        <a href="<?= BASE_URL ?>/index.php?action=mes_participations" style="font-size:.75rem;color:#135D36;font-weight:600;text-decoration:none;">
+                            Voir toutes mes participations →
+                        </a>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
-    </footer>
+    </aside>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Modal elements
-        const modal = document.getElementById('inscriptionModal');
-        const closeBtn = document.getElementById('closeModalBtn');
-        const confirmBtn = document.getElementById('confirmModalBtn');
-        const nbInput = document.getElementById('nbParticipants');
-        
-        let currentEventId = null;
-        let currentPlaces = 0;
-        
-        function openModal(eventId, title, lieu, date, heure, places) {
-            currentEventId = eventId;
-            currentPlaces = places;
-            document.getElementById('modalTitle').innerHTML = title;
-            document.getElementById('modalLieu').innerHTML = lieu;
-            document.getElementById('modalDate').innerHTML = date;
-            document.getElementById('modalHeure').innerHTML = heure;
-            document.getElementById('placesRestantes').innerHTML = places;
-            const maxVal = Math.min(10, places);
-            nbInput.max = maxVal;
-            nbInput.value = 1;
-            modal.style.display = 'flex';
-        }
-        
-        function closeModal() {
-            modal.style.display = 'none';
-            currentEventId = null;
-        }
-        
-        function confirmInscription() {
-            if (!currentEventId) return;
-            let nb = parseInt(nbInput.value);
-            if (isNaN(nb) || nb < 1) nb = 1;
-            if (nb > currentPlaces) {
-                alert(`⚠️ Il ne reste que ${currentPlaces} place(s) disponible(s).`);
-                return;
-            }
-            window.location.href = `views/participation/ajouter.php?event_id=${currentEventId}&nb_participants=${nb}`;
-        }
-        
-        if (closeBtn) closeBtn.onclick = closeModal;
-        if (confirmBtn) confirmBtn.onclick = confirmInscription;
-        
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) closeModal();
-        });
-        
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && modal.style.display === 'flex') closeModal();
-        });
-        
-        // Boutons d'inscription
-        document.querySelectorAll('.btn-inscrire').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const wrapper = this.closest('.event-card-wrapper');
-                if (wrapper) {
-                    openModal(
-                        wrapper.getAttribute('data-id'),
-                        wrapper.getAttribute('data-title'),
-                        wrapper.getAttribute('data-lieu'),
-                        wrapper.getAttribute('data-date'),
-                        wrapper.getAttribute('data-heure'),
-                        wrapper.getAttribute('data-places')
-                    );
-                }
-            });
-        });
-        
-        // ========== CALENDRIER INTERACTIF ==========
-        document.addEventListener('DOMContentLoaded', function() {
-            var events = <?php echo json_encode($calendarEvents); ?>;
-            
-            var calendarEl = document.getElementById('calendar');
-            if (calendarEl) {
-                var calendar = new FullCalendar.Calendar(calendarEl, {
-                    locale: 'fr',
-                    initialView: 'dayGridMonth',
-                    headerToolbar: {
-                        left: 'prev,next today',
-                        center: 'title',
-                        right: 'dayGridMonth,timeGridWeek,listWeek'
-                    },
-                    buttonText: {
-                        today: "Aujourd'hui",
-                        month: 'Mois',
-                        week: 'Semaine',
-                        list: 'Liste'
-                    },
-                    events: events,
-                    eventClick: function(info) {
-                        const event = info.event;
-                        const props = event.extendedProps;
-                        
-                        <?php if ($isAdmin): ?>
-                            window.location.href = `views/evenement/modifier.php?id=${event.id}`;
-                        <?php elseif ($isLoggedIn && !$isAdmin): ?>
-                            if (props.est_inscrit) {
-                                alert('✅ Vous êtes déjà inscrit à cet événement !');
-                                return;
-                            }
-                            if (props.est_complet) {
-                                alert('❌ Désolé, cet événement est complet !');
-                                return;
-                            }
-                            openModal(
-                                event.id,
-                                event.title,
-                                props.lieu,
-                                event.startStr,
-                                props.heure,
-                                props.places_restantes
-                            );
-                        <?php else: ?>
-                            alert('🔐 Veuillez vous connecter pour vous inscrire à cet événement.');
-                            window.location.href = 'views/auth/login.php';
-                        <?php endif; ?>
-                    },
-                    dateClick: function(info) {
-                        <?php if ($isAdmin): ?>
-                            window.location.href = `views/evenement/ajouter.php?categorie=<?php echo $categorie_id; ?>&date=${info.dateStr}`;
-                        <?php else: ?>
-                            alert('📅 Connectez-vous en tant qu\'administrateur pour ajouter un événement.');
-                        <?php endif; ?>
-                    },
-                    eventDidMount: function(info) {
-                        const props = info.event.extendedProps;
-                        let tooltip = `${info.event.title}\n📍 ${props.lieu}\n🕐 ${props.heure}\n👥 ${props.places_restantes}/${props.places_total} places`;
-                        if (props.est_complet) tooltip += '\n❌ COMPLET';
-                        if (props.est_inscrit) tooltip += '\n✅ Vous êtes inscrit';
-                        info.el.setAttribute('title', tooltip);
-                    },
-                    height: 480,
-                    contentHeight: 'auto',
-                    firstDay: 1,
-                    dayMaxEvents: true
-                });
-                calendar.render();
-            }
-        });
-        
-        // Search input handler
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
-            searchInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    const searchValue = this.value;
-                    if (searchValue) {
-                        window.location.href = `?id=<?php echo $categorie_id; ?>&search=${encodeURIComponent(searchValue)}`;
-                    }
-                }
-            });
-        }
-        
-        // Fonction pour partager sur Facebook avec message automatique
-// Fonction pour partager sur Facebook - Version simple et fiable
-function partagerFacebook(eventId, titre, lieu, date) {
-    // URL de l'événement
-    var url = '<?php echo BASE_URL; ?>/index.php?action=evenements_categorie&id=' + eventId;
-    
-    // URL de partage Facebook uniquement avec le lien
-    var shareUrl = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url);
-    
-    // Ouvrir la fenêtre de partage
-    window.open(shareUrl, 'facebook-share', 'width=600,height=400');
-    return false;
+</div><!-- /ce-layout -->
+</div><!-- /ce-page -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const modal    = document.getElementById('inscriptionModal');
+const closeBtn = document.getElementById('closeModalBtn');
+const confirmBtn = document.getElementById('confirmModalBtn');
+const nbInput  = document.getElementById('nbParticipants');
+let currentEventId = null, currentPlaces = 0;
+
+function openModal(eventId, title, lieu, date, heure, places) {
+    currentEventId = eventId;
+    currentPlaces  = parseInt(places) || 0;
+    document.getElementById('modalTitle').textContent      = title;
+    document.getElementById('modalLieu').textContent       = lieu;
+    document.getElementById('modalDate').textContent       = date;
+    document.getElementById('modalHeure').textContent      = heure || '—';
+    document.getElementById('placesRestantes').textContent = places;
+    nbInput.max   = Math.min(10, currentPlaces);
+    nbInput.value = 1;
+    modal.style.display = 'flex';
 }
-        
-        setTimeout(() => {
-            const toast = document.querySelector('.toast-message');
-            if (toast) {
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 300);
-            }
-        }, 5000);
-    </script>
+function closeModal() { modal.style.display = 'none'; currentEventId = null; }
+
+function confirmInscription() {
+    if (!currentEventId) return;
+    let nb = parseInt(nbInput.value);
+    if (isNaN(nb) || nb < 1) nb = 1;
+    if (nb > currentPlaces) { alert(`⚠️ Il ne reste que ${currentPlaces} place(s).`); return; }
+    window.location.href = `<?= BASE_URL ?>/index.php?action=participation_inscrire&event_id=${currentEventId}&nb_participants=${nb}&categorie_id=<?= $categorie_id ?>`;
+}
+
+if (closeBtn)   closeBtn.onclick   = closeModal;
+if (confirmBtn) confirmBtn.onclick = confirmInscription;
+modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+document.querySelectorAll('.btn-inscrire').forEach(btn => {
+    btn.addEventListener('click', function () {
+        const w = this.closest('.event-card-wrapper');
+        if (w) openModal(w.dataset.id, w.dataset.title, w.dataset.lieu, w.dataset.date, w.dataset.heure, w.dataset.places);
+    });
+});
+
+// Calendar
+document.addEventListener('DOMContentLoaded', function () {
+    var calendarEl = document.getElementById('calendar');
+    if (!calendarEl) return;
+    var events = <?= json_encode($calendarEvents) ?>;
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        locale: 'fr', initialView: 'dayGridMonth',
+        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listWeek' },
+        buttonText: { today: "Aujourd'hui", month: 'Mois', week: 'Semaine', list: 'Liste' },
+        events: events,
+        height: 460, firstDay: 1, dayMaxEvents: true,
+        eventClick: function (info) {
+            const ev = info.event, props = ev.extendedProps;
+            <?php if ($isAdmin): ?>
+                window.location.href = `<?= BASE_URL ?>/views/evenement/modifier.php?id=${ev.id}`;
+            <?php elseif ($isLoggedIn): ?>
+                if (props.est_inscrit) { alert('✅ Vous êtes déjà inscrit !'); return; }
+                if (props.est_complet) { alert('❌ Événement complet.'); return; }
+                openModal(ev.id, ev.title, props.lieu, ev.startStr, props.heure, props.places_restantes);
+            <?php else: ?>
+                alert('🔐 Connectez-vous pour vous inscrire.');
+                window.location.href = '<?= BASE_URL ?>/index.php?route=login';
+            <?php endif; ?>
+        },
+        dateClick: function (info) {
+            <?php if ($isAdmin): ?>
+                window.location.href = `<?= BASE_URL ?>/views/evenement/ajouter.php?categorie=<?= $categorie_id ?>&date=${info.dateStr}`;
+            <?php endif; ?>
+        },
+        eventDidMount: function (info) {
+            const p = info.event.extendedProps;
+            let tip = `${info.event.title}\n📍 ${p.lieu}\n🕐 ${p.heure}\n👥 ${p.places_restantes}/${p.places_total}`;
+            if (p.est_complet)  tip += '\n❌ COMPLET';
+            if (p.est_inscrit)  tip += '\n✅ Inscrit';
+            info.el.title = tip;
+        }
+    });
+    calendar.render();
+});
+
+function partagerFacebook(eventId) {
+    var url = '<?= BASE_URL ?>/index.php?action=evenements_categorie&id=' + eventId;
+    window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url), 'fb-share', 'width=600,height=400');
+}
+
+// Auto-dismiss toast
+setTimeout(() => {
+    const t = document.getElementById('ceToast');
+    if (t) { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 300); }
+}, 5000);
+</script>
 <?php require BASE_PATH . '/views/App/Views/layouts/footer.php'; ?>

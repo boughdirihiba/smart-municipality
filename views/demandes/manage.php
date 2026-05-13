@@ -111,6 +111,10 @@ $stmt = $db->prepare($sql);
 $stmt->execute();
 $demandes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Récupérer les services en ligne
+$stmtSel = $db->query("SELECT * FROM services_en_ligne ORDER BY id ASC");
+$servicesEnLigne = $stmtSel->fetchAll(PDO::FETCH_ASSOC);
+
 // Récupérer les fichiers
 foreach($demandes as &$demande) {
     $sqlDocs = "SELECT * FROM documents WHERE demande_id = :demande_id ORDER BY uploaded_at DESC";
@@ -125,11 +129,11 @@ foreach($demandes as &$demande) {
 <?php
 // ── Layout header (navbar) ───────────────────────────────────────────────────
 $title = 'Mes Demandes';
+$hideSidebar = true;
 require BASE_PATH . '/views/App/Views/layouts/header.php';
 ?>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
     * {
         margin: 0;
@@ -527,167 +531,6 @@ require BASE_PATH . '/views/App/Views/layouts/header.php';
         font-size: 16px;
         opacity: 0.92;
         position: relative;
-    }
-
-    /* QR Code Button */
-    .btn-qr {
-        background: rgba(255,255,255,0.2);
-        border: 2px solid rgba(255,255,255,0.3);
-        padding: 12px 28px;
-        border-radius: 50px;
-        color: white;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s;
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        margin-top: 20px;
-        font-size: 14px;
-    }
-
-    .btn-qr:hover {
-        background: rgba(255,255,255,0.3);
-        transform: translateY(-2px);
-    }
-
-    /* MODAL QR CODE */
-    .qr-modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.85);
-        z-index: 10001;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .qr-modal-content {
-        background: white;
-        border-radius: 32px;
-        padding: 35px;
-        max-width: 450px;
-        width: 90%;
-        text-align: center;
-        animation: modalFadeIn 0.3s ease;
-        position: relative;
-    }
-
-    body.dark-mode .qr-modal-content {
-        background: #1e293b;
-    }
-
-    @keyframes modalFadeIn {
-        from {
-            opacity: 0;
-            transform: scale(0.9);
-        }
-        to {
-            opacity: 1;
-            transform: scale(1);
-        }
-    }
-
-    .qr-modal-header {
-        margin-bottom: 20px;
-    }
-
-    .qr-modal-header h3 {
-        font-size: 24px;
-        font-weight: 700;
-        color: #052E16;
-        margin-bottom: 8px;
-    }
-
-    body.dark-mode .qr-modal-header h3 {
-        color: #4ade80;
-    }
-
-    .qr-modal-header p {
-        font-size: 13px;
-        color: #64748b;
-    }
-
-    .qr-code-box {
-        background: white;
-        padding: 20px;
-        border-radius: 24px;
-        margin: 20px 0;
-        display: inline-block;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    }
-
-    #qrCodeContainer {
-        display: flex;
-        justify-content: center;
-    }
-
-    #qrCodeContainer canvas,
-    #qrCodeContainer img {
-        width: 200px !important;
-        height: 200px !important;
-    }
-
-    .qr-info {
-        background: #f0fdf4;
-        padding: 12px 15px;
-        border-radius: 16px;
-        margin: 15px 0;
-        font-size: 12px;
-        color: #166534;
-    }
-
-    body.dark-mode .qr-info {
-        background: #064e3b;
-        color: #4ade80;
-    }
-
-    .qr-info i {
-        margin-right: 8px;
-    }
-
-    .qr-modal-buttons {
-        display: flex;
-        gap: 12px;
-        justify-content: center;
-        margin-top: 20px;
-    }
-
-    .btn-close-modal {
-        background: #f1f5f9;
-        color: #475569;
-        border: none;
-        padding: 10px 24px;
-        border-radius: 40px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-
-    .btn-close-modal:hover {
-        background: #e2e8f0;
-    }
-
-    .btn-download-qr {
-        background: linear-gradient(135deg, #052E16, #0a4a22);
-        color: white;
-        border: none;
-        padding: 10px 24px;
-        border-radius: 40px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .btn-download-qr:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(5, 46, 22, 0.3);
     }
 
     .main-container {
@@ -1432,9 +1275,6 @@ require BASE_PATH . '/views/App/Views/layouts/header.php';
         .nav-links { justify-content: flex-start; gap: 4px; }
         .nav-links a { padding: 6px 12px; font-size: 12px; }
         .notification-dropdown { width: 350px; right: -60px; }
-        .qr-modal-content { padding: 25px; }
-        #qrCodeContainer canvas,
-        #qrCodeContainer img { width: 180px !important; height: 180px !important; }
     }
 </style>
 <link rel="stylesheet" href="assets/css/chatbot.css">
@@ -1442,150 +1282,82 @@ require BASE_PATH . '/views/App/Views/layouts/header.php';
 <section class="hero">
     <h1>Bienvenue sur Smart Municipality</h1>
     <p>Votre plateforme digitale pour les démarches administratives</p>
-    <button class="btn-qr" onclick="openQrModal()">
-        <i class="fas fa-qrcode"></i> QR Code - Accès rapide aux services
-    </button>
 </section>
-
-<!-- MODAL QR CODE -->
-<div id="qrModal" class="qr-modal">
-    <div class="qr-modal-content">
-        <div class="qr-modal-header">
-            <h3><i class="fas fa-qrcode"></i> Scannez ce QR Code</h3>
-            <p>Utilisez votre smartphone pour accéder directement à tous nos services</p>
-        </div>
-        <div class="qr-code-box">
-            <div id="qrCodeContainer"></div>
-        </div>
-        <div class="qr-info">
-            <i class="fas fa-info-circle"></i> Scannez ce code avec l'appareil photo de votre smartphone
-        </div>
-        <div class="qr-modal-buttons">
-            <button class="btn-download-qr" onclick="downloadQRCode()">
-                <i class="fas fa-download"></i> Télécharger
-            </button>
-            <button class="btn-close-modal" onclick="closeQrModal()">
-                <i class="fas fa-times"></i> Fermer
-            </button>
-        </div>
-    </div>
-</div>
 
 <main class="main-container">
     <div class="tabs-container">
         <div class="tabs">
-            <button class="tab-btn active" data-tab="services"><i class="fas fa-concierge-bell"></i> Services</button>
+            <button class="tab-btn active" data-tab="services-enligne"><i class="fas fa-laptop"></i> Services en ligne <span style="background:#e2e8f0; color:#475569; padding:2px 8px; border-radius:20px; font-size:11px; margin-left:5px;"><?php echo count($servicesEnLigne); ?></span></button>
             <button class="tab-btn" data-tab="demandes"><i class="fas fa-list-alt"></i> Mes demandes <span style="background:#e2e8f0; color:#475569; padding:2px 8px; border-radius:20px; font-size:11px; margin-left:5px;"><?php echo count($demandes); ?></span></button>
             <button class="tab-btn" data-tab="documents"><i class="fas fa-file-alt"></i> Documents</button>
         </div>
     </div>
 
-    <div class="panel active" id="panel-services">
+    <div class="panel active" id="panel-services-enligne">
         <div class="services-header">
             <div class="services-header-left">
-                <h3>Nos services en ligne</h3>
-                <p><?php echo count($allServices); ?> services disponibles pour faciliter vos démarches</p>
+                <h3><i class="fas fa-laptop" style="margin-right:8px;color:var(--primary);"></i>Services en ligne</h3>
+                <p><?php echo count($servicesEnLigne); ?> service(s) disponibles — documents requis inclus</p>
             </div>
-            <div class="sort-bar">
-                <span class="sort-label"><i class="fas fa-sort-amount-down"></i> TRIER PAR</span>
-                <div class="sort-buttons">
-                    <div class="sort-group">
-                        <a href="?sort=nom&order=ASC" class="sort-btn <?php echo ($sort == 'nom' && $order == 'ASC') ? 'active' : ''; ?>">
-                            <i class="fas fa-sort-alpha-down"></i> A→Z
-                        </a>
-                        <a href="?sort=nom&order=DESC" class="sort-btn <?php echo ($sort == 'nom' && $order == 'DESC') ? 'active' : ''; ?>">
-                            <i class="fas fa-sort-alpha-up"></i> Z→A
-                        </a>
-                    </div>
-                    <div class="sort-group">
-                        <a href="?sort=popularite&order=DESC" class="sort-btn <?php echo ($sort == 'popularite' && $order == 'DESC') ? 'active' : ''; ?>">
-                            <i class="fas fa-chart-line"></i> Plus populaire
-                        </a>
-                        <a href="?sort=popularite&order=ASC" class="sort-btn <?php echo ($sort == 'popularite' && $order == 'ASC') ? 'active' : ''; ?>">
-                            <i class="fas fa-chart-line"></i> Moins populaire
-                        </a>
-                    </div>
-                    <div class="sort-group">
-                        <a href="?sort=date&order=DESC" class="sort-btn <?php echo ($sort == 'date' && $order == 'DESC') ? 'active' : ''; ?>">
-                            <i class="fas fa-calendar-alt"></i> Plus récent
-                        </a>
-                        <a href="?sort=date&order=ASC" class="sort-btn <?php echo ($sort == 'date' && $order == 'ASC') ? 'active' : ''; ?>">
-                            <i class="fas fa-calendar-alt"></i> Plus ancien
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="sort-info">
-            <i class="fas fa-chart-simple"></i> Tri actuel : <strong>
-                <?php 
-                if($sort == 'nom') {
-                    echo ($order == 'ASC') ? 'Nom (A → Z)' : 'Nom (Z → A)';
-                } elseif($sort == 'popularite') {
-                    echo ($order == 'DESC') ? 'Plus populaire d\'abord' : 'Moins populaire d\'abord';
-                } else {
-                    echo ($order == 'DESC') ? 'Plus récent d\'abord' : 'Plus ancien d\'abord';
-                }
-                ?>
-            </strong> 
-            <span style="background: white; padding: 4px 14px; border-radius: 40px; font-size: 11px; font-weight: 600;">
-                <i class="fas fa-layer-group"></i> <?php echo count($allServices); ?> service(s)
-            </span>
         </div>
 
         <div class="services-grid">
-            <?php if (!empty($allServices) && count($allServices) > 0): ?>
-                <?php foreach ($allServices as $service): ?>
-                    <div class="service-card" data-service-id="<?php echo $service['id']; ?>">
-                        <div class="card-icon">
-                            <i class="<?php echo htmlspecialchars($service['icone']); ?>"></i>
-                        </div>
-                        <h4><?php echo htmlspecialchars($service['nom']); ?></h4>
-                        <p><?php echo htmlspecialchars($service['description']); ?></p>
-                        <?php if(isset($service['demandes_count']) && $service['demandes_count'] > 0): ?>
-                            <div class="service-stats">
-                                <i class="fas fa-users"></i> <?php echo $service['demandes_count']; ?> demande(s)
-                            </div>
-                        <?php endif; ?>
-                        <div class="service-meta">
-                            <i class="fas fa-calendar-alt"></i> Créé le <?php echo date('d/m/Y', strtotime($service['date_creation'])); ?>
-                        </div>
-                        
-                        <div class="rating-container" id="rating-<?php echo $service['id']; ?>">
-                            <div class="rating-display">
-                                <div class="stars-static" id="stars-static-<?php echo $service['id']; ?>">
-                                    <?php 
-                                    $fullStars = floor($service['rating_avg']);
-                                    $halfStar = ($service['rating_avg'] - $fullStars) >= 0.5;
-                                    for($i = 1; $i <= 5; $i++):
-                                        if($i <= $fullStars):
-                                    ?>
-                                        <i class="fas fa-star star-filled"></i>
-                                    <?php elseif($i == $fullStars + 1 && $halfStar): ?>
-                                        <i class="fas fa-star-half-alt star-filled"></i>
-                                    <?php else: ?>
-                                        <i class="far fa-star star-empty"></i>
-                                    <?php endif; endfor; ?>
-                                </div>
-                                <span class="rating-average"><?php echo $service['rating_avg']; ?>/5</span>
-                                <span class="rating-count">(<?php echo $service['rating_count']; ?> avis)</span>
-                            </div>
-                            <div id="rating-input-<?php echo $service['id']; ?>">
-                                <div class="loading-rating">Chargement...</div>
-                            </div>
-                            <div id="rating-list-<?php echo $service['id']; ?>" class="rating-list"></div>
-                        </div>
-                        
-                        <a href="index.php?action=create&service=<?php echo urlencode($service['nom']); ?>" class="card-btn">
-                            Accéder au service <i class="fas fa-arrow-right"></i>
-                        </a>
+            <?php if (!empty($servicesEnLigne)): ?>
+                <?php foreach ($servicesEnLigne as $sel): ?>
+                <div class="service-card" style="display:flex;flex-direction:column;gap:12px;">
+
+                    <!-- Icon + titre -->
+                    <div class="card-icon">
+                        <?php
+                            $ico = $sel['icone'] ?? '';
+                            if (str_starts_with($ico, 'fa')) {
+                                echo '<i class="fas ' . htmlspecialchars($ico) . '"></i>';
+                            } else {
+                                $iconMap = [
+                                    'legalisation.png' => 'fa-stamp',
+                                    'extrait.png'      => 'fa-file-alt',
+                                    'paiement.png'     => 'fa-credit-card',
+                                    'depot.png'        => 'fa-folder-open',
+                                ];
+                                $faIcon = $iconMap[$ico] ?? 'fa-cogs';
+                                echo '<i class="fas ' . $faIcon . '"></i>';
+                            }
+                        ?>
                     </div>
+
+                    <h4><?php echo htmlspecialchars($sel['nom']); ?></h4>
+                    <p><?php echo htmlspecialchars($sel['description'] ?? ''); ?></p>
+
+                    <!-- Documents requis -->
+                    <?php if (!empty($sel['documents_requis'])): ?>
+                    <div style="background:#f0fdf4;border-radius:10px;padding:12px 14px;border-left:3px solid #16a34a;">
+                        <div style="font-size:12px;font-weight:700;color:#16a34a;margin-bottom:8px;">
+                            <i class="fas fa-paperclip"></i> Documents requis
+                        </div>
+                        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:5px;">
+                            <?php
+                            $docs = array_filter(array_map('trim', explode(',', $sel['documents_requis'])));
+                            foreach ($docs as $doc): ?>
+                            <li style="font-size:12px;color:#374151;display:flex;align-items:flex-start;gap:6px;">
+                                <i class="fas fa-check-circle" style="color:#16a34a;margin-top:2px;flex-shrink:0;"></i>
+                                <?php echo htmlspecialchars($doc); ?>
+                            </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- CTA -->
+                    <a href="index.php?action=create&service=<?php echo urlencode($sel['nom']); ?>"
+                       class="card-btn" style="margin-top:auto;">
+                        Soumettre une demande <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
                 <?php endforeach; ?>
             <?php else: ?>
-                <div class="empty-state" style="grid-column: 1/-1;">
-                    <i class="fas fa-folder-open"></i>
-                    <p>Aucun service disponible pour le moment</p>
+                <div class="empty-state" style="grid-column:1/-1;">
+                    <i class="fas fa-laptop-code"></i>
+                    <p>Aucun service en ligne disponible pour le moment</p>
                 </div>
             <?php endif; ?>
         </div>
@@ -1716,53 +1488,6 @@ require BASE_PATH . '/views/App/Views/layouts/header.php';
 
 <script>
     // ========== QR CODE MODAL ==========
-    const baseUrl = window.location.origin + window.location.pathname;
-    const servicesListUrl = baseUrl + '?action=services_list';
-    let qrCode = null;
-
-    function openQrModal() {
-        const modal = document.getElementById('qrModal');
-        modal.style.display = 'flex';
-        
-        // Générer le QR code
-        const container = document.getElementById('qrCodeContainer');
-        container.innerHTML = '';
-        
-        qrCode = new QRCode(container, {
-            text: servicesListUrl,
-            width: 200,
-            height: 200,
-            colorDark: "#052E16",
-            colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.H
-        });
-    }
-
-    function closeQrModal() {
-        const modal = document.getElementById('qrModal');
-        modal.style.display = 'none';
-    }
-
-    function downloadQRCode() {
-        const canvas = document.querySelector('#qrCodeContainer canvas');
-        if (canvas) {
-            const link = document.createElement('a');
-            link.download = 'smart_municipality_services.png';
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-        } else {
-            alert('Impossible de télécharger le QR code');
-        }
-    }
-
-    // Fermer le modal en cliquant en dehors
-    window.onclick = function(event) {
-        const modal = document.getElementById('qrModal');
-        if (event.target === modal) {
-            closeQrModal();
-        }
-    }
-
     // ========== MODE SOMBRE ==========
     function initDarkMode() {
         const darkMode = localStorage.getItem('darkMode');

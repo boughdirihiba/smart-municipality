@@ -425,11 +425,23 @@ details.notifications-box[open] .notifications-panel {
                 <span class="icon">📰</span>
                 <span class="label">Blog</span>
             </a>
-            <a href="<?php echo BASE_URL; ?>/index.php?route=rendez_vous/index"
-               class="sidebar-link <?php echo strpos($currentRoute, 'rendez_vous') !== false ? 'active' : ''; ?>"
+            <a href="<?php echo BASE_URL; ?>/index.php?action=rdv_backoffice"
+               class="sidebar-link <?php echo ($_GET['action'] ?? '') === 'rdv_backoffice' ? 'active' : ''; ?>"
                title="Gestion des rendez-vous">
                 <span class="icon">🗓️</span>
                 <span class="label">Rendez-vous</span>
+            </a>
+            <a href="<?php echo BASE_URL; ?>/index.php?action=rdv_categories"
+               class="sidebar-link <?php echo ($_GET['action'] ?? '') === 'rdv_categories' ? 'active' : ''; ?>"
+               title="Catégories RDV">
+                <span class="icon">📂</span>
+                <span class="label">Catégories RDV</span>
+            </a>
+            <a href="<?php echo BASE_URL; ?>/index.php?action=participations_admin"
+               class="sidebar-link <?php echo ($_GET['action'] ?? '') === 'participations_admin' ? 'active' : ''; ?>"
+               title="Gestion des participations">
+                <span class="icon">🎫</span>
+                <span class="label">Participations</span>
             </a>
             <a href="<?php echo BASE_URL; ?>/index.php?route=home/index&role=citoyen"
                class="sidebar-link"

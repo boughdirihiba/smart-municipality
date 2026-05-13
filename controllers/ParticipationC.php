@@ -27,10 +27,6 @@ public function ajouterParticipation($participation) {
             return ['success' => false, 'message' => 'Vous êtes déjà inscrit'];
         }
         
-        // Récupérer les infos utilisateur et événement
-        $userInfo = $this->getUserInfo($participation->getUserId());
-        $eventInfo = $this->getEventInfo($participation->getEventId());
-        
         // Vérifier les places disponibles
         $placesPrises = $this->compterParticipationsValidees($participation->getEventId());
         $queryEvent = $this->db->prepare('SELECT max_participants FROM evenements WHERE id = :id');
@@ -43,8 +39,8 @@ public function ajouterParticipation($participation) {
         
         // Insérer la participation
         $query = $this->db->prepare('
-            INSERT INTO participations (user_id, event_id, date_participation, statut, statut_validation, nombre_participants) 
-            VALUES (:user_id, :event_id, NOW(), "inscrit", "en_attente", :nombre_participants)
+            INSERT INTO participations (user_id, event_id, date_participation, statut, statut_validation, nombre_participants)
+            VALUES (:user_id, :event_id, NOW(), "inscrit", "valide", :nombre_participants)
         ');
         $query->execute([
             'user_id' => $participation->getUserId(),
@@ -52,14 +48,7 @@ public function ajouterParticipation($participation) {
             'nombre_participants' => $participation->getNombreParticipants()
         ]);
         
-        // ⚠️ SUPPRIME OU COMMENTE CES 3 LIGNES ⚠️
-        // if ($userInfo && $eventInfo) {
-        //     require_once __DIR__ . '/MailerC.php';
-        //     $mailer = new MailerC();
-        //     $mailer->envoyerConfirmationInscription(...);
-        // }
-        
-        return ['success' => true, 'message' => '✅ Inscription en attente de validation.'];
+        return ['success' => true, 'message' => 'Inscription confirmée.'];
         
     } catch (Exception $e) {
         return ['success' => false, 'message' => 'Erreur: ' . $e->getMessage()];
@@ -138,18 +127,19 @@ public function ajouterParticipation($participation) {
             ');
             $update->execute(['id' => $participation_id]);
             
-            // ENVOI DE L'EMAIL DE VALIDATION
-            require_once __DIR__ . '/MailerC.php';
-            $mailer = new MailerC();
-            $mailer->envoyerValidationInscription(
-                $participation['email'],
-                $participation['nom'],
-                $participation['prenom'],
-                $participation['titre'],
-                $participation['date_evenement'],
-                $participation['heure'],
-                $participation['lieu']
-            );
+            // Email (optional — only if mailer is available)
+            $mailerFile = __DIR__ . '/MailerC.php';
+            if (file_exists($mailerFile)) {
+                require_once $mailerFile;
+                $cls = 'MailerC';
+                $mailer = new $cls();
+                $mailer->envoyerValidationInscription(
+                    $participation['email'], $participation['nom'],
+                    $participation['prenom'], $participation['titre'],
+                    $participation['date_evenement'], $participation['heure'],
+                    $participation['lieu']
+                );
+            }
             
             return [
                 'success' => true, 
@@ -348,6 +338,71 @@ public function ajouterParticipation($participation) {
         }
     }
         /**
+     * AFFICHER TOUTES LES PARTICIPATIONS (admin)
+     */
+    public function afficherToutesParticipations() {
+        try {
+            $query = $this->db->query('
+                SELECT p.*, u.nom, u.prenom, u.email,
+                       e.titre, e.lieu, e.date_evenement, e.heure,
+                       c.nom as categorie_nom
+                FROM participations p
+                JOIN users u ON p.user_id = u.id
+                JOIN evenements e ON p.event_id = e.id
+                LEFT JOIN categorie_evenement c ON e.categorie_id = c.id
+                ORDER BY p.date_participation DESC
+            ');
+            return $query->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * ALIAS pour modifier.php
+     */
+    public function afficherParticipationParId($id) {
+        return $this->getParticipationById($id);
+    }
+
+    /**
+     * MODIFIER UNE PARTICIPATION
+     */
+    public function modifierParticipation($participation, $id) {
+        try {
+            $query = $this->db->prepare('
+                UPDATE participations SET
+                    statut = :statut,
+                    nombre_participants = :nombre_participants,
+                    commentaire_refus = :commentaire_refus
+                WHERE id = :id
+            ');
+            $query->execute([
+                'id'                 => $id,
+                'statut'             => $participation->getStatut(),
+                'nombre_participants'=> $participation->getNombreParticipants(),
+                'commentaire_refus'  => $participation->getCommentaireRefus(),
+            ]);
+            return ['success' => true];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * SUPPRIMER UNE PARTICIPATION PAR ID
+     */
+    public function supprimerParticipationById($id) {
+        try {
+            $query = $this->db->prepare('DELETE FROM participations WHERE id = :id');
+            $query->execute(['id' => $id]);
+            return ['success' => true];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    /**
      * RÉCUPÉRER LES INFOS UTILISATEUR
      */
     private function getUserInfo($userId) {

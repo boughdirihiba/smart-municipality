@@ -75,7 +75,13 @@ switch ($action) {
 
     // ─ Blog ──────────────────────────────────────────────────────────────────
     case 'blog':
+        $title = 'Blog';
+        $hideSidebar = true;
+        $flash = get_flash();
+        $sessionAvatar = $_SESSION['user']['avatar'] ?? $_SESSION['user_avatar'] ?? 'https://randomuser.me/api/portraits/lego/1.jpg';
+        require BASE_PATH . '/views/App/Views/layouts/header.php';
         include __DIR__ . '/views/frontoffice.php';
+        require BASE_PATH . '/views/App/Views/layouts/footer.php';
         break;
     case 'getpost':
         $title = 'Blog';
@@ -124,7 +130,7 @@ switch ($action) {
             $cat_ev['nb_evenements'] = $catC_ev->compterEvenementsParCategorie($cat_ev['id']);
             $categories[] = $cat_ev;
         }
-        $title = 'Événements'; $flash = get_flash();
+        $title = 'Événements'; $hideSidebar = true; $flash = get_flash();
         require BASE_PATH . '/views/App/Views/layouts/header.php';
         include __DIR__ . '/views/evenement/categories.php';
         require BASE_PATH . '/views/App/Views/layouts/footer.php';
@@ -141,6 +147,75 @@ switch ($action) {
     case 'rendez_vous':
         include __DIR__ . '/views/frontoffice/rendez-vous.php';
         break;
+
+    case 'rdv_backoffice':
+        include __DIR__ . '/views/backoffice/rendez-vous.php';
+        break;
+
+    case 'rdv_categories':
+        include __DIR__ . '/views/backoffice/categories.php';
+        break;
+
+    case 'rdv_confirm':
+    case 'rdv_cancel': {
+        require_once __DIR__ . '/config/database.php';
+        require_once __DIR__ . '/controllers/RendezVousController.php';
+        $db_rdv = new Database(); $conn_rdv = $db_rdv->getConnection(); $rdv_o = new RendezVous($conn_rdv);
+        $id_rdv = (int)($_GET['id'] ?? 0);
+        if ($id_rdv) {
+            $row = RendezVousController::readOne($rdv_o, $id_rdv);
+            if ($row) {
+                $rdv_o->setStatut($action === 'rdv_confirm' ? 'confirme' : 'annule');
+                RendezVousController::update($rdv_o)
+                    ? set_flash('success', 'Rendez-vous #' . $id_rdv . ' ' . ($action === 'rdv_confirm' ? 'confirmé' : 'annulé') . '.')
+                    : set_flash('error', 'Erreur lors de la mise à jour.');
+            }
+        }
+        header('Location: ' . BASE_URL . '/index.php?action=rdv_backoffice'); exit();
+    }
+
+    case 'rdv_create_category':
+        require_once __DIR__ . '/config/database.php';
+        require_once __DIR__ . '/controllers/RendezVousController.php';
+        $db_rdv = new Database(); $conn_rdv = $db_rdv->getConnection(); $rdv_o = new RendezVous($conn_rdv);
+        $nom_c = trim($_POST['nom'] ?? '');
+        $desc_c = trim($_POST['description'] ?? '');
+        $icone_c = trim($_POST['icone'] ?? 'rdv.svg');
+        if (empty($nom_c)) { set_flash('error', 'Nom requis.'); header('Location: ' . BASE_URL . '/index.php?action=rdv_categories&new=1'); exit(); }
+        $newId = RendezVousController::createCategory($rdv_o, $nom_c, $desc_c, $icone_c);
+        $newId ? set_flash('success', "Catégorie \"$nom_c\" créée.") : set_flash('error', 'Erreur lors de la création.');
+        header('Location: ' . BASE_URL . '/index.php?action=rdv_categories' . ($newId ? '&edit=' . $newId : '&new=1')); exit();
+
+    case 'rdv_update_category':
+        require_once __DIR__ . '/config/database.php';
+        require_once __DIR__ . '/controllers/RendezVousController.php';
+        $db_rdv = new Database(); $conn_rdv = $db_rdv->getConnection(); $rdv_o = new RendezVous($conn_rdv);
+        $id_c = (int)($_POST['id'] ?? 0);
+        $nom_c = trim($_POST['nom'] ?? '');
+        $desc_c = trim($_POST['description'] ?? '');
+        $icone_c = trim($_POST['icone'] ?? 'rdv.svg');
+        if (!$id_c || empty($nom_c)) { set_flash('error', 'Données invalides.'); header('Location: ' . BASE_URL . '/index.php?action=rdv_categories'); exit(); }
+        RendezVousController::updateCategory($rdv_o, $id_c, $nom_c, $desc_c, $icone_c)
+            ? set_flash('success', "Catégorie mise à jour.")
+            : set_flash('error', 'Erreur lors de la mise à jour.');
+        header('Location: ' . BASE_URL . '/index.php?action=rdv_categories&edit=' . $id_c); exit();
+
+    case 'rdv_delete_category':
+        require_once __DIR__ . '/config/database.php';
+        require_once __DIR__ . '/controllers/RendezVousController.php';
+        $db_rdv = new Database(); $conn_rdv = $db_rdv->getConnection(); $rdv_o = new RendezVous($conn_rdv);
+        $id_rdv = (int)($_GET['id'] ?? 0);
+        if (!$id_rdv) { header('Location: ' . BASE_URL . '/index.php?action=rdv_categories'); exit(); }
+        try {
+            RendezVousController::deleteCategory($rdv_o, $id_rdv)
+                ? set_flash('success', 'Catégorie supprimée.')
+                : set_flash('error', 'Erreur lors de la suppression.');
+        } catch (\PDOException $e) {
+            set_flash('error', strpos($e->getMessage(), '1451') !== false
+                ? 'Impossible : des rendez-vous sont liés à cette catégorie.'
+                : 'Erreur: ' . $e->getMessage());
+        }
+        header('Location: ' . BASE_URL . '/index.php?action=rdv_categories'); exit();
 
     case 'rdv_create_multi':
         require_once __DIR__ . '/config/database.php';
@@ -220,6 +295,84 @@ switch ($action) {
     case 'profil':
         redirect('home/index');
         break;
+
+    // ─ Participations (citizen) ───────────────────────────────────────────────
+    case 'mes_participations':
+        $title       = 'Mes participations';
+        $hideSidebar = true;
+        $flash       = get_flash();
+        require BASE_PATH . '/views/App/Views/layouts/header.php';
+        include __DIR__ . '/views/participation/mes_participations.php';
+        require BASE_PATH . '/views/App/Views/layouts/footer.php';
+        break;
+
+    case 'participation_inscrire': {
+        require_once __DIR__ . '/controllers/ParticipationC.php';
+        require_once __DIR__ . '/Models/Participation.php';
+        $pUserId   = $_SESSION['user_id'] ?? $_SESSION['user']['db_id'] ?? null;
+        if (!$pUserId) {
+            header('Location: ' . BASE_URL . '/index.php?route=login'); exit();
+        }
+        $pEventId  = isset($_GET['event_id'])        ? (int)$_GET['event_id']        : 0;
+        $pNb       = isset($_GET['nb_participants'])  ? max(1, (int)$_GET['nb_participants']) : 1;
+        $pCatId    = isset($_GET['categorie_id'])     ? (int)$_GET['categorie_id']    : 0;
+        if (!$pEventId) {
+            header('Location: ' . BASE_URL . '/index.php?action=evenements'); exit();
+        }
+        $pC     = new ParticipationC();
+        $pObj   = new Participation($pUserId, $pEventId, 'inscrit', $pNb);
+        $pRes   = $pC->ajouterParticipation($pObj);
+        $redir  = BASE_URL . '/index.php?action=evenements_categorie&id=' . $pCatId;
+        header('Location: ' . $redir . ($pRes['success'] ? '&success=inscrit' : '&error=' . urlencode($pRes['message'])));
+        exit();
+    }
+
+    case 'participation_annuler': {
+        require_once __DIR__ . '/controllers/ParticipationC.php';
+        $pUserId  = $_SESSION['user_id'] ?? $_SESSION['user']['db_id'] ?? null;
+        $pEventId = isset($_GET['event_id']) ? (int)$_GET['event_id'] : 0;
+        if ($pUserId && $pEventId) {
+            $pC  = new ParticipationC();
+            $pRes = $pC->annulerParticipation($pUserId, $pEventId);
+            header('Location: ' . BASE_URL . '/index.php?action=mes_participations&' . ($pRes['success'] ? 'annule=success' : 'error=' . urlencode($pRes['message'])));
+        } else {
+            header('Location: ' . BASE_URL . '/index.php?action=mes_participations');
+        }
+        exit();
+    }
+
+    // ─ Participations (admin) ────────────────────────────────────────────────
+    case 'participations_admin':
+        $title        = 'Gestion des participations';
+        $forceSidebar = true;
+        $hideNavbar   = true;
+        $flash        = get_flash();
+        require BASE_PATH . '/views/App/Views/layouts/header.php';
+        include __DIR__ . '/views/participation/admin_list.php';
+        require BASE_PATH . '/views/App/Views/layouts/footer.php';
+        break;
+
+    case 'participation_valider': {
+        require_once __DIR__ . '/controllers/ParticipationC.php';
+        $pId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        if ($pId) { (new ParticipationC())->validerParticipation($pId); }
+        header('Location: ' . BASE_URL . '/index.php?action=participations_admin&success=valide'); exit();
+    }
+
+    case 'participation_refuser': {
+        require_once __DIR__ . '/controllers/ParticipationC.php';
+        $pId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        $pCommentaire = $_POST['commentaire'] ?? null;
+        if ($pId) { (new ParticipationC())->refuserParticipation($pId, $pCommentaire); }
+        header('Location: ' . BASE_URL . '/index.php?action=participations_admin&success=refuse'); exit();
+    }
+
+    case 'participation_supprimer': {
+        require_once __DIR__ . '/controllers/ParticipationC.php';
+        $pId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        if ($pId) { (new ParticipationC())->supprimerParticipationById($pId); }
+        header('Location: ' . BASE_URL . '/index.php?action=participations_admin&success=supprime'); exit();
+    }
 
     default:
         return false;   // tell caller: unknown action

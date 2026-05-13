@@ -79,9 +79,9 @@ class DemandeController {
             exit();
         }
         
-        // Récupérer le service_id à partir du nom du service
+        // Récupérer le service_id à partir du nom du service (services_en_ligne)
         $service_id = null;
-        $sqlService = "SELECT id FROM services WHERE nom = :nom";
+        $sqlService = "SELECT id FROM services_en_ligne WHERE nom = :nom";
         $stmtService = $this->db->prepare($sqlService);
         $stmtService->bindParam(":nom", $_POST['type_service']);
         $stmtService->execute();
@@ -89,7 +89,7 @@ class DemandeController {
         if($service) {
             $service_id = $service['id'];
         }
-        
+
         $sql = "INSERT INTO demandes (id, nom, type_service, documents, date_creation, service_id, user_id)
                 VALUES (:id, :nom, :type_service, :documents, :date_creation, :service_id, 1)";
         
@@ -141,9 +141,9 @@ class DemandeController {
             exit();
         }
 
-        // Récupérer le service_id
+        // Récupérer le service_id (services_en_ligne)
         $service_id = null;
-        $sqlService = "SELECT id FROM services WHERE nom = :nom";
+        $sqlService = "SELECT id FROM services_en_ligne WHERE nom = :nom";
         $stmtService = $this->db->prepare($sqlService);
         $stmtService->bindParam(":nom", $_POST['type_service']);
         $stmtService->execute();

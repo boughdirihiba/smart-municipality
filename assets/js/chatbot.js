@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             // Utilisation de x-www-form-urlencoded au lieu de JSON
-            const response = await fetch('index.php?controller=Chatbot&action=sendMessage', {
+            const response = await fetch('chatbot_api.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: 'message=' + encodeURIComponent(message)

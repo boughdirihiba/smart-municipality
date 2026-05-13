@@ -335,6 +335,7 @@ $redirectUrl   = rawurlencode($_SERVER['REQUEST_URI'] ?? '/index.php');
 ?>
 <body class="role-<?php echo $userRole; ?> theme-<?php echo $currentTheme; ?><?php echo $currentTheme === 'dark' ? ' dark-mode' : ''; ?>" style="font-size: <?php echo $currentFontSize; ?>%;">
 
+<?php if (empty($hideNavbar)): ?>
 <nav class="navbar" id="navbar">
 
     <!-- Brand -->
@@ -446,9 +447,10 @@ $redirectUrl   = rawurlencode($_SERVER['REQUEST_URI'] ?? '/index.php');
 
     </div>
 </nav>
+<?php endif; ?>
 
 <div class="app-shell">
-    <?php if ($userRole !== 'citoyen' && empty($hideSidebar)): ?>
+    <?php if (($userRole !== 'citoyen' || !empty($forceSidebar)) && empty($hideSidebar)): ?>
         <?php require BASE_PATH . '/views/App/Views/layouts/sidebar.php'; ?>
     <?php endif; ?>
     <main class="app-content">
